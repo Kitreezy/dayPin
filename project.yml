@@ -1,0 +1,45 @@
+name: DayPin
+options:
+  bundleIdPrefix: com.daypin
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "15.0"
+  groupSortPosition: top
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: 5.9
+    IPHONEOS_DEPLOYMENT_TARGET: 15.0
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+
+targets:
+  DayPin:
+    type: application
+    platform: iOS
+    sources:
+      - path: DayPin
+    info:
+      path: DayPin/Info.plist
+      properties:
+        CFBundleName: DayPin
+        CFBundleDisplayName: DayPin
+        UILaunchStoryboardName: LaunchScreen
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
+        NSPhotoLibraryUsageDescription: "Используется для добавления фото к заметкам"
+        NSCameraUsageDescription: "Используется для создания фото к заметкам"
+        UIUserInterfaceStyle: Automatic
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.daypin.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - sdk: CoreData.framework

@@ -1,0 +1,64 @@
+# ─── macOS ───────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ─── Xcode ───────────────────────────────────────────────
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+
+# ─── Swift Package Manager ───────────────────────────────
+.build/
+.swiftpm/
+*.resolved          # commit this if you want reproducible builds; ignore otherwise
+
+# ─── CocoaPods (if ever added) ───────────────────────────
+Pods/
+*.xcworkspace
+!/*.xcworkspace     # keep root workspace if used
+
+# ─── Fastlane ────────────────────────────────────────────
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
+
+# ─── Archives / Distribution ─────────────────────────────
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.app.dSYM
+
+# ─── Secrets / Credentials ───────────────────────────────
+*.p12
+*.mobileprovision
+AuthKey_*.p8
+Secrets.swift
+secrets.json
+.env
+.env.*
+
+# ─── Editor temp files ───────────────────────────────────
+*.swp
+*~
+.idea/
+*.iml
+
+# ─── project.yml (XcodeGen) ──────────────────────────────
+# Keep project.yml tracked, ignore generated xcodeproj internals above

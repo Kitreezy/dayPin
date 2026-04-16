@@ -115,16 +115,6 @@ final class TodayViewController: UIViewController {
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
             withReuseIdentifier: CardTypeSectionHeader.reuseID
         )
-        cv.register(
-            TodayHeaderView.self,
-            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
-            withReuseIdentifier: TodayHeaderView.reuseID
-        )
-        cv.register(
-            TodayDateTypeSectionHeader.self,
-            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
-            withReuseIdentifier: TodayDateTypeSectionHeader.reuseID
-        )
         return cv
     }()
 
@@ -202,7 +192,7 @@ final class TodayViewController: UIViewController {
         } else {
             let df = DateFormatter()
             df.locale = Locale.current
-            df.dateFormat = "EEE d"
+            df.setLocalizedDateFormatFromTemplate("EEEd")
             navTitleLabel.text = df.string(from: currentDate).capitalized
         }
     }
@@ -387,9 +377,16 @@ final class TodayViewController: UIViewController {
     }
 
     private func applyFilters(animated: Bool = false) {
-        var text  = allCards.filter { $0.type == .text }
-        var image = allCards.filter { $0.type == .image }
-        var link  = allCards.filter { $0.type == .link }
+        let textAll  = allCards.filter { $0.type == .text }
+        let imageAll = allCards.filter { $0.type == .image }
+        let linkAll  = allCards.filter { $0.type == .link }
+
+        // Counts always reflect unfiltered day totals — so chips stay informative
+        filterChips.updateCounts(text: textAll.count, image: imageAll.count, link: linkAll.count)
+
+        var text  = textAll
+        var image = imageAll
+        var link  = linkAll
 
         switch activeFilter {
         case .text:  image = []; link  = []
@@ -417,48 +414,38 @@ final class TodayViewController: UIViewController {
     // MARK: - Layout
 
     private func makeLayout() -> UICollectionViewLayout {
-        UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
+        UICollectionViewCompositionalLayout { [weak self] _, _ in
             guard let self else { return nil }
 
-            // Empty state → full-width single item
+            // Empty state → full-width single item, no header
             if self.activeSections.isEmpty {
-                let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(120))
+                let size  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(120))
                 let item  = NSCollectionLayoutItem(layoutSize: size)
                 let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
-                let section = NSCollectionLayoutSection(group: group)
-                section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 24, trailing: 16)
-                // Date header on first (only) empty section
-                let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(90))
-                let hdr = NSCollectionLayoutBoundarySupplementaryItem(
-                    layoutSize: hdrSize,
-                    elementKind: UICollectionView.elementKindSectionHeader,
-                    alignment: .top
-                )
-                section.boundarySupplementaryItems = [hdr]
-                return section
+                let sec   = NSCollectionLayoutSection(group: group)
+                sec.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 24, trailing: 16)
+                return sec
             }
 
-            // First section gets the date header
+            // All sections: same 2-column grid with a compact type label header
             let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
             let item      = NSCollectionLayoutItem(layoutSize: itemSize)
             item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
             let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(160))
             let group     = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
 
-            let section = NSCollectionLayoutSection(group: group)
-            section.contentInsets   = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 16, trailing: 11)
-            section.interGroupSpacing = 10
+            let sec = NSCollectionLayoutSection(group: group)
+            sec.contentInsets    = NSDirectionalEdgeInsets(top: 4, leading: 11, bottom: 16, trailing: 11)
+            sec.interGroupSpacing = 10
 
-            // Section 0: date + type label (~110pt); sections 1+: type label only (36pt)
-            let hdrHeight: CGFloat = sectionIndex == 0 ? 110 : 36
-            let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(hdrHeight))
+            let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(32))
             let hdr = NSCollectionLayoutBoundarySupplementaryItem(
                 layoutSize: hdrSize,
                 elementKind: UICollectionView.elementKindSectionHeader,
                 alignment: .top
             )
-            section.boundarySupplementaryItems = [hdr]
-            return section
+            sec.boundarySupplementaryItems = [hdr]
+            return sec
         }
     }
 
@@ -748,30 +735,13 @@ extension TodayViewController: UICollectionViewDataSource {
     }
 
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        // Empty state section 0 → plain date header
-        if activeSections.isEmpty {
-            let header = collectionView.dequeueReusableSupplementaryView(
-                ofKind: kind, withReuseIdentifier: TodayHeaderView.reuseID, for: indexPath
-            ) as! TodayHeaderView
-            header.configure(date: currentDate)
-            return header
-        }
-        // Section 0 → date header with type label below
-        if indexPath.section == 0 {
-            let header = collectionView.dequeueReusableSupplementaryView(
-                ofKind: kind, withReuseIdentifier: TodayDateTypeSectionHeader.reuseID, for: indexPath
-            ) as! TodayDateTypeSectionHeader
-            header.configure(date: currentDate,
-                             typeTitle: activeSections[0].header,
-                             typeColor: activeSections[0].accentColor)
-            return header
-        }
-        // Subsequent sections → type label header
         let header = collectionView.dequeueReusableSupplementaryView(
             ofKind: kind, withReuseIdentifier: CardTypeSectionHeader.reuseID, for: indexPath
         ) as! CardTypeSectionHeader
-        header.configure(title: activeSections[indexPath.section].header,
-                         color: activeSections[indexPath.section].accentColor)
+        if !activeSections.isEmpty {
+            header.configure(title: activeSections[indexPath.section].header,
+                             color: activeSections[indexPath.section].accentColor)
+        }
         return header
     }
 }
@@ -868,84 +838,6 @@ extension TodayViewController: UIImagePickerControllerDelegate, UINavigationCont
         presentImageCardEditor(imageData: image?.jpegData(compressionQuality: 0.85))
     }
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
-}
-
-// MARK: - TodayDateTypeSectionHeader  (date + type row combined for section 0)
-
-final class TodayDateTypeSectionHeader: UICollectionReusableView {
-
-    static let reuseID = "TodayDateTypeSectionHeader"
-
-    private let dateLabel     = UILabel()
-    private let subtitleLabel = UILabel()
-    private let colorDot      = UIView()
-    private let typeLabel     = UILabel()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        colorDot.layer.cornerRadius = 3
-        colorDot.translatesAutoresizingMaskIntoConstraints = false
-
-        typeLabel.font = .systemFont(ofSize: 11, weight: .semibold)
-        typeLabel.textColor = .secondaryLabel
-        typeLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let typeRow = UIStackView(arrangedSubviews: [colorDot, typeLabel])
-        typeRow.axis = .horizontal
-        typeRow.spacing = 6
-        typeRow.alignment = .center
-        typeRow.translatesAutoresizingMaskIntoConstraints = false
-
-        dateLabel.font = .systemFont(ofSize: 26, weight: .bold)
-        dateLabel.textColor = .label
-        dateLabel.adjustsFontSizeToFitWidth = true
-        dateLabel.minimumScaleFactor = 0.8
-        dateLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        subtitleLabel.font = .systemFont(ofSize: 13)
-        subtitleLabel.textColor = .secondaryLabel
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        addSubview(dateLabel)
-        addSubview(subtitleLabel)
-        addSubview(typeRow)
-
-        NSLayoutConstraint.activate([
-            colorDot.widthAnchor.constraint(equalToConstant: 6),
-            colorDot.heightAnchor.constraint(equalToConstant: 6),
-
-            dateLabel.topAnchor.constraint(equalTo: topAnchor, constant: 16),
-            dateLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-            dateLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-
-            subtitleLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 2),
-            subtitleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-
-            typeRow.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 10),
-            typeRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-            typeRow.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6)
-        ])
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    func configure(date: Date, typeTitle: String, typeColor: UIColor) {
-        let df = DateFormatter()
-        df.dateFormat = "EEEE, d MMMM"
-        df.locale = Locale.current
-        dateLabel.text = df.string(from: date).capitalized
-
-        if Calendar.current.isDateInToday(date) {
-            subtitleLabel.text = L10n.today
-        } else if Calendar.current.isDateInYesterday(date) {
-            subtitleLabel.text = L10n.yesterday
-        } else {
-            subtitleLabel.text = ""
-        }
-
-        typeLabel.text = typeTitle
-        colorDot.backgroundColor = typeColor
-    }
 }
 
 // MARK: - CardTypeSectionHeader

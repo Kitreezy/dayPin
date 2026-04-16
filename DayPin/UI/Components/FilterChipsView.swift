@@ -114,4 +114,18 @@ final class FilterChipsView: UIView {
         selectedFilter = .all
         updateSelection()
     }
+
+    /// Обновляет счётчики на чипах. Показывает count только если > 0.
+    func updateCounts(text: Int, image: Int, link: Int) {
+        let total = text + image + link
+        let map: [Filter: Int] = [.all: total, .text: text, .image: image, .link: link]
+        for (filter, btn) in buttons {
+            let count = map[filter] ?? 0
+            let base  = filter.title
+            UIView.performWithoutAnimation {
+                btn.setTitle(count > 0 ? "\(base)  \(count)" : base, for: .normal)
+                btn.layoutIfNeeded()
+            }
+        }
+    }
 }

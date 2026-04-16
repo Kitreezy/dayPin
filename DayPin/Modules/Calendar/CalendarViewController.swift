@@ -25,7 +25,18 @@ final class CalendarViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = DayPinDesign.background
+
+        let wave = WaveBackgroundView()
+        wave.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(wave)
+        NSLayoutConstraint.activate([
+            wave.topAnchor.constraint(equalTo: view.topAnchor),
+            wave.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            wave.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            wave.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.45)
+        ])
+
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),

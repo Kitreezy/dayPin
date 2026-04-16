@@ -1,54 +1,112 @@
 import UIKit
-import SafariServices
 
 final class TasksViewController: UIViewController {
 
+    // MARK: - Layout
+
     private lazy var collectionView: UICollectionView = {
-        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(100))
-        let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        let group = NSCollectionLayoutGroup.vertical(
-            layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(100)),
-            subitems: [item]
-        )
-        let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 16, bottom: 20, trailing: 16)
-        section.interGroupSpacing = 10
+        let layout = UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
+            guard let self, sectionIndex < self.sections.count else {
+                // Fallback
+                let size  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(100))
+                let item  = NSCollectionLayoutItem(layoutSize: size)
+                let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
+                return NSCollectionLayoutSection(group: group)
+            }
 
-        let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(40))
-        let header = NSCollectionLayoutBoundarySupplementaryItem(
-            layoutSize: headerSize,
-            elementKind: UICollectionView.elementKindSectionHeader,
-            alignment: .top
-        )
-        section.boundarySupplementaryItems = [header]
+            let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
+            let item      = NSCollectionLayoutItem(layoutSize: itemSize)
+            item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
+            let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(160))
+            let group     = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
 
-        let layout = UICollectionViewCompositionalLayout { _, _ in section }
+            let section = NSCollectionLayoutSection(group: group)
+            section.contentInsets   = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 16, trailing: 11)
+            section.interGroupSpacing = 10
+
+            let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(40))
+            let hdr = NSCollectionLayoutBoundarySupplementaryItem(
+                layoutSize: hdrSize,
+                elementKind: UICollectionView.elementKindSectionHeader,
+                alignment: .top
+            )
+            section.boundarySupplementaryItems = [hdr]
+            return section
+        }
 
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.backgroundColor = .clear
         cv.alwaysBounceVertical = true
+        cv.showsVerticalScrollIndicator = false
         cv.translatesAutoresizingMaskIntoConstraints = false
-        cv.register(TextCardCell.self, forCellWithReuseIdentifier: TextCardCell.reuseID)
+        cv.register(TextCardCell.self,  forCellWithReuseIdentifier: TextCardCell.reuseID)
         cv.register(ImageCardCell.self, forCellWithReuseIdentifier: ImageCardCell.reuseID)
-        cv.register(LinkCardCell.self, forCellWithReuseIdentifier: LinkCardCell.reuseID)
-        cv.register(TasksSectionHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: TasksSectionHeader.reuseID)
+        cv.register(LinkCardCell.self,  forCellWithReuseIdentifier: LinkCardCell.reuseID)
+        cv.register(TasksSectionHeader.self,
+                    forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+                    withReuseIdentifier: TasksSectionHeader.reuseID)
         return cv
     }()
 
-    private var sections: [(date: Date, cards: [NoteCard])] = []
+    // MARK: - Data
+
+    private var allSections: [(date: Date, cards: [NoteCard])] = []
+    private var sections:    [(date: Date, cards: [NoteCard])] = []
+    private var searchQuery: String = ""
+    private var activeFilter: FilterChipsView.Filter = .all
+
+    private let searchBar   = UISearchBar()
+    private let filterChips = FilterChipsView()
+
+    // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemGroupedBackground
-        view.addSubview(collectionView)
+        view.backgroundColor = DayPinDesign.background
+
+        let wave = WaveBackgroundView()
+        wave.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(wave)
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            wave.topAnchor.constraint(equalTo: view.topAnchor),
+            wave.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            wave.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            wave.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.45)
+        ])
+
+        searchBar.placeholder = L10n.searchPlaceholder
+        searchBar.searchBarStyle = .minimal
+        searchBar.delegate = self
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+
+        filterChips.translatesAutoresizingMaskIntoConstraints = false
+        filterChips.onFilterChange = { [weak self] filter in
+            self?.activeFilter = filter
+            self?.applyFilters()
+        }
+
+        collectionView.keyboardDismissMode = .onDrag
+        view.addSubview(searchBar)
+        view.addSubview(filterChips)
+        view.addSubview(collectionView)
+
+        NSLayoutConstraint.activate([
+            searchBar.topAnchor.constraint(equalTo: view.topAnchor),
+            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
+            filterChips.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
+            filterChips.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            filterChips.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            filterChips.heightAnchor.constraint(equalToConstant: 38),
+
+            collectionView.topAnchor.constraint(equalTo: filterChips.bottomAnchor, constant: 4),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         collectionView.dataSource = self
-        collectionView.delegate = self
+        collectionView.delegate   = self
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -56,11 +114,78 @@ final class TasksViewController: UIViewController {
         loadAll()
     }
 
+    // MARK: - Data loading
+
     private func loadAll() {
-        let all = CardStore.shared.allCards()
+        let all     = CardStore.shared.allCards()
         let grouped = Dictionary(grouping: all) { Calendar.current.startOfDay(for: $0.dayDate) }
-        sections = grouped.sorted { $0.key > $1.key }.map { ($0.key, $0.value) }
+        allSections = grouped.sorted { $0.key > $1.key }.map { ($0.key, $0.value) }
+        applyFilters()
+    }
+
+    private func applyFilters() {
+        var result = allSections
+
+        if activeFilter != .all {
+            let type: CardType
+            switch activeFilter {
+            case .text:  type = .text
+            case .image: type = .image
+            case .link:  type = .link
+            case .all:   type = .text
+            }
+            result = result.compactMap { (date, cards) in
+                let filtered = cards.filter { $0.type == type }
+                return filtered.isEmpty ? nil : (date, filtered)
+            }
+        }
+
+        let q = searchQuery.trimmingCharacters(in: .whitespaces).lowercased()
+        if !q.isEmpty {
+            result = result.compactMap { (date, cards) in
+                let filtered = cards.filter {
+                    $0.title.lowercased().contains(q) || $0.comment.lowercased().contains(q)
+                }
+                return filtered.isEmpty ? nil : (date, filtered)
+            }
+        }
+
+        sections = result
         collectionView.reloadData()
+    }
+
+    // MARK: - Editor helper
+
+    private func presentEditor(for card: NoteCard) {
+        switch card.type {
+        case .text:
+            let vc = TextCardEditorViewController(card: card as? TextCard, dayDate: card.dayDate)
+            vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadAll() }
+            present(UINavigationController(rootViewController: vc), animated: true)
+        case .image:
+            guard let img = card as? ImageCard else { return }
+            let vc = ImageCardEditorViewController(imageData: img.imageData, dayDate: card.dayDate, existingCard: img)
+            vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadAll() }
+            present(UINavigationController(rootViewController: vc), animated: true)
+        case .link:
+            let vc = LinkCardEditorViewController(card: card as? LinkCard, dayDate: card.dayDate)
+            vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadAll() }
+            present(UINavigationController(rootViewController: vc), animated: true)
+        }
+    }
+}
+
+// MARK: - UISearchBarDelegate
+
+extension TasksViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        searchQuery = searchText
+        applyFilters()
+    }
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) { searchBar.resignFirstResponder() }
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.text = ""; searchBar.resignFirstResponder()
+        searchQuery = ""; applyFilters()
     }
 }
 
@@ -91,9 +216,7 @@ extension TasksViewController: UICollectionViewDataSource {
 
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         let header = collectionView.dequeueReusableSupplementaryView(
-            ofKind: kind,
-            withReuseIdentifier: TasksSectionHeader.reuseID,
-            for: indexPath
+            ofKind: kind, withReuseIdentifier: TasksSectionHeader.reuseID, for: indexPath
         ) as! TasksSectionHeader
         header.configure(date: sections[indexPath.section].date)
         return header
@@ -112,11 +235,7 @@ extension TasksViewController: UICollectionViewDelegate {
         case .image:
             navigationController?.pushViewController(ImageCardDetailViewController(card: card as! ImageCard), animated: true)
         case .link:
-            if let link = card as? LinkCard {
-                let safari = SFSafariViewController(url: link.url)
-                safari.preferredControlTintColor = .systemBlue
-                present(safari, animated: true)
-            }
+            navigationController?.pushViewController(LinkCardDetailViewController(card: card as! LinkCard), animated: true)
         }
     }
 
@@ -130,11 +249,14 @@ extension TasksViewController: UICollectionViewDelegate {
                 if let link = card as? LinkCard { items.append(link.url) }
                 self?.present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
             }
+            let edit = UIAction(title: L10n.edit, image: UIImage(systemName: "pencil")) { [weak self] _ in
+                self?.presentEditor(for: card)
+            }
             let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 CardStore.shared.delete(card: card)
                 self?.loadAll()
             }
-            return UIMenu(children: [share, delete])
+            return UIMenu(children: [share, edit, delete])
         })
     }
 }

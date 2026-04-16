@@ -78,6 +78,14 @@ final class GlassCardView: UIView {
     let glass: GlassView
     let stackView = UIStackView()
 
+    var cornerRadius: CGFloat = 16 {
+        didSet {
+            layer.cornerRadius       = cornerRadius
+            glass.cornerRadius       = cornerRadius
+            glass.layer.cornerRadius = cornerRadius
+        }
+    }
+
     init(style: GlassView.Style = .card) {
         glass = GlassView(style: style)
         super.init(frame: .zero)
@@ -86,15 +94,38 @@ final class GlassCardView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        glass.layer.borderColor = DayPinDesign.cardBorderColor.cgColor
+        glass.layer.borderWidth = DayPinDesign.cardBorderWidth(for: traitCollection)
+    }
+
+    /// Adds a subtle tinted overlay inside the card.
+    /// Each call replaces the previous accent (tag 9001).
+    func setAccentColor(_ color: UIColor) {
+        glass.contentView.viewWithTag(9001)?.removeFromSuperview()
+        let overlay = UIView()
+        overlay.tag = 9001
+        overlay.backgroundColor = color.withAlphaComponent(0.09)
+        overlay.isUserInteractionEnabled = false
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        glass.contentView.insertSubview(overlay, at: 0)
+        NSLayoutConstraint.activate([
+            overlay.topAnchor.constraint(equalTo: glass.contentView.topAnchor),
+            overlay.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor),
+            overlay.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor)
+        ])
+    }
+
     private func setup() {
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.08
-        layer.shadowOffset = CGSize(width: 0, height: 2)
-        layer.shadowRadius = 12
+        DayPinDesign.applyCardShadow(to: layer)
         layer.cornerRadius = 16
         backgroundColor = .clear
 
         glass.translatesAutoresizingMaskIntoConstraints = false
+        glass.layer.borderColor = DayPinDesign.cardBorderColor.cgColor
+        glass.layer.borderWidth = DayPinDesign.cardBorderWidth(for: traitCollection)
         addSubview(glass)
         NSLayoutConstraint.activate([
             glass.topAnchor.constraint(equalTo: topAnchor),

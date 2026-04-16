@@ -11,12 +11,15 @@ final class ImageAnnotationView: UIView {
     weak var delegate: ImageAnnotationViewDelegate?
     var isEditingEnabled: Bool = true
 
+    /// Set this to enable automatic zoom-to-pin on tap. The view weakly holds the reference.
+    weak var zoomScrollView: UIScrollView?
+
     // MARK: Subviews
 
     private let imageView = UIImageView()
-    private let ghostPin = GhostPinView()
+    private let ghostPin  = GhostPinView()
 
-    private var pinViews: [UUID: AnnotationPinView] = [:]
+    private var pinViews:    [UUID: AnnotationPinView] = [:]
     private var annotations: [ImageAnnotation] = []
 
     var image: UIImage? {
@@ -37,8 +40,11 @@ final class ImageAnnotationView: UIView {
     private func setup() {
         clipsToBounds = true
         layer.cornerRadius = 16
+        backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark ? .black : UIColor(white: 0.92, alpha: 1)
+        }
 
-        imageView.contentMode = .scaleAspectFill
+        imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(imageView)
         NSLayoutConstraint.activate([
@@ -50,6 +56,10 @@ final class ImageAnnotationView: UIView {
 
         addSubview(ghostPin)
         ghostPin.isHidden = true
+
+        let lp = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        lp.minimumPressDuration = 0.3
+        addGestureRecognizer(lp)
     }
 
     // MARK: Public API
@@ -61,64 +71,53 @@ final class ImageAnnotationView: UIView {
         annotations.forEach { addPinView(for: $0) }
     }
 
+    /// Returns the annotation view's local coordinate for a given annotation.
+    /// Used by parent VCs to zoom the scroll view to focus on a pin.
+    func localPoint(for annotation: ImageAnnotation) -> CGPoint {
+        pointFromNormalized(annotationPoint: CGPoint(x: annotation.x, y: annotation.y))
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         repositionAllPins()
     }
 
-    // MARK: Touch Handling (ghost cursor)
+    // MARK: Long-press for pin placement (tap/pan go to scroll view)
 
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard isEditingEnabled, let touch = touches.first else {
-            super.touchesBegan(touches, with: event)
-            return
+    @objc private func handleLongPress(_ gr: UILongPressGestureRecognizer) {
+        guard isEditingEnabled else { return }
+        let point = gr.location(in: self)
+
+        switch gr.state {
+        case .began:
+            guard imageContentFrame.contains(point) else { return }
+            // Skip if touching existing pin
+            guard !pinViews.values.contains(where: { $0.frame.insetBy(dx: -12, dy: -12).contains(point) }) else { return }
+            showGhost(at: point)
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
+        case .changed:
+            guard !ghostPin.isHidden else { return }
+            ghostPin.center = clampedToImageFrame(point)
+
+        case .ended:
+            guard !ghostPin.isHidden else { return }
+            let finalPoint = clampedToImageFrame(point)
+            hideGhost()
+            guard imageContentFrame.contains(finalPoint) else { return }
+            let normalized  = normalizedPoint(from: finalPoint)
+            let windowPoint = convert(finalPoint, to: window)
+            presentAnnotationInput(at: normalized, windowPoint: windowPoint, existingAnnotation: nil)
+
+        default:
+            hideGhost()
         }
-        let point = touch.location(in: self)
-
-        // If touching an existing pin — let it handle, don't show ghost
-        if pinViews.values.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).contains(point) }) {
-            super.touchesBegan(touches, with: event)
-            return
-        }
-
-        showGhost(at: point)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-    }
-
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard isEditingEnabled, let touch = touches.first, !ghostPin.isHidden else {
-            super.touchesMoved(touches, with: event)
-            return
-        }
-        let point = touch.location(in: self)
-        ghostPin.center = point
-    }
-
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard isEditingEnabled, let touch = touches.first, !ghostPin.isHidden else {
-            super.touchesEnded(touches, with: event)
-            return
-        }
-        let point = touch.location(in: self)
-        hideGhost()
-
-        let normalized = CGPoint(
-            x: max(0, min(1, point.x / bounds.width)),
-            y: max(0, min(1, point.y / bounds.height))
-        )
-        let windowPoint = convert(point, to: window)
-        presentAnnotationInput(at: normalized, windowPoint: windowPoint, existingAnnotation: nil)
-    }
-
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        hideGhost()
-        super.touchesCancelled(touches, with: event)
     }
 
     // MARK: Ghost Pin
 
     private func showGhost(at point: CGPoint) {
-        ghostPin.frame = CGRect(x: point.x - 22, y: point.y - 22, width: 44, height: 44)
+        ghostPin.frame = CGRect(x: point.x - 18, y: point.y - 18, width: 36, height: 36)
         ghostPin.isHidden = false
         ghostPin.alpha = 0
         ghostPin.transform = CGAffineTransform(scaleX: 0.4, y: 0.4)
@@ -142,7 +141,12 @@ final class ImageAnnotationView: UIView {
 
     private func addPinView(for annotation: ImageAnnotation) {
         let pin = AnnotationPinView()
-        pin.onTap = { [weak self] in self?.handlePinTap(annotation: annotation) }
+        pin.annotationID = annotation.id
+        pin.titleText = annotation.title
+        pin.onTap = { [weak self, weak pin] in
+            guard let id = pin?.annotationID else { return }
+            self?.handlePinTap(annotationID: id)
+        }
         addSubview(pin)
         bringSubviewToFront(ghostPin)
         pinViews[annotation.id] = pin
@@ -150,17 +154,25 @@ final class ImageAnnotationView: UIView {
     }
 
     private func positionPin(_ pin: UIView, for annotation: ImageAnnotation) {
-        let size: CGFloat = 32
-        pin.frame = CGRect(
-            x: CGFloat(annotation.x) * bounds.width - size / 2,
-            y: CGFloat(annotation.y) * bounds.height - size / 2,
+        let size: CGFloat = 18
+        let point = pointFromNormalized(annotationPoint: CGPoint(x: annotation.x, y: annotation.y))
+        let frame = CGRect(
+            x: point.x - size / 2,
+            y: point.y - size / 2,
             width: size, height: size
         )
+        pin.frame = frame
+        if let annotationPin = pin as? AnnotationPinView {
+            let shouldFlipLeft = frame.maxX > imageContentFrame.maxX - 84
+            annotationPin.titleOnLeft = shouldFlipLeft
+            annotationPin.pinColor = annotation.color
+        }
     }
 
     private func repositionAllPins() {
         for annotation in annotations {
             guard let pin = pinViews[annotation.id] else { continue }
+            pin.titleText = annotation.title
             positionPin(pin, for: annotation)
         }
         bringSubviewToFront(ghostPin)
@@ -168,39 +180,71 @@ final class ImageAnnotationView: UIView {
 
     // MARK: Interaction
 
-    private func handlePinTap(annotation: ImageAnnotation) {
-        let pinCenter = CGPoint(
-            x: CGFloat(annotation.x) * bounds.width,
-            y: CGFloat(annotation.y) * bounds.height
-        )
-        let windowPoint = convert(pinCenter, to: window)
+    private func handlePinTap(annotationID: UUID) {
+        guard let annotation = annotations.first(where: { $0.id == annotationID }),
+              let pinView = pinViews[annotationID] else { return }
+        let pinCenter = pointFromNormalized(annotationPoint: CGPoint(x: annotation.x, y: annotation.y))
 
-        PinCalloutView.show(
-            pinWindowPoint: windowPoint,
-            text: annotation.text,
-            onEdit: { [weak self] newText in
-                var updated = annotation
-                updated.text = newText
-                self?.updateAnnotation(updated)
-            },
-            onDelete: { [weak self] in
-                self?.removeAnnotation(annotation)
-            }
-        )
+        let showCallout = { [weak self, weak pinView] in
+            guard let self else { return }
+            let windowPoint = self.convert(pinCenter, to: self.window)
+            PinCalloutView.show(
+                pinWindowPoint: windowPoint,
+                title: annotation.title,
+                text: annotation.text,
+                colorHex: annotation.colorHex,
+                sourcePinView: pinView,
+                onEdit: { [weak self] newTitle, newText, newColorHex in
+                    var updated = annotation
+                    updated.title    = newTitle
+                    updated.text     = newText
+                    updated.colorHex = newColorHex
+                    self?.updateAnnotation(updated)
+                },
+                onDelete: { [weak self] in self?.removeAnnotation(annotation) }
+            )
+        }
+
+        // Zoom to 2.5× centred on pin if not already zoomed
+        if let sv = zoomScrollView, sv.zoomScale < 1.5 {
+            let targetZoom: CGFloat = 2.5
+            let svSize = sv.bounds.size
+            let zoomRect = CGRect(
+                x: pinCenter.x - svSize.width  / (2 * targetZoom),
+                y: pinCenter.y - svSize.height / (2 * targetZoom),
+                width:  svSize.width  / targetZoom,
+                height: svSize.height / targetZoom
+            )
+            sv.zoom(to: zoomRect, animated: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: showCallout)
+        } else {
+            showCallout()
+        }
     }
 
     private func presentAnnotationInput(at normalized: CGPoint, windowPoint: CGPoint, existingAnnotation: ImageAnnotation?) {
-        AnnotationInputPopover.show(
+        let pinView = existingAnnotation.flatMap { pinViews[$0.id] }
+        PinCalloutView.show(
             pinWindowPoint: windowPoint,
-            existingText: existingAnnotation?.text,
-            onSave: { [weak self] text in
+            title: existingAnnotation?.title ?? "",
+            text:  existingAnnotation?.text  ?? "",
+            colorHex: existingAnnotation?.colorHex ?? "#007AFF",
+            startInEditMode: true,
+            sourcePinView: pinView,
+            onEdit: { [weak self] title, text, colorHex in
                 if var existing = existingAnnotation {
-                    existing.text = text
+                    existing.title    = title
+                    existing.text     = text
+                    existing.colorHex = colorHex
                     self?.updateAnnotation(existing)
                 } else {
-                    let annotation = ImageAnnotation(x: normalized.x, y: normalized.y, text: text)
+                    let annotation = ImageAnnotation(x: normalized.x, y: normalized.y, title: title, text: text, colorHex: colorHex)
                     self?.addAnnotation(annotation)
                 }
+            },
+            onDelete: existingAnnotation == nil ? nil : { [weak self] in
+                guard let existingAnnotation else { return }
+                self?.removeAnnotation(existingAnnotation)
             }
         )
     }
@@ -208,7 +252,6 @@ final class ImageAnnotationView: UIView {
     private func addAnnotation(_ annotation: ImageAnnotation) {
         annotations.append(annotation)
         addPinView(for: annotation)
-        // Animate pin in
         let pin = pinViews[annotation.id]
         pin?.alpha = 0
         pin?.transform = CGAffineTransform(scaleX: 0.1, y: 0.1)
@@ -224,6 +267,7 @@ final class ImageAnnotationView: UIView {
         if let i = annotations.firstIndex(where: { $0.id == annotation.id }) {
             annotations[i] = annotation
         }
+        repositionAllPins()
         delegate?.annotationView(self, didUpdateAnnotation: annotation)
     }
 
@@ -240,6 +284,44 @@ final class ImageAnnotationView: UIView {
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
         delegate?.annotationView(self, didDeleteAnnotation: annotation)
     }
+
+    // MARK: - Coordinate space mapping
+
+    private var imageContentFrame: CGRect {
+        guard let image = imageView.image, image.size.width > 0, image.size.height > 0 else { return bounds }
+        let viewSize  = bounds.size
+        let imageSize = image.size
+        let scale = min(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
+        let width  = imageSize.width  * scale
+        let height = imageSize.height * scale
+        let x = (viewSize.width  - width)  * 0.5
+        let y = (viewSize.height - height) * 0.5
+        return CGRect(x: x, y: y, width: width, height: height)
+    }
+
+    private func clampedToImageFrame(_ point: CGPoint) -> CGPoint {
+        let r = imageContentFrame
+        return CGPoint(
+            x: min(max(point.x, r.minX), r.maxX),
+            y: min(max(point.y, r.minY), r.maxY)
+        )
+    }
+
+    private func normalizedPoint(from point: CGPoint) -> CGPoint {
+        let r = imageContentFrame
+        return CGPoint(
+            x: max(0, min(1, (point.x - r.minX) / r.width)),
+            y: max(0, min(1, (point.y - r.minY) / r.height))
+        )
+    }
+
+    private func pointFromNormalized(annotationPoint: CGPoint) -> CGPoint {
+        let r = imageContentFrame
+        return CGPoint(
+            x: r.minX + annotationPoint.x * r.width,
+            y: r.minY + annotationPoint.y * r.height
+        )
+    }
 }
 
 // MARK: - GhostPinView
@@ -248,17 +330,17 @@ private final class GhostPinView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        layer.cornerRadius = 22
-        layer.borderWidth = 2.5
-        layer.borderColor = UIColor.white.cgColor
-        backgroundColor = UIColor.white.withAlphaComponent(0.25)
-        layer.shadowColor = UIColor.black.cgColor
+        layer.cornerRadius  = 18
+        layer.borderWidth   = 2
+        layer.borderColor   = UIColor.white.cgColor
+        backgroundColor     = UIColor.white.withAlphaComponent(0.25)
+        layer.shadowColor   = UIColor.black.cgColor
         layer.shadowOpacity = 0.35
-        layer.shadowRadius = 10
-        layer.shadowOffset = .zero
+        layer.shadowRadius  = 10
+        layer.shadowOffset  = .zero
 
         let dot = UIView()
-        dot.backgroundColor = .white
+        dot.backgroundColor  = .white
         dot.layer.cornerRadius = 4
         dot.translatesAutoresizingMaskIntoConstraints = false
         addSubview(dot)
@@ -278,6 +360,18 @@ private final class GhostPinView: UIView {
 final class AnnotationPinView: UIView {
 
     var onTap: (() -> Void)?
+    var annotationID: UUID?
+    var titleText: String = "" {
+        didSet { updateTitle() }
+    }
+    var titleOnLeft: Bool = false {
+        didSet { updateTitleSide() }
+    }
+
+    private let titleBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+    private let titleLabel = UILabel()
+    private var titleLeadingConstraint:  NSLayoutConstraint?
+    private var titleTrailingConstraint: NSLayoutConstraint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -286,17 +380,26 @@ final class AnnotationPinView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    // Exposed so callers can change color after creation
+    var pinColor: UIColor = .systemBlue {
+        didSet { applyColor() }
+    }
+
+    private weak var pinBlur: UIVisualEffectView?
+    private weak var pinDot: UIView?
+    private weak var pinBorder: UIView?
+
     private func setup() {
-        layer.shadowColor = UIColor.systemBlue.cgColor
-        layer.shadowOpacity = 0.55
-        layer.shadowRadius = 8
-        layer.shadowOffset = .zero
+        layer.shadowOpacity = 0.5
+        layer.shadowRadius  = 4
+        layer.shadowOffset  = .zero
 
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-        blur.layer.cornerRadius = 16
+        blur.layer.cornerRadius = 9   // 18px pin → 9pt radius = circle
         blur.clipsToBounds = true
         blur.translatesAutoresizingMaskIntoConstraints = false
         addSubview(blur)
+        self.pinBlur = blur
         NSLayoutConstraint.activate([
             blur.topAnchor.constraint(equalTo: topAnchor),
             blur.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -305,36 +408,80 @@ final class AnnotationPinView: UIView {
         ])
 
         let dot = UIView()
-        dot.backgroundColor = .systemBlue
-        dot.layer.cornerRadius = 5
+        dot.layer.cornerRadius = 3
         dot.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(dot)
+        self.pinDot = dot
         NSLayoutConstraint.activate([
             dot.centerXAnchor.constraint(equalTo: blur.contentView.centerXAnchor),
             dot.centerYAnchor.constraint(equalTo: blur.contentView.centerYAnchor),
-            dot.widthAnchor.constraint(equalToConstant: 10),
-            dot.heightAnchor.constraint(equalToConstant: 10)
+            dot.widthAnchor.constraint(equalToConstant: 6),
+            dot.heightAnchor.constraint(equalToConstant: 6)
         ])
+
+        applyColor()
+
+        // Title badge
+        titleBlur.layer.cornerRadius = 8
+        titleBlur.clipsToBounds = true
+        titleBlur.alpha = 0.85
+        titleBlur.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(titleBlur)
+
+        titleLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        titleLabel.textColor = UIColor.white.withAlphaComponent(0.9)
+        titleLabel.numberOfLines = 1
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleBlur.contentView.addSubview(titleLabel)
+
+        titleLeadingConstraint  = titleBlur.leadingAnchor.constraint(equalTo: trailingAnchor, constant: 4)
+        titleTrailingConstraint = titleBlur.trailingAnchor.constraint(equalTo: leadingAnchor, constant: -4)
+        titleTrailingConstraint?.isActive = false
+
+        NSLayoutConstraint.activate([
+            titleBlur.centerYAnchor.constraint(equalTo: centerYAnchor),
+            titleBlur.heightAnchor.constraint(equalToConstant: 16),
+            titleBlur.widthAnchor.constraint(lessThanOrEqualToConstant: 90),
+
+            titleLabel.topAnchor.constraint(equalTo: titleBlur.contentView.topAnchor, constant: 1),
+            titleLabel.bottomAnchor.constraint(equalTo: titleBlur.contentView.bottomAnchor, constant: -1),
+            titleLabel.leadingAnchor.constraint(equalTo: titleBlur.contentView.leadingAnchor, constant: 6),
+            titleLabel.trailingAnchor.constraint(equalTo: titleBlur.contentView.trailingAnchor, constant: -6)
+        ])
+        titleLeadingConstraint?.isActive = true
+        updateTitle()
+        updateTitleSide()
 
         addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapped)))
     }
 
+    private func applyColor() {
+        layer.shadowColor = pinColor.cgColor
+        pinDot?.backgroundColor = pinColor
+    }
+
+    private func updateTitle() {
+        let trimmed = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
+        titleLabel.text  = trimmed
+        titleBlur.isHidden = trimmed.isEmpty
+    }
+
+    private func updateTitleSide() {
+        titleLeadingConstraint?.isActive  = !titleOnLeft
+        titleTrailingConstraint?.isActive =  titleOnLeft
+    }
+
     @objc private func tapped() {
         UIView.animate(withDuration: 0.1, animations: {
-            self.transform = CGAffineTransform(scaleX: 1.35, y: 1.35)
+            self.transform = CGAffineTransform(scaleX: 1.4, y: 1.4)
         }, completion: { _ in
             UIView.animate(withDuration: 0.15) { self.transform = .identity }
         })
         onTap?()
     }
-}
 
-// MARK: - UIView helper
-
-private extension UIView {
-    var parentViewController: UIViewController? {
-        var r: UIResponder? = self
-        while let next = r?.next { if let vc = next as? UIViewController { return vc }; r = next }
-        return nil
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        bounds.insetBy(dx: -10, dy: -10).contains(point)
     }
 }

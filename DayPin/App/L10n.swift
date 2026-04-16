@@ -22,6 +22,7 @@ enum L10n {
     static var edit: String          { s("Редактировать", "Edit") }
     static var share: String         { s("Поделиться", "Share") }
     static var done: String          { s("Готово", "Done") }
+    static var openLink: String      { s("Открыть ссылку", "Open Link") }
 
     // MARK: - Card types
     static var newCard: String       { s("Новая карточка", "New Card") }
@@ -61,6 +62,31 @@ enum L10n {
     // MARK: - Tasks
     static var todaySection: String  { s("СЕГОДНЯ", "TODAY") }
     static var yesterdaySection: String { s("ВЧЕРА", "YESTERDAY") }
+
+    // MARK: - Pin list
+    static var pinList: String { s("Метки", "Pins") }
+    static func pinNumber(_ n: Int) -> String { s("Метка \(n)", "Pin \(n)") }
+
+    // MARK: - Filter chips
+    static var filterAll:   String { s("Все", "All") }
+    static var filterText:  String { s("Текст", "Text") }
+    static var filterImage: String { s("Фото", "Photo") }
+    static var filterLink:  String { s("Ссылки", "Links") }
+
+    // MARK: - Search
+    static var searchPlaceholder: String { s("Поиск заметок...", "Search notes...") }
+    static var searchNoResults:   String { s("Ничего не найдено", "No results") }
+
+    // MARK: - Card type sections
+    static var sectionText:  String { s("ЗАМЕТКИ", "NOTES") }
+    static var sectionImage: String { s("ФОТО", "PHOTOS") }
+    static var sectionLink:  String { s("ССЫЛКИ", "LINKS") }
+
+    // MARK: - Theme
+    static var themeSystem: String { s("Системная", "System") }
+    static var themeLight:  String { s("Светлая", "Light") }
+    static var themeDark:   String { s("Тёмная", "Dark") }
+    static var theme:       String { s("Тема", "Theme") }
 
     // MARK: - Annotation count
     static func annotationCount(_ n: Int) -> String {

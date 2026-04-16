@@ -20,12 +20,7 @@ final class TextCardCell: UICollectionViewCell {
     private func setup() {
         backgroundColor = .clear
         layer.cornerRadius = 16
-
-        // Shadow
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.06
-        layer.shadowRadius = 12
-        layer.shadowOffset = CGSize(width: 0, height: 3)
+        DayPinDesign.applyCardShadow(to: layer)
 
         cardView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(cardView)
@@ -36,42 +31,44 @@ final class TextCardCell: UICollectionViewCell {
             cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
 
+        let cv = cardView.glass.contentView
+
         typeIcon.image = UIImage(systemName: "text.alignleft")
-        typeIcon.tintColor = .tertiaryLabel
+        typeIcon.tintColor = DayPinDesign.accent
         typeIcon.contentMode = .scaleAspectFit
         typeIcon.translatesAutoresizingMaskIntoConstraints = false
 
-        dateLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        dateLabel.font = .systemFont(ofSize: 10, weight: .regular)
         dateLabel.textColor = .tertiaryLabel
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let topRow = UIStackView(arrangedSubviews: [typeIcon, dateLabel, UIView()])
-        topRow.axis = .horizontal
-        topRow.spacing = 6
-        topRow.alignment = .center
-        topRow.translatesAutoresizingMaskIntoConstraints = false
-
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
         titleLabel.textColor = .label
         titleLabel.numberOfLines = 3
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        commentLabel.font = .systemFont(ofSize: 14, weight: .regular)
+        commentLabel.font = .systemFont(ofSize: 12, weight: .regular)
         commentLabel.textColor = .secondaryLabel
-        commentLabel.numberOfLines = 3
+        commentLabel.numberOfLines = 4
         commentLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let topRow = UIStackView(arrangedSubviews: [typeIcon, UIView(), dateLabel])
+        topRow.axis = .horizontal
+        topRow.spacing = 4
+        topRow.alignment = .center
+        topRow.translatesAutoresizingMaskIntoConstraints = false
 
         let stack = UIStackView(arrangedSubviews: [topRow, titleLabel, commentLabel])
         stack.axis = .vertical
-        stack.spacing = 6
+        stack.spacing = 5
         stack.translatesAutoresizingMaskIntoConstraints = false
-        cardView.glass.contentView.addSubview(stack)
+        cv.addSubview(stack)
 
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: cardView.glass.contentView.topAnchor, constant: 14),
-            stack.leadingAnchor.constraint(equalTo: cardView.glass.contentView.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: cardView.glass.contentView.trailingAnchor, constant: -16),
-            stack.bottomAnchor.constraint(equalTo: cardView.glass.contentView.bottomAnchor, constant: -14),
+            stack.topAnchor.constraint(equalTo: cv.topAnchor, constant: 12),
+            stack.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 12),
+            stack.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -12),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: cv.bottomAnchor, constant: -12),
 
             typeIcon.widthAnchor.constraint(equalToConstant: 14),
             typeIcon.heightAnchor.constraint(equalToConstant: 14)
@@ -87,7 +84,8 @@ final class TextCardCell: UICollectionViewCell {
         df.dateFormat = "HH:mm"
         dateLabel.text = df.string(from: card.createdAt)
         typeIcon.image = UIImage(systemName: "text.alignleft")
-        typeIcon.tintColor = .tertiaryLabel
+        typeIcon.tintColor = DayPinDesign.accent
+        cardView.setAccentColor(DayPinDesign.accent)
     }
 
     override var isHighlighted: Bool {

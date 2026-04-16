@@ -9,6 +9,8 @@ final class LinkCardEditorViewController: UIViewController {
     private let dayDate: Date
 
     private let urlField = UITextField()
+    private let linksTextView = UITextView()
+    private let linksPlaceholder = UILabel()
     private let titleField = UITextField()
     private let commentTextView = UITextView()
     private let commentPlaceholder = UILabel()
@@ -27,10 +29,11 @@ final class LinkCardEditorViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = card == nil ? "Новая ссылка" : "Редактировать ссылку"
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = DayPinDesign.background
         setupNav()
         setupUI()
         fillIfEditing()
+        addKeyboardDismissGesture()
     }
 
     private func setupNav() {
@@ -75,11 +78,23 @@ final class LinkCardEditorViewController: UIViewController {
 
         let div1 = makeDivider()
 
+        linksTextView.font = .systemFont(ofSize: 14)
+        linksTextView.backgroundColor = .clear
+        linksTextView.isScrollEnabled = false
+        linksTextView.delegate = self
+        linksTextView.textContainerInset = UIEdgeInsets(top: 6, left: 0, bottom: 6, right: 0)
+
+        linksPlaceholder.text = "Дополнительные ссылки (каждая с новой строки)"
+        linksPlaceholder.font = .systemFont(ofSize: 14)
+        linksPlaceholder.textColor = .placeholderText
+        linksPlaceholder.translatesAutoresizingMaskIntoConstraints = false
+
         titleField.placeholder = "Название (необязательно)"
         titleField.font = .systemFont(ofSize: 15)
         titleField.borderStyle = .none
 
         let div2 = makeDivider()
+        let div3 = makeDivider()
 
         commentTextView.font = .systemFont(ofSize: 15)
         commentTextView.backgroundColor = .clear
@@ -93,9 +108,12 @@ final class LinkCardEditorViewController: UIViewController {
 
         formCard.stackView.addArrangedSubview(urlField)
         formCard.stackView.addArrangedSubview(div1)
-        formCard.stackView.addArrangedSubview(titleField)
+        formCard.stackView.addArrangedSubview(linksTextView)
         formCard.stackView.addArrangedSubview(div2)
+        formCard.stackView.addArrangedSubview(titleField)
+        formCard.stackView.addArrangedSubview(div3)
         formCard.stackView.addArrangedSubview(commentTextView)
+        linksTextView.addSubview(linksPlaceholder)
         commentTextView.addSubview(commentPlaceholder)
 
         previewContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -108,11 +126,15 @@ final class LinkCardEditorViewController: UIViewController {
             formCard.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
 
             urlField.heightAnchor.constraint(equalToConstant: 44),
+            linksTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 68),
             titleField.heightAnchor.constraint(equalToConstant: 44),
             div1.heightAnchor.constraint(equalToConstant: 0.5),
             div2.heightAnchor.constraint(equalToConstant: 0.5),
+            div3.heightAnchor.constraint(equalToConstant: 0.5),
             commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 80),
 
+            linksPlaceholder.topAnchor.constraint(equalTo: linksTextView.topAnchor, constant: 8),
+            linksPlaceholder.leadingAnchor.constraint(equalTo: linksTextView.leadingAnchor, constant: 5),
             commentPlaceholder.topAnchor.constraint(equalTo: commentTextView.topAnchor, constant: 8),
             commentPlaceholder.leadingAnchor.constraint(equalTo: commentTextView.leadingAnchor, constant: 5),
 
@@ -132,6 +154,8 @@ final class LinkCardEditorViewController: UIViewController {
     private func fillIfEditing() {
         guard let card else { return }
         urlField.text = card.url.absoluteString
+        linksTextView.text = card.extraURLs.map(\.absoluteString).joined(separator: "\n")
+        linksPlaceholder.isHidden = !linksTextView.text.isEmpty
         titleField.text = card.title
         commentTextView.text = card.comment
         commentPlaceholder.isHidden = !card.comment.isEmpty
@@ -183,9 +207,15 @@ final class LinkCardEditorViewController: UIViewController {
         }
         let title = titleField.text?.isEmpty == false ? titleField.text! : url.host ?? urlText
         let saved = card ?? LinkCard(title: title, dayDate: dayDate, url: url)
+        let parsedExtras = linksTextView.text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .compactMap { URL(string: $0.hasPrefix("http") ? $0 : "https://\($0)") }
         saved.title = title
         saved.comment = commentTextView.text ?? ""
         saved.url = url
+        saved.extraURLs = parsedExtras.filter { $0.absoluteString != url.absoluteString }
         onSave?(saved)
         dismiss(animated: true)
     }
@@ -193,6 +223,10 @@ final class LinkCardEditorViewController: UIViewController {
 
 extension LinkCardEditorViewController: UITextViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
-        commentPlaceholder.isHidden = !textView.text.isEmpty
+        if textView === commentTextView {
+            commentPlaceholder.isHidden = !textView.text.isEmpty
+        } else if textView === linksTextView {
+            linksPlaceholder.isHidden = !textView.text.isEmpty
+        }
     }
 }

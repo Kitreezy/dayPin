@@ -7,27 +7,45 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		014A79771698E07CE29F8537 /* BackupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED95266578BDC1B77519BA90 /* BackupViewController.swift */; };
 		091D0EC24963764C8D143664 /* ImageCardDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77DAC93E6FD3A6C2583C46F0 /* ImageCardDetailViewController.swift */; };
 		0C0F02A57126691A485CFF89 /* CardDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A59E64560B7346557245FFA /* CardDetailViewController.swift */; };
 		19F7A5A39DC838597A38E2C4 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F473D4568577B2585DC4B38 /* SceneDelegate.swift */; };
 		19FC0DE6C76347A29F15A803 /* PinCalloutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 374A9BDC9E9CC25C8610CE2E /* PinCalloutView.swift */; };
 		2FC7C9766BF5CACF7682A585 /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A0B2C80FF4EE654B63DEC539 /* CoreData.framework */; };
 		32F83AB21A3F4D84806A7CD6 /* TodayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 786B50B0091F91DEFA59C383 /* TodayHeaderView.swift */; };
+		347A4983BF7344776E2E8B9E /* FolderListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D225EB970A2AB18F0C8927 /* FolderListViewController.swift */; };
+		34FDB62001AFEE19DDBD9F93 /* FolderDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEAFB6224BB6BFC875F27185 /* FolderDetailViewController.swift */; };
 		389A3BABD6F735C355471311 /* MainContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580A8A33BFFFCE6ABC2F8B7D /* MainContainerViewController.swift */; };
 		3F89CC6B59C5C9231123836A /* TasksViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A9069EF327F6F688E9DDC64 /* TasksViewController.swift */; };
+		427FA47A02CD12B7B7549C52 /* WaveBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3811B493D58F8359A3B89668 /* WaveBackgroundView.swift */; };
 		43F0B7DCFCA71814191E5739 /* TodayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E880FB38D2E789A7BE09FD46 /* TodayViewController.swift */; };
 		48B993E645C6B1E97107B5CD /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002B3223FA9BF36D228C41B /* Extensions.swift */; };
 		5FF8EC089219B0CCA4946409 /* LinkCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443F08F85AEC989A90078A36 /* LinkCardCell.swift */; };
 		622B5809485F24CF32153CE9 /* DayDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAAAB911A656430E1C3C645D /* DayDetailViewController.swift */; };
 		64115A7CD54D5E33BCD59772 /* CalendarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B36B1E5015BA3B9506BE320 /* CalendarViewController.swift */; };
 		6BCDC53EAD42F6E683446D72 /* TextCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DEE3405B5E72EBFBBE8CE25 /* TextCardCell.swift */; };
+		6BDDD10584174781CBDE56D2 /* FolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E47856A261FEE4BAF86A52DB /* FolderStore.swift */; };
+		7776FF268E95FC5F2072BAB9 /* LinkWebBottomSheetViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31827B5D29FEBFD2617CF68B /* LinkWebBottomSheetViewController.swift */; };
 		7C69A48C083B43C8CCDCACFF /* CardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4538DEE6163FBBB952F765 /* CardStore.swift */; };
+		899F4F942DC38B00B82D3DB7 /* RecentlyDeletedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DAE7537A8E80BD3AEEB091 /* RecentlyDeletedViewController.swift */; };
+		8CE890641F6C80DF1B777C9D /* NotePickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC63688E119CDA671423987 /* NotePickerViewController.swift */; };
 		9336E195C0F6D1EBCBC84EB8 /* ImageAnnotationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71DAD05804A133CE510CA797 /* ImageAnnotationView.swift */; };
 		95C4A69B4CCDC065956ED4DA /* TextCardEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60F1ADFEF2ACB76A96C5EB4 /* TextCardEditorViewController.swift */; };
+		9F1EBAFF3D91A5E71CB648CE /* LinkCardDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A5F1E6ABECBB2FF81EAA83 /* LinkCardDetailViewController.swift */; };
 		A406F0465B94FDFA7430E16B /* ImageCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE10EE4FDE3F272BBFDF623A /* ImageCardCell.swift */; };
+		A81528C63DBF3411F75342E4 /* PinListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BB7279FAD69E786324076A /* PinListViewController.swift */; };
 		AA4FEC496D4EA9FE35E1F88F /* ImageCardEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D718FFF5FF6335D37905A1B7 /* ImageCardEditorViewController.swift */; };
+		AD58B3583A00CA5C492276CF /* GlobalSearchViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E4BD0248AB8E3A0BACB09C /* GlobalSearchViewController.swift */; };
+		B8E9C80C19C9F8B2E62C3085 /* UICollectionViewCell+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2AF22EB95AE7747F3A90FD3 /* UICollectionViewCell+Selection.swift */; };
+		B9811ECF500C51A5DB93B810 /* FilterChipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4FCBEC7DE8D63AA20EF826D /* FilterChipsView.swift */; };
 		BD9000384AA6D0FCC46E26E4 /* AnnotationInputPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B230C0D7C49C3BF8B15A26 /* AnnotationInputPopover.swift */; };
+		C1873B42E3CC0E8DD4C15CB1 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3F87653F31E1F676C6BC02F /* ThemeManager.swift */; };
 		C58E6EF08FB2DF0094E7081E /* GlassActionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3F7A4831ABE54AE81968955 /* GlassActionSheet.swift */; };
+		C5B00C6620FAB0E214A63DDC /* WeekCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */; };
+		C68183928E672A040932AC66 /* FolderEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30A914DA461A375356AC698E /* FolderEditorViewController.swift */; };
+		CC373B9A83339D3F19750266 /* DayPinDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8DFC0A641E91EA923710BEA /* DayPinDesign.swift */; };
+		D53DFAF042A9798705361277 /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D780AC9E6C938E931CDA2630 /* BackupManager.swift */; };
 		D94B674B87EE81D8BB0128D8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71B8970D420311817204CD37 /* AppDelegate.swift */; };
 		E3B2D65AC9E304579D35203C /* GlassView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A8C73069CB8E53AFC6BFB1E /* GlassView.swift */; };
 		E40B636E0E0AEC807A9FBD79 /* NoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1527142EE2C7F1DC149BF280 /* NoteCard.swift */; };
@@ -39,11 +57,18 @@
 
 /* Begin PBXFileReference section */
 		1527142EE2C7F1DC149BF280 /* NoteCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCard.swift; sourceTree = "<group>"; };
+		1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekCalendarView.swift; sourceTree = "<group>"; };
 		26B230C0D7C49C3BF8B15A26 /* AnnotationInputPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationInputPopover.swift; sourceTree = "<group>"; };
+		27A5F1E6ABECBB2FF81EAA83 /* LinkCardDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCardDetailViewController.swift; sourceTree = "<group>"; };
 		2F473D4568577B2585DC4B38 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		30A914DA461A375356AC698E /* FolderEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderEditorViewController.swift; sourceTree = "<group>"; };
+		31827B5D29FEBFD2617CF68B /* LinkWebBottomSheetViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkWebBottomSheetViewController.swift; sourceTree = "<group>"; };
+		33D225EB970A2AB18F0C8927 /* FolderListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderListViewController.swift; sourceTree = "<group>"; };
 		374A9BDC9E9CC25C8610CE2E /* PinCalloutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCalloutView.swift; sourceTree = "<group>"; };
+		3811B493D58F8359A3B89668 /* WaveBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveBackgroundView.swift; sourceTree = "<group>"; };
 		3A59E64560B7346557245FFA /* CardDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDetailViewController.swift; sourceTree = "<group>"; };
 		443F08F85AEC989A90078A36 /* LinkCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCardCell.swift; sourceTree = "<group>"; };
+		47E4BD0248AB8E3A0BACB09C /* GlobalSearchViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSearchViewController.swift; sourceTree = "<group>"; };
 		4B36B1E5015BA3B9506BE320 /* CalendarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewController.swift; sourceTree = "<group>"; };
 		4DEE3405B5E72EBFBBE8CE25 /* TextCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCardCell.swift; sourceTree = "<group>"; };
 		5383A449595A3EFF892A6D8A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -55,19 +80,30 @@
 		71DAD05804A133CE510CA797 /* ImageAnnotationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageAnnotationView.swift; sourceTree = "<group>"; };
 		77DAC93E6FD3A6C2583C46F0 /* ImageCardDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardDetailViewController.swift; sourceTree = "<group>"; };
 		786B50B0091F91DEFA59C383 /* TodayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayHeaderView.swift; sourceTree = "<group>"; };
+		81DAE7537A8E80BD3AEEB091 /* RecentlyDeletedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyDeletedViewController.swift; sourceTree = "<group>"; };
 		8A8C73069CB8E53AFC6BFB1E /* GlassView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassView.swift; sourceTree = "<group>"; };
 		A0B2C80FF4EE654B63DEC539 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		A2AF22EB95AE7747F3A90FD3 /* UICollectionViewCell+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UICollectionViewCell+Selection.swift"; sourceTree = "<group>"; };
 		AE10EE4FDE3F272BBFDF623A /* ImageCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardCell.swift; sourceTree = "<group>"; };
 		B3F7A4831ABE54AE81968955 /* GlassActionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassActionSheet.swift; sourceTree = "<group>"; };
+		B5BB7279FAD69E786324076A /* PinListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinListViewController.swift; sourceTree = "<group>"; };
 		BA4538DEE6163FBBB952F765 /* CardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardStore.swift; sourceTree = "<group>"; };
 		BEE9D8070FCA5D0C95DCF6C6 /* LinkCardEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCardEditorViewController.swift; sourceTree = "<group>"; };
 		CBFA918314AD44DBBBA6F663 /* DayPin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DayPin.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D3F87653F31E1F676C6BC02F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		D718FFF5FF6335D37905A1B7 /* ImageCardEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardEditorViewController.swift; sourceTree = "<group>"; };
+		D780AC9E6C938E931CDA2630 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
+		D8DFC0A641E91EA923710BEA /* DayPinDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinDesign.swift; sourceTree = "<group>"; };
 		E002B3223FA9BF36D228C41B /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		E47856A261FEE4BAF86A52DB /* FolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderStore.swift; sourceTree = "<group>"; };
+		E4FCBEC7DE8D63AA20EF826D /* FilterChipsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterChipsView.swift; sourceTree = "<group>"; };
 		E880FB38D2E789A7BE09FD46 /* TodayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayViewController.swift; sourceTree = "<group>"; };
+		EAC63688E119CDA671423987 /* NotePickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePickerViewController.swift; sourceTree = "<group>"; };
+		ED95266578BDC1B77519BA90 /* BackupViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupViewController.swift; sourceTree = "<group>"; };
 		F277F3151511EA6DB565F633 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F60F1ADFEF2ACB76A96C5EB4 /* TextCardEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCardEditorViewController.swift; sourceTree = "<group>"; };
 		FAAAB911A656430E1C3C645D /* DayDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailViewController.swift; sourceTree = "<group>"; };
+		FEAFB6224BB6BFC875F27185 /* FolderDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderDetailViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,11 +131,23 @@
 			children = (
 				A15F48BFD05DA6AD4B929A2D /* Cards */,
 				F9F293ADFAC970943A63E9D0 /* Components */,
+				9EAFBC60FE72917D4F4AAE40 /* DesignSystem */,
 				3558A25811901DBA441C2141 /* GlassEffect */,
 				88CF58678747ABAADD694FE3 /* ImageAnnotation */,
 				A088300E25FD5D9477C5E280 /* TopTabBar */,
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		0C39904130F401381AF95927 /* Folders */ = {
+			isa = PBXGroup;
+			children = (
+				FEAFB6224BB6BFC875F27185 /* FolderDetailViewController.swift */,
+				30A914DA461A375356AC698E /* FolderEditorViewController.swift */,
+				33D225EB970A2AB18F0C8927 /* FolderListViewController.swift */,
+				EAC63688E119CDA671423987 /* NotePickerViewController.swift */,
+			);
+			path = Folders;
 			sourceTree = "<group>";
 		};
 		185EBA65B19AE236779AE3A3 /* AddCard */ = {
@@ -131,7 +179,9 @@
 		46DB90B41B2408202D4CA619 /* Storage */ = {
 			isa = PBXGroup;
 			children = (
+				D780AC9E6C938E931CDA2630 /* BackupManager.swift */,
 				BA4538DEE6163FBBB952F765 /* CardStore.swift */,
+				E47856A261FEE4BAF86A52DB /* FolderStore.swift */,
 			);
 			path = Storage;
 			sourceTree = "<group>";
@@ -141,6 +191,8 @@
 			children = (
 				185EBA65B19AE236779AE3A3 /* AddCard */,
 				58655852487896278F359AC6 /* Calendar */,
+				0C39904130F401381AF95927 /* Folders */,
+				B47908CE79068CCBAD479C7E /* Settings */,
 				D78CD39029862957858D20A5 /* Tasks */,
 				72F1B04CA8508F9CD0ECDF81 /* Today */,
 			);
@@ -160,7 +212,12 @@
 			isa = PBXGroup;
 			children = (
 				3A59E64560B7346557245FFA /* CardDetailViewController.swift */,
+				47E4BD0248AB8E3A0BACB09C /* GlobalSearchViewController.swift */,
 				77DAC93E6FD3A6C2583C46F0 /* ImageCardDetailViewController.swift */,
+				27A5F1E6ABECBB2FF81EAA83 /* LinkCardDetailViewController.swift */,
+				31827B5D29FEBFD2617CF68B /* LinkWebBottomSheetViewController.swift */,
+				B5BB7279FAD69E786324076A /* PinListViewController.swift */,
+				81DAE7537A8E80BD3AEEB091 /* RecentlyDeletedViewController.swift */,
 				786B50B0091F91DEFA59C383 /* TodayHeaderView.swift */,
 				E880FB38D2E789A7BE09FD46 /* TodayViewController.swift */,
 			);
@@ -183,6 +240,15 @@
 				1527142EE2C7F1DC149BF280 /* NoteCard.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		9EAFBC60FE72917D4F4AAE40 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				D8DFC0A641E91EA923710BEA /* DayPinDesign.swift */,
+				3811B493D58F8359A3B89668 /* WaveBackgroundView.swift */,
+			);
+			path = DesignSystem;
 			sourceTree = "<group>";
 		};
 		A088300E25FD5D9477C5E280 /* TopTabBar */ = {
@@ -226,6 +292,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B47908CE79068CCBAD479C7E /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				ED95266578BDC1B77519BA90 /* BackupViewController.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		D78CD39029862957858D20A5 /* Tasks */ = {
 			isa = PBXGroup;
 			children = (
@@ -241,6 +315,7 @@
 				E002B3223FA9BF36D228C41B /* Extensions.swift */,
 				5B65E4AA4B0A333783B6B900 /* L10n.swift */,
 				2F473D4568577B2585DC4B38 /* SceneDelegate.swift */,
+				D3F87653F31E1F676C6BC02F /* ThemeManager.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -257,7 +332,10 @@
 		F9F293ADFAC970943A63E9D0 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				E4FCBEC7DE8D63AA20EF826D /* FilterChipsView.swift */,
 				B3F7A4831ABE54AE81968955 /* GlassActionSheet.swift */,
+				A2AF22EB95AE7747F3A90FD3 /* UICollectionViewCell+Selection.swift */,
+				1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -325,30 +403,48 @@
 			files = (
 				BD9000384AA6D0FCC46E26E4 /* AnnotationInputPopover.swift in Sources */,
 				D94B674B87EE81D8BB0128D8 /* AppDelegate.swift in Sources */,
+				D53DFAF042A9798705361277 /* BackupManager.swift in Sources */,
+				014A79771698E07CE29F8537 /* BackupViewController.swift in Sources */,
 				64115A7CD54D5E33BCD59772 /* CalendarViewController.swift in Sources */,
 				0C0F02A57126691A485CFF89 /* CardDetailViewController.swift in Sources */,
 				7C69A48C083B43C8CCDCACFF /* CardStore.swift in Sources */,
 				622B5809485F24CF32153CE9 /* DayDetailViewController.swift in Sources */,
+				CC373B9A83339D3F19750266 /* DayPinDesign.swift in Sources */,
 				48B993E645C6B1E97107B5CD /* Extensions.swift in Sources */,
+				B9811ECF500C51A5DB93B810 /* FilterChipsView.swift in Sources */,
+				34FDB62001AFEE19DDBD9F93 /* FolderDetailViewController.swift in Sources */,
+				C68183928E672A040932AC66 /* FolderEditorViewController.swift in Sources */,
+				347A4983BF7344776E2E8B9E /* FolderListViewController.swift in Sources */,
+				6BDDD10584174781CBDE56D2 /* FolderStore.swift in Sources */,
 				C58E6EF08FB2DF0094E7081E /* GlassActionSheet.swift in Sources */,
 				E3B2D65AC9E304579D35203C /* GlassView.swift in Sources */,
+				AD58B3583A00CA5C492276CF /* GlobalSearchViewController.swift in Sources */,
 				9336E195C0F6D1EBCBC84EB8 /* ImageAnnotationView.swift in Sources */,
 				A406F0465B94FDFA7430E16B /* ImageCardCell.swift in Sources */,
 				091D0EC24963764C8D143664 /* ImageCardDetailViewController.swift in Sources */,
 				AA4FEC496D4EA9FE35E1F88F /* ImageCardEditorViewController.swift in Sources */,
 				FD36EA16A0144EDA394BB7F8 /* L10n.swift in Sources */,
 				5FF8EC089219B0CCA4946409 /* LinkCardCell.swift in Sources */,
+				9F1EBAFF3D91A5E71CB648CE /* LinkCardDetailViewController.swift in Sources */,
 				F8C6E609AC44E68B0C0588DF /* LinkCardEditorViewController.swift in Sources */,
+				7776FF268E95FC5F2072BAB9 /* LinkWebBottomSheetViewController.swift in Sources */,
 				389A3BABD6F735C355471311 /* MainContainerViewController.swift in Sources */,
 				E40B636E0E0AEC807A9FBD79 /* NoteCard.swift in Sources */,
+				8CE890641F6C80DF1B777C9D /* NotePickerViewController.swift in Sources */,
 				19FC0DE6C76347A29F15A803 /* PinCalloutView.swift in Sources */,
+				A81528C63DBF3411F75342E4 /* PinListViewController.swift in Sources */,
+				899F4F942DC38B00B82D3DB7 /* RecentlyDeletedViewController.swift in Sources */,
 				19F7A5A39DC838597A38E2C4 /* SceneDelegate.swift in Sources */,
 				3F89CC6B59C5C9231123836A /* TasksViewController.swift in Sources */,
 				6BCDC53EAD42F6E683446D72 /* TextCardCell.swift in Sources */,
 				95C4A69B4CCDC065956ED4DA /* TextCardEditorViewController.swift in Sources */,
+				C1873B42E3CC0E8DD4C15CB1 /* ThemeManager.swift in Sources */,
 				32F83AB21A3F4D84806A7CD6 /* TodayHeaderView.swift in Sources */,
 				43F0B7DCFCA71814191E5739 /* TodayViewController.swift in Sources */,
 				FDDCFEE794D1480520D9E440 /* TopTabBarView.swift in Sources */,
+				B8E9C80C19C9F8B2E62C3085 /* UICollectionViewCell+Selection.swift in Sources */,
+				427FA47A02CD12B7B7549C52 /* WaveBackgroundView.swift in Sources */,
+				C5B00C6620FAB0E214A63DDC /* WeekCalendarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

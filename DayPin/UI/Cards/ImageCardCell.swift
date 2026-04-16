@@ -8,6 +8,7 @@ final class ImageCardCell: UICollectionViewCell {
     private let titleLabel = UILabel()
     private let pinCountLabel = UILabel()
     private let pinIcon = UIImageView()
+    private let timeLabel = UILabel()
     private let gradientLayer = CAGradientLayer()
 
     override init(frame: CGRect) {
@@ -22,10 +23,7 @@ final class ImageCardCell: UICollectionViewCell {
         layer.cornerRadius = 18
         layer.masksToBounds = true
 
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.12
-        layer.shadowRadius = 14
-        layer.shadowOffset = CGSize(width: 0, height: 4)
+        DayPinDesign.applyCardShadow(to: layer)
 
         // Image
         thumbnailView.contentMode = .scaleAspectFill
@@ -63,17 +61,30 @@ final class ImageCardCell: UICollectionViewCell {
         pinRow.alignment = .center
         pinRow.translatesAutoresizingMaskIntoConstraints = false
 
-        let infoStack = UIStackView(arrangedSubviews: [titleLabel, pinRow])
+        timeLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        timeLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+        timeLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let topRow = UIStackView(arrangedSubviews: [pinRow, UIView(), timeLabel])
+        topRow.axis = .horizontal
+        topRow.alignment = .center
+        topRow.spacing = 6
+        topRow.translatesAutoresizingMaskIntoConstraints = false
+
+        let infoStack = UIStackView(arrangedSubviews: [titleLabel, topRow])
         infoStack.axis = .vertical
         infoStack.spacing = 4
         infoStack.translatesAutoresizingMaskIntoConstraints = false
         blurOverlay.contentView.addSubview(infoStack)
 
+        let ratioConstraint = thumbnailView.heightAnchor.constraint(equalTo: thumbnailView.widthAnchor, multiplier: 0.65)
+        ratioConstraint.priority = UILayoutPriority(999)
+
         NSLayoutConstraint.activate([
             thumbnailView.topAnchor.constraint(equalTo: contentView.topAnchor),
             thumbnailView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             thumbnailView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            thumbnailView.heightAnchor.constraint(equalTo: thumbnailView.widthAnchor, multiplier: 0.65),
+            ratioConstraint,
             thumbnailView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
             blurOverlay.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -103,7 +114,11 @@ final class ImageCardCell: UICollectionViewCell {
 
         let count = card.annotations.count
         pinCountLabel.text = count > 0 ? L10n.annotationCount(count) : L10n.noAnnotations
-        pinIcon.tintColor = count > 0 ? .systemBlue : UIColor.white.withAlphaComponent(0.4)
+        pinIcon.tintColor = count > 0 ? DayPinDesign.accentLight : UIColor.white.withAlphaComponent(0.4)
+
+        let df = DateFormatter()
+        df.dateFormat = "HH:mm"
+        timeLabel.text = df.string(from: card.createdAt)
     }
 
     override var isHighlighted: Bool {

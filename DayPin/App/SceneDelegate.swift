@@ -16,5 +16,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = rootVC
         window.makeKeyAndVisible()
         self.window = window
+        ThemeManager.shared.apply()
     }
 }

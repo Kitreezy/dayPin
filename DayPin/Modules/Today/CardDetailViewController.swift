@@ -15,21 +15,10 @@ final class CardDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemGroupedBackground
+        view.backgroundColor = DayPinDesign.background
         title = card.title
         setupNav()
         setupUI()
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
-        navigationController?.navigationBar.prefersLargeTitles = false
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: animated)
     }
 
     // MARK: - Nav
@@ -41,16 +30,30 @@ final class CardDetailViewController: UIViewController {
             target: self,
             action: #selector(goBack)
         )
-        navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"), style: .plain, target: self, action: #selector(share)),
-            UIBarButtonItem(image: UIImage(systemName: "pencil"), style: .plain, target: self, action: #selector(edit))
-        ]
+
+        let editBtn = UIBarButtonItem(image: UIImage(systemName: "pencil"),
+                                      style: .plain, target: self, action: #selector(edit))
+
+        let shareAction  = UIAction(title: "Поделиться", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.share() }
+        let folderAction = UIAction(title: "В папку",    image: UIImage(systemName: "folder.badge.plus"))   { [weak self] _ in self?.addToFolder() }
+        let menu = UIMenu(children: [shareAction, folderAction])
+        let moreBtn = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"),
+                                      menu: menu)
+
+        navigationItem.rightBarButtonItems = [moreBtn, editBtn]
     }
 
     // MARK: - UI
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        navigationController?.interactivePopGestureRecognizer?.delegate = nil
+        navigationController?.interactivePopGestureRecognizer?.isEnabled = true
+    }
+
     private func setupUI() {
         let scroll = UIScrollView()
+        scroll.showsVerticalScrollIndicator = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scroll)
         NSLayoutConstraint.activate([
@@ -95,15 +98,20 @@ final class CardDetailViewController: UIViewController {
         cardView.stackView.addArrangedSubview(dateLabel)
         cardView.stackView.addArrangedSubview(titleLabel)
 
-        if !card.comment.isEmpty {
+        let displayText: NSAttributedString? = card.attributedComment ?? (
+            card.comment.isEmpty ? nil : NSAttributedString(
+                string: card.comment,
+                attributes: [.font: UIFont.systemFont(ofSize: 16), .foregroundColor: UIColor.secondaryLabel]
+            )
+        )
+
+        if let displayText, displayText.length > 0 {
             let sep = UIView()
             sep.backgroundColor = UIColor.separator.withAlphaComponent(0.4)
             sep.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
 
             let commentLabel = UILabel()
-            commentLabel.text = card.comment
-            commentLabel.font = .systemFont(ofSize: 16, weight: .regular)
-            commentLabel.textColor = .secondaryLabel
+            commentLabel.attributedText = displayText.applying(baseColor: .secondaryLabel, baseFont: .systemFont(ofSize: 16))
             commentLabel.numberOfLines = 0
             commentLabel.lineBreakMode = .byWordWrapping
 
@@ -138,5 +146,24 @@ final class CardDetailViewController: UIViewController {
             self?.navigationController?.popViewController(animated: true)
         }
         present(UINavigationController(rootViewController: vc), animated: true)
+    }
+
+    @objc private func addToFolder() {
+        let folders = FolderStore.shared.all()
+        let sheet = UIAlertController(title: "Добавить в папку", message: nil, preferredStyle: .actionSheet)
+        for folder in folders {
+            let isCurrent = card.folderID == folder.id
+            let title = isCurrent ? "✓ \(folder.name)" : folder.name
+            sheet.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+                guard let self else { return }
+                self.card.folderID = isCurrent ? nil : folder.id
+                CardStore.shared.save(card: self.card)
+            })
+        }
+        if folders.isEmpty {
+            sheet.addAction(UIAlertAction(title: "Нет папок — создайте во вкладке «Папки»", style: .default, handler: nil))
+        }
+        sheet.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(sheet, animated: true)
     }
 }

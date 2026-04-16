@@ -44,13 +44,14 @@ final class GlassActionSheet: UIView {
     private weak var parentWindow: UIWindow?
 
     private let dimView = UIView()
-    private let mainCard = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-    private let cancelCard = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+    private let mainCard = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
+    private let cancelCard = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
 
     private var mainCardBottomConstraint: NSLayoutConstraint!
     private var mainCardLeadingConstraint: NSLayoutConstraint!
     private var cancelCardBottomConstraint: NSLayoutConstraint!
     private var cancelCardLeadingConstraint: NSLayoutConstraint!
+    private var titleHeight: CGFloat = 0
 
     // Compact width: ~265pt or 72% of screen, whichever is smaller
     private let cardWidth: CGFloat = min(265, UIScreen.main.bounds.width * 0.72)
@@ -99,7 +100,7 @@ final class GlassActionSheet: UIView {
             cancelCardLeadingConstraint,
             cancelCardBottomConstraint,
             cancelCard.widthAnchor.constraint(equalToConstant: cardWidth),
-            cancelCard.heightAnchor.constraint(equalToConstant: 52)
+            cancelCard.heightAnchor.constraint(equalToConstant: 44)
         ])
 
         let cancelTitle = cancelAction?.title ?? L10n.cancel
@@ -122,9 +123,9 @@ final class GlassActionSheet: UIView {
         mainCard.translatesAutoresizingMaskIntoConstraints = false
         addSubview(mainCard)
 
-        // Height estimate: title(36) + n*52 + separators
-        let titleHeight: CGFloat = title != nil ? 42 : 0
-        let itemsHeight = CGFloat(regularActions.count) * 52
+        // Height estimate: title(36) + n*44 + separators
+        titleHeight = title != nil ? 38 : 0
+        let itemsHeight = CGFloat(regularActions.count) * 44
         let sepHeight = CGFloat(max(0, regularActions.count - 1)) * 0.5
         let totalHeight = titleHeight + itemsHeight + sepHeight
 
@@ -158,7 +159,7 @@ final class GlassActionSheet: UIView {
             let lbl = UILabel()
             lbl.text = title
             lbl.font = .systemFont(ofSize: 12, weight: .regular)
-            lbl.textColor = UIColor.white.withAlphaComponent(0.45)
+            lbl.textColor = UIColor.secondaryLabel
             lbl.numberOfLines = 2
             let wrapper = UIView()
             lbl.translatesAutoresizingMaskIntoConstraints = false
@@ -184,7 +185,7 @@ final class GlassActionSheet: UIView {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { action.handler() }
             }
             stack.addArrangedSubview(btn)
-            btn.heightAnchor.constraint(equalToConstant: 52).isActive = true
+            btn.heightAnchor.constraint(equalToConstant: 44).isActive = true
             if i < regularActions.count - 1 {
                 stack.addArrangedSubview(makeSeparator())
             }
@@ -193,7 +194,7 @@ final class GlassActionSheet: UIView {
 
     private func makeSeparator() -> UIView {
         let v = UIView()
-        v.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        v.backgroundColor = UIColor.separator.withAlphaComponent(0.5)
         v.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
         return v
     }
@@ -202,22 +203,63 @@ final class GlassActionSheet: UIView {
 
     private func animateIn() {
         layoutIfNeeded()
-        let safeBottom = parentWindow?.safeAreaInsets.bottom ?? 0
-        let bottomPad = max(safeBottom, 12)
 
-        mainCardBottomConstraint.constant = -(bottomPad + 52 + 8 + 12)   // above cancel
-        cancelCardBottomConstraint.constant = -(bottomPad + 12)
+        if let sv = sourceView, let window = parentWindow {
+            // ── Popover mode: grow from the source button ──────────────────
+            cancelCard.isHidden = true
 
-        UIView.animate(withDuration: 0.44, delay: 0, usingSpringWithDamping: 0.78, initialSpringVelocity: 0.1) {
-            self.dimView.alpha = 1
-            self.layoutIfNeeded()
+            // Switch mainCard to frame-based layout
+            mainCardBottomConstraint.isActive   = false
+            mainCardLeadingConstraint.isActive  = false
+            mainCard.translatesAutoresizingMaskIntoConstraints = true
+
+            let srcFrame   = sv.convert(sv.bounds, to: window)
+            let cardHeight = titleHeight + CGFloat(regularActions.count) * 44
+            let cardX      = max(12, min(srcFrame.maxX - cardWidth, window.bounds.width - cardWidth - 12))
+            let cardY      = srcFrame.minY - cardHeight - 10
+
+            mainCard.frame = CGRect(x: cardX, y: cardY, width: cardWidth, height: cardHeight)
+
+            // Anchor bottom-right → scale from button position
+            mainCard.layer.anchorPoint = CGPoint(x: 1.0, y: 1.0)
+            mainCard.layer.position    = CGPoint(x: cardX + cardWidth, y: cardY + cardHeight)
+            mainCard.transform         = CGAffineTransform(scaleX: 0.05, y: 0.05)
+            mainCard.alpha             = 0
+
+            UIView.animate(withDuration: 0.36, delay: 0, usingSpringWithDamping: 0.72, initialSpringVelocity: 0.2) {
+                self.dimView.alpha      = 1
+                self.mainCard.transform = .identity
+                self.mainCard.alpha     = 1
+            }
+        } else {
+            // ── Sheet mode: slide up from bottom ────────────────────────────
+            let safeBottom = parentWindow?.safeAreaInsets.bottom ?? 0
+            let bottomPad  = max(safeBottom, 12)
+
+            mainCardBottomConstraint.constant   = -(bottomPad + 44 + 8 + 12)
+            cancelCardBottomConstraint.constant = -(bottomPad + 12)
+
+            UIView.animate(withDuration: 0.44, delay: 0, usingSpringWithDamping: 0.78, initialSpringVelocity: 0.1) {
+                self.dimView.alpha = 1
+                self.layoutIfNeeded()
+            }
         }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     @objc private func animateOut() {
+        if sourceView != nil {
+            // Collapse back toward anchor
+            UIView.animate(withDuration: 0.22, delay: 0, options: .curveEaseIn) {
+                self.dimView.alpha      = 0
+                self.mainCard.transform = CGAffineTransform(scaleX: 0.05, y: 0.05)
+                self.mainCard.alpha     = 0
+            } completion: { _ in self.removeFromSuperview() }
+            return
+        }
+
         let safeBottom = parentWindow?.safeAreaInsets.bottom ?? 0
-        mainCardBottomConstraint.constant = 300 + safeBottom
+        mainCardBottomConstraint.constant   = 300 + safeBottom
         cancelCardBottomConstraint.constant = 200 + safeBottom
 
         UIView.animate(withDuration: 0.28, delay: 0, options: .curveEaseIn) {
@@ -236,22 +278,22 @@ private final class SheetButton: UIButton {
         self.action = action
         super.init(frame: .zero)
 
-        let color: UIColor = isDestructive ? .systemRed : .white
+        let color: UIColor = isDestructive ? .systemRed : .label
         setTitleColor(color, for: .normal)
         setTitleColor(color.withAlphaComponent(0.4), for: .highlighted)
         tintColor = color
-        titleLabel?.font = .systemFont(ofSize: 17, weight: isBold ? .semibold : .regular)
+        titleLabel?.font = .systemFont(ofSize: 15, weight: isBold ? .semibold : .regular)
         setTitle(title, for: .normal)
         contentHorizontalAlignment = isBold ? .center : .left
         contentEdgeInsets = isBold
             ? .zero
-            : UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
+            : UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
 
         if let icon, !isBold {
-            let cfg = UIImage.SymbolConfiguration(pointSize: 17, weight: .regular)
+            let cfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
             setImage(UIImage(systemName: icon, withConfiguration: cfg), for: .normal)
-            imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 12)
-            titleEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: -12)
+            imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 10)
+            titleEdgeInsets = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: -10)
         }
 
         addTarget(self, action: #selector(tapped), for: .touchUpInside)

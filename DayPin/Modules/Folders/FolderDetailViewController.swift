@@ -52,11 +52,13 @@ final class FolderDetailViewController: UIViewController {
             image: UIImage(systemName: "chevron.left"),
             style: .plain, target: self, action: #selector(goBack)
         )
-        let addBtn  = UIBarButtonItem(image: UIImage(systemName: "plus"),
-                                      style: .plain, target: self, action: #selector(addNote))
-        let editBtn = UIBarButtonItem(image: UIImage(systemName: "square.and.pencil"),
-                                      style: .plain, target: self, action: #selector(editFolder))
-        navigationItem.rightBarButtonItems = [addBtn, editBtn]
+        let addBtn   = UIBarButtonItem(image: UIImage(systemName: "plus"),
+                                       style: .plain, target: self, action: #selector(addNote))
+        let editBtn  = UIBarButtonItem(image: UIImage(systemName: "square.and.pencil"),
+                                       style: .plain, target: self, action: #selector(editFolder))
+        let shareBtn = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"),
+                                       style: .plain, target: self, action: #selector(shareFolder))
+        navigationItem.rightBarButtonItems = [addBtn, shareBtn, editBtn]
     }
 
     private func setupUI() {
@@ -93,6 +95,16 @@ final class FolderDetailViewController: UIViewController {
 
     @objc private func goBack() { navigationController?.popViewController(animated: true) }
 
+    @objc private func shareFolder() {
+        guard !cards.isEmpty else { return }
+        let items: [Any] = cards.compactMap { card -> Any? in
+            if let img = card as? ImageCard, let data = img.imageData { return UIImage(data: data) }
+            if let link = card as? LinkCard { return link.url }
+            return card.title
+        }
+        present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
+    }
+
     @objc private func addNote() {
         let today = Calendar.current.startOfDay(for: Date())
         let sheet = UIAlertController(title: "Новая заметка", message: nil, preferredStyle: .actionSheet)
@@ -105,7 +117,7 @@ final class FolderDetailViewController: UIViewController {
                 CardStore.shared.save(card: saved)
                 self.loadCards()
             }
-            self.present(UINavigationController(rootViewController: vc), animated: true)
+            self.presentEditorSheet(vc)
         })
         sheet.addAction(UIAlertAction(title: "Изображение", style: .default) { [weak self] (_: UIAlertAction) in
             guard let self else { return }
@@ -194,7 +206,29 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
                         point: CGPoint) -> UIContextMenuConfiguration? {
         guard !cards.isEmpty else { return nil }
         let card = cards[indexPath.item]
-        return UIContextMenuConfiguration(actionProvider: { _ in
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            guard let self else { return nil }
+
+            let share = UIAction(title: "Поделиться",
+                                 image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                guard let self else { return }
+                var items: [Any] = [card.title]
+                if let img = card as? ImageCard, let data = img.imageData, let image = UIImage(data: data) { items.append(image) }
+                if let link = card as? LinkCard { items.append(link.url) }
+                self.present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
+            }
+
+            let copy = UIAction(title: "Скопировать в день",
+                                image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
+                guard let self else { return }
+                let vc = CopyToDayViewController()
+                vc.onCopy = { date in
+                    CardStore.shared.save(card: card.duplicated(to: date))
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+                self.present(UINavigationController(rootViewController: vc), animated: true)
+            }
+
             let remove = UIAction(title: "Убрать из папки",
                                   image: UIImage(systemName: "folder.badge.minus"),
                                   attributes: .destructive) { [weak self] _ in
@@ -202,7 +236,7 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
                 CardStore.shared.save(card: card)
                 self?.loadCards()
             }
-            return UIMenu(children: [remove])
+            return UIMenu(children: [share, copy, remove])
         })
     }
 }

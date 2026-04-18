@@ -1,5 +1,13 @@
 import UIKit
 
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let dayPinColorSchemeChanged = Notification.Name("dayPinColorSchemeChanged")
+}
+
+// MARK: - AppTheme (brightness)
+
 enum AppTheme: Int, CaseIterable {
     case system = 0
     case light  = 1
@@ -30,21 +38,45 @@ enum AppTheme: Int, CaseIterable {
     }
 }
 
+// MARK: - ThemeManager
+
 final class ThemeManager {
     static let shared = ThemeManager()
     private init() {}
 
-    private let key = "appTheme"
+    private let themeKey  = "appTheme"
+    private let schemeKey = "colorSchemeID"
+
+    // MARK: Brightness
 
     var current: AppTheme {
-        get { AppTheme(rawValue: UserDefaults.standard.integer(forKey: key)) ?? .system }
+        get { AppTheme(rawValue: UserDefaults.standard.integer(forKey: themeKey)) ?? .system }
         set {
-            UserDefaults.standard.set(newValue.rawValue, forKey: key)
-            apply()
+            UserDefaults.standard.set(newValue.rawValue, forKey: themeKey)
+            applyBrightness()
         }
     }
 
+    // MARK: Color Scheme
+
+    var colorScheme: AppColorScheme {
+        get {
+            let raw = UserDefaults.standard.integer(forKey: schemeKey)
+            return (ColorSchemeID(rawValue: raw) ?? .violet).scheme
+        }
+        set {
+            UserDefaults.standard.set(newValue.id.rawValue, forKey: schemeKey)
+            NotificationCenter.default.post(name: .dayPinColorSchemeChanged, object: nil)
+        }
+    }
+
+    // MARK: Apply
+
     func apply() {
+        applyBrightness()
+    }
+
+    private func applyBrightness() {
         let style = current.userInterfaceStyle
         UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }

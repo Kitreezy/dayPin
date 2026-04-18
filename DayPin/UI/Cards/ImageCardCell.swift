@@ -114,7 +114,8 @@ final class ImageCardCell: UICollectionViewCell {
 
         let count = card.annotations.count
         pinCountLabel.text = count > 0 ? L10n.annotationCount(count) : L10n.noAnnotations
-        pinIcon.tintColor = count > 0 ? DayPinDesign.accentLight : UIColor.white.withAlphaComponent(0.4)
+        let tint = card.colorHex.flatMap { UIColor(hex: $0) } ?? DayPinDesign.imageCardTint
+        pinIcon.tintColor = count > 0 ? tint : UIColor.white.withAlphaComponent(0.4)
 
         let df = DateFormatter()
         df.dateFormat = "HH:mm"

@@ -1,5 +1,6 @@
 import UIKit
 import LinkPresentation
+import PhotosUI
 
 final class LinkCardEditorViewController: UIViewController {
 
@@ -7,226 +8,462 @@ final class LinkCardEditorViewController: UIViewController {
 
     private let card: LinkCard?
     private let dayDate: Date
-
-    private let urlField = UITextField()
-    private let linksTextView = UITextView()
-    private let linksPlaceholder = UILabel()
-    private let titleField = UITextField()
-    private let commentTextView = UITextView()
-    private let commentPlaceholder = UILabel()
-    private let previewContainer = UIView()
-    private var lpView: LPLinkView?
     private var resolvedURL: URL?
+    private var fetchedMetadata: LPLinkMetadata?
+    private var metadataTask: LPMetadataProvider?
+    private var clipboardURL: URL?
+    private var cardsRevealed = false
+
+    /// Image from LP metadata (async-loaded)
+    private var fetchedPreviewImage: UIImage?
+    /// User-chosen custom cover (overrides metadata image)
+    private var customCoverImage: UIImage?
+
+    // MARK: - UI
+
+    private let scrollView   = UIScrollView()
+    private let contentStack = UIStackView()
+
+    // URL row
+    private let urlCard          = GlassCardView(style: .card)
+    private let urlField         = UITextField()
+    private let loadingIndicator = UIActivityIndicatorView(style: .medium)
+
+    // Clipboard suggestion
+    private let clipboardBtn = UIButton(type: .system)
+
+    // Preview card
+    private let previewCard      = GlassCardView(style: .card)
+    private let spinnerContainer = UIView()
+    private var lpView: LPLinkView?
+
+    // Details card
+    private let detailsCard        = GlassCardView(style: .card)
+    private let titleField         = UITextField()
+    private let commentTextView    = UITextView()
+    private let commentPlaceholder = UILabel()
+
+    // Cover button (shown after metadata fetched)
+    private let coverCard = GlassCardView(style: .card)
+    private let coverImageView = UIImageView()
+    private let coverPlaceholderIcon = UIImageView(image: UIImage(systemName: "photo.badge.plus"))
+    private let coverPlaceholderLabel = UILabel()
+
+    // MARK: - Init
 
     init(card: LinkCard?, dayDate: Date) {
-        self.card = card
+        self.card    = card
         self.dayDate = dayDate
         super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
+    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = card == nil ? "Новая ссылка" : "Редактировать ссылку"
+        title = card == nil ? "Новая ссылка" : L10n.edit
         view.backgroundColor = DayPinDesign.background
         setupNav()
         setupUI()
-        fillIfEditing()
         addKeyboardDismissGesture()
+        if let card { fillForEditing(card) }
     }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if card == nil {
+            urlField.becomeFirstResponder()
+            detectClipboard()
+        }
+    }
+
+    // MARK: - Nav
 
     private func setupNav() {
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Отмена", style: .plain, target: self, action: #selector(cancel))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Сохранить", style: .done, target: self, action: #selector(save))
+        navigationItem.leftBarButtonItem  = UIBarButtonItem(title: L10n.cancel, style: .plain,  target: self, action: #selector(cancel))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: L10n.save,   style: .done,   target: self, action: #selector(save))
     }
 
+    // MARK: - UI Setup
+
     private func setupUI() {
-        let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.keyboardDismissMode = .interactive
+        scrollView.alwaysBounceVertical = true
         view.addSubview(scrollView)
 
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.addSubview(container)
+        contentStack.axis    = .vertical
+        contentStack.spacing = 12
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(contentStack)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor),
 
-            container.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            container.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            container.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            container.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            container.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
+            contentStack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 16),
+            contentStack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 16),
+            contentStack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -16),
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -24),
+            contentStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -32)
         ])
 
-        let formCard = GlassCardView(style: .card)
-        formCard.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(formCard)
+        buildURLCard()
+        buildClipboardHint()
+        buildPreviewCard()
+        buildDetailsCard()
+        buildCoverCard()
 
-        urlField.placeholder = "https://..."
-        urlField.font = .systemFont(ofSize: 15)
-        urlField.borderStyle = .none
-        urlField.keyboardType = .URL
+        contentStack.addArrangedSubview(urlCard)
+        contentStack.addArrangedSubview(clipboardBtn)
+        contentStack.addArrangedSubview(previewCard)
+        contentStack.addArrangedSubview(detailsCard)
+        contentStack.addArrangedSubview(coverCard)
+
+        clipboardBtn.isHidden = true
+        previewCard.isHidden  = true
+        previewCard.alpha     = 0
+        detailsCard.isHidden  = true
+        detailsCard.alpha     = 0
+        coverCard.isHidden    = true
+        coverCard.alpha       = 0
+    }
+
+    private func buildURLCard() {
+        let iconCfg  = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        let linkIcon = UIImageView(image: UIImage(systemName: "link", withConfiguration: iconCfg))
+        linkIcon.tintColor = DayPinDesign.accent
+        linkIcon.setContentHuggingPriority(.required, for: .horizontal)
+
+        urlField.placeholder            = "Вставьте ссылку…"
+        urlField.font                   = .systemFont(ofSize: 15)
+        urlField.borderStyle            = .none
+        urlField.keyboardType           = .URL
         urlField.autocapitalizationType = .none
-        urlField.autocorrectionType = .no
-        urlField.returnKeyType = .go
-        urlField.addTarget(self, action: #selector(urlDidChange), for: .editingDidEndOnExit)
+        urlField.autocorrectionType     = .no
+        urlField.returnKeyType          = .go
+        urlField.clearButtonMode        = .whileEditing
+        urlField.delegate               = self
+        urlField.addTarget(self, action: #selector(urlFieldChanged), for: .editingChanged)
 
-        let div1 = makeDivider()
+        loadingIndicator.hidesWhenStopped = true
+        loadingIndicator.color = .secondaryLabel
+        loadingIndicator.setContentHuggingPriority(.required, for: .horizontal)
 
-        linksTextView.font = .systemFont(ofSize: 14)
-        linksTextView.backgroundColor = .clear
-        linksTextView.isScrollEnabled = false
-        linksTextView.delegate = self
-        linksTextView.textContainerInset = UIEdgeInsets(top: 6, left: 0, bottom: 6, right: 0)
+        let row = UIStackView(arrangedSubviews: [linkIcon, urlField, loadingIndicator])
+        row.axis      = .horizontal
+        row.spacing   = 10
+        row.alignment = .center
+        row.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        urlCard.stackView.addArrangedSubview(row)
+    }
 
-        linksPlaceholder.text = "Дополнительные ссылки (каждая с новой строки)"
-        linksPlaceholder.font = .systemFont(ofSize: 14)
-        linksPlaceholder.textColor = .placeholderText
-        linksPlaceholder.translatesAutoresizingMaskIntoConstraints = false
+    private func buildClipboardHint() {
+        clipboardBtn.setTitleColor(DayPinDesign.accent, for: .normal)
+        clipboardBtn.titleLabel?.font = .systemFont(ofSize: 13)
+        clipboardBtn.contentHorizontalAlignment = .leading
+        clipboardBtn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
+        clipboardBtn.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        clipboardBtn.addTarget(self, action: #selector(pasteClipboard), for: .touchUpInside)
+    }
 
-        titleField.placeholder = "Название (необязательно)"
-        titleField.font = .systemFont(ofSize: 15)
+    private func buildPreviewCard() {
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.startAnimating()
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        spinnerContainer.heightAnchor.constraint(equalToConstant: 72).isActive = true
+        spinnerContainer.addSubview(spinner)
+        NSLayoutConstraint.activate([
+            spinner.centerXAnchor.constraint(equalTo: spinnerContainer.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: spinnerContainer.centerYAnchor)
+        ])
+        previewCard.stackView.addArrangedSubview(spinnerContainer)
+    }
+
+    private func buildDetailsCard() {
+        titleField.placeholder = "Название"
+        titleField.font        = .systemFont(ofSize: 15)
         titleField.borderStyle = .none
+        titleField.heightAnchor.constraint(equalToConstant: 44).isActive = true
 
-        let div2 = makeDivider()
-        let div3 = makeDivider()
+        let divider = UIView()
+        divider.backgroundColor = .separator
+        divider.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
 
-        commentTextView.font = .systemFont(ofSize: 15)
+        commentTextView.font            = .systemFont(ofSize: 15)
         commentTextView.backgroundColor = .clear
         commentTextView.isScrollEnabled = false
-        commentTextView.delegate = self
+        commentTextView.delegate        = self
+        commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
 
-        commentPlaceholder.text = "Комментарий..."
-        commentPlaceholder.font = .systemFont(ofSize: 15)
+        commentPlaceholder.text      = "Комментарий…"
+        commentPlaceholder.font      = .systemFont(ofSize: 15)
         commentPlaceholder.textColor = .placeholderText
         commentPlaceholder.translatesAutoresizingMaskIntoConstraints = false
-
-        formCard.stackView.addArrangedSubview(urlField)
-        formCard.stackView.addArrangedSubview(div1)
-        formCard.stackView.addArrangedSubview(linksTextView)
-        formCard.stackView.addArrangedSubview(div2)
-        formCard.stackView.addArrangedSubview(titleField)
-        formCard.stackView.addArrangedSubview(div3)
-        formCard.stackView.addArrangedSubview(commentTextView)
-        linksTextView.addSubview(linksPlaceholder)
         commentTextView.addSubview(commentPlaceholder)
 
-        previewContainer.translatesAutoresizingMaskIntoConstraints = false
-        previewContainer.isHidden = true
-        container.addSubview(previewContainer)
+        detailsCard.stackView.addArrangedSubview(titleField)
+        detailsCard.stackView.addArrangedSubview(divider)
+        detailsCard.stackView.addArrangedSubview(commentTextView)
 
         NSLayoutConstraint.activate([
-            formCard.topAnchor.constraint(equalTo: container.topAnchor, constant: 16),
-            formCard.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            formCard.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-
-            urlField.heightAnchor.constraint(equalToConstant: 44),
-            linksTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 68),
-            titleField.heightAnchor.constraint(equalToConstant: 44),
-            div1.heightAnchor.constraint(equalToConstant: 0.5),
-            div2.heightAnchor.constraint(equalToConstant: 0.5),
-            div3.heightAnchor.constraint(equalToConstant: 0.5),
-            commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 80),
-
-            linksPlaceholder.topAnchor.constraint(equalTo: linksTextView.topAnchor, constant: 8),
-            linksPlaceholder.leadingAnchor.constraint(equalTo: linksTextView.leadingAnchor, constant: 5),
             commentPlaceholder.topAnchor.constraint(equalTo: commentTextView.topAnchor, constant: 8),
-            commentPlaceholder.leadingAnchor.constraint(equalTo: commentTextView.leadingAnchor, constant: 5),
-
-            previewContainer.topAnchor.constraint(equalTo: formCard.bottomAnchor, constant: 16),
-            previewContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            previewContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-            previewContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16)
+            commentPlaceholder.leadingAnchor.constraint(equalTo: commentTextView.leadingAnchor, constant: 5)
         ])
     }
 
-    private func makeDivider() -> UIView {
-        let v = UIView()
-        v.backgroundColor = .separator
-        return v
+    private func buildCoverCard() {
+        // Tap gesture to pick cover
+        let tap = UITapGestureRecognizer(target: self, action: #selector(coverTapped))
+        coverCard.addGestureRecognizer(tap)
+        coverCard.isUserInteractionEnabled = true
+
+        // Image preview (hidden until image selected)
+        coverImageView.contentMode = .scaleAspectFill
+        coverImageView.layer.cornerRadius = 10
+        coverImageView.layer.masksToBounds = true
+        coverImageView.isHidden = true
+        coverImageView.translatesAutoresizingMaskIntoConstraints = false
+        coverImageView.heightAnchor.constraint(equalToConstant: 110).isActive = true
+
+        // Placeholder
+        coverPlaceholderIcon.tintColor = .tertiaryLabel
+        coverPlaceholderIcon.contentMode = .scaleAspectFit
+        coverPlaceholderIcon.translatesAutoresizingMaskIntoConstraints = false
+        coverPlaceholderIcon.heightAnchor.constraint(equalToConstant: 28).isActive = true
+
+        coverPlaceholderLabel.text = "Добавить обложку"
+        coverPlaceholderLabel.font = .systemFont(ofSize: 13)
+        coverPlaceholderLabel.textColor = .secondaryLabel
+        coverPlaceholderLabel.textAlignment = .center
+
+        let placeholder = UIStackView(arrangedSubviews: [coverPlaceholderIcon, coverPlaceholderLabel])
+        placeholder.axis = .vertical
+        placeholder.spacing = 6
+        placeholder.alignment = .center
+
+        let headerLabel = UILabel()
+        headerLabel.text = "Обложка"
+        headerLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        headerLabel.textColor = .secondaryLabel
+
+        coverCard.stackView.addArrangedSubview(headerLabel)
+        coverCard.stackView.addArrangedSubview(coverImageView)
+        coverCard.stackView.addArrangedSubview(placeholder)
+        coverCard.stackView.spacing = 8
     }
 
-    private func fillIfEditing() {
-        guard let card else { return }
-        urlField.text = card.url.absoluteString
-        linksTextView.text = card.extraURLs.map(\.absoluteString).joined(separator: "\n")
-        linksPlaceholder.isHidden = !linksTextView.text.isEmpty
-        titleField.text = card.title
-        commentTextView.text = card.comment
-        commentPlaceholder.isHidden = !card.comment.isEmpty
-        resolvedURL = card.url
-        fetchLinkPreview(url: card.url)
+    // MARK: - Clipboard
+
+    private func detectClipboard() {
+        let pb  = UIPasteboard.general
+        let str = (pb.url?.absoluteString ?? pb.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !str.isEmpty else { return }
+        let normalized = str.hasPrefix("http") ? str : "https://\(str)"
+        guard let url = URL(string: normalized), url.host != nil else { return }
+        clipboardURL = url
+        let domain = url.host ?? str
+        clipboardBtn.setTitle("📋  \(domain)", for: .normal)
+        UIView.animate(withDuration: 0.2) { self.clipboardBtn.isHidden = false }
     }
 
-    @objc private func urlDidChange() {
-        guard let text = urlField.text, !text.isEmpty,
-              let url = URL(string: text.hasPrefix("http") ? text : "https://\(text)") else { return }
-        resolvedURL = url
-        fetchLinkPreview(url: url)
+    @objc private func pasteClipboard() {
+        guard let url = clipboardURL else { return }
+        urlField.text = url.absoluteString
+        resolvedURL   = url
+        UIView.animate(withDuration: 0.15) { self.clipboardBtn.isHidden = true }
+        fetchAndReveal(url: url)
     }
 
-    private func fetchLinkPreview(url: URL) {
-        lpView?.removeFromSuperview()
+    // MARK: - URL field
+
+    @objc private func urlFieldChanged() {
+        guard !(urlField.text?.isEmpty ?? true) else { return }
+        UIView.animate(withDuration: 0.15) { self.clipboardBtn.isHidden = true }
+    }
+
+    // MARK: - Fetch & reveal
+
+    private func fetchAndReveal(url: URL) {
+        metadataTask?.cancel()
+        metadataTask = nil
+        resolvedURL  = url
+
+        revealCards()
+        loadingIndicator.startAnimating()
 
         let provider = LPMetadataProvider()
+        metadataTask = provider
         provider.startFetchingMetadata(for: url) { [weak self] meta, _ in
-            guard let self, let meta else { return }
             DispatchQueue.main.async {
-                let lp = LPLinkView(metadata: meta)
-                lp.translatesAutoresizingMaskIntoConstraints = false
-                self.previewContainer.addSubview(lp)
-                NSLayoutConstraint.activate([
-                    lp.topAnchor.constraint(equalTo: self.previewContainer.topAnchor),
-                    lp.leadingAnchor.constraint(equalTo: self.previewContainer.leadingAnchor),
-                    lp.trailingAnchor.constraint(equalTo: self.previewContainer.trailingAnchor),
-                    lp.bottomAnchor.constraint(equalTo: self.previewContainer.bottomAnchor),
-                    lp.heightAnchor.constraint(equalToConstant: 180)
-                ])
-                self.lpView = lp
-                self.previewContainer.isHidden = false
-
-                if self.titleField.text?.isEmpty == true {
-                    self.titleField.text = meta.title
-                }
+                self?.loadingIndicator.stopAnimating()
+                guard let meta else { return }
+                self?.applyMetadata(meta)
             }
         }
     }
 
+    private func revealCards() {
+        guard !cardsRevealed else { return }
+        cardsRevealed = true
+
+        let cards = [previewCard, detailsCard, coverCard]
+        cards.forEach {
+            $0.isHidden  = false
+            $0.alpha     = 0
+            $0.transform = CGAffineTransform(translationX: 0, y: 16)
+        }
+        for (i, card) in cards.enumerated() {
+            let delay = Double(i) * 0.08
+            UIView.animate(withDuration: 0.45, delay: delay,
+                           usingSpringWithDamping: 0.78, initialSpringVelocity: 0.2) {
+                card.alpha     = 1
+                card.transform = .identity
+            }
+        }
+    }
+
+    private func applyMetadata(_ meta: LPLinkMetadata) {
+        fetchedMetadata = meta
+
+        if titleField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            titleField.text = meta.title
+        }
+
+        spinnerContainer.removeFromSuperview()
+        lpView?.removeFromSuperview()
+
+        let lp = LPLinkView(metadata: meta)
+        lp.isUserInteractionEnabled = false
+        lp.translatesAutoresizingMaskIntoConstraints = false
+        previewCard.stackView.addArrangedSubview(lp)
+        lpView = lp
+
+        UIView.animate(withDuration: 0.2) { self.view.layoutIfNeeded() }
+
+        // Async-load thumbnail from metadata (only if user hasn't picked a custom cover)
+        meta.imageProvider?.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
+            guard let self, self.customCoverImage == nil, let image = object as? UIImage else { return }
+            DispatchQueue.main.async {
+                self.fetchedPreviewImage = image
+                self.showCoverPreview(image)
+            }
+        }
+    }
+
+    private func showCoverPreview(_ image: UIImage) {
+        coverImageView.image   = image
+        coverImageView.isHidden = false
+        // Hide placeholder text when image is present
+        coverCard.stackView.arrangedSubviews.last?.isHidden = true
+    }
+
+    // MARK: - Cover picker
+
+    @objc private func coverTapped() {
+        var config = PHPickerConfiguration()
+        config.selectionLimit = 1
+        config.filter = .images
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = self
+        present(picker, animated: true)
+    }
+
+    // MARK: - Fill for editing
+
+    private func fillForEditing(_ card: LinkCard) {
+        urlField.text        = card.url.absoluteString
+        titleField.text      = card.title
+        commentTextView.text = card.comment
+        commentPlaceholder.isHidden = !card.comment.isEmpty
+        resolvedURL   = card.url
+        cardsRevealed = true
+
+        [previewCard, detailsCard, coverCard].forEach { $0.isHidden = false; $0.alpha = 1 }
+
+        // Show existing preview image if available
+        if let data = card.previewImageData, let image = UIImage(data: data) {
+            fetchedPreviewImage = image
+            showCoverPreview(image)
+        }
+
+        fetchAndReveal(url: card.url)
+    }
+
+    // MARK: - Actions
+
     @objc private func cancel() { dismiss(animated: true) }
 
     @objc private func save() {
-        guard let urlText = urlField.text, !urlText.isEmpty,
+        let urlText = urlField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !urlText.isEmpty,
               let url = resolvedURL ?? URL(string: urlText.hasPrefix("http") ? urlText : "https://\(urlText)") else {
-            urlField.shake()
-            return
+            urlField.shake(); return
         }
-        let title = titleField.text?.isEmpty == false ? titleField.text! : url.host ?? urlText
+
+        let rawTitle = titleField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let title    = rawTitle.isEmpty ? (url.host ?? urlText) : rawTitle
+
         let saved = card ?? LinkCard(title: title, dayDate: dayDate, url: url)
-        let parsedExtras = linksTextView.text
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .compactMap { URL(string: $0.hasPrefix("http") ? $0 : "https://\($0)") }
-        saved.title = title
-        saved.comment = commentTextView.text ?? ""
-        saved.url = url
-        saved.extraURLs = parsedExtras.filter { $0.absoluteString != url.absoluteString }
+        saved.title              = title
+        saved.comment            = commentTextView.text ?? ""
+        saved.url                = url
+        saved.extraURLs          = card?.extraURLs ?? []
+        saved.previewTitle       = fetchedMetadata?.title ?? card?.previewTitle
+        saved.previewDescription = card?.previewDescription
+
+        // Priority: custom cover > fetched metadata image > existing saved image
+        let coverImage = customCoverImage ?? fetchedPreviewImage
+        saved.previewImageData = coverImage?.jpegData(compressionQuality: 0.72) ?? card?.previewImageData
+
         onSave?(saved)
         dismiss(animated: true)
     }
 }
 
+// MARK: - UITextFieldDelegate
+
+extension LinkCardEditorViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder(); return true
+    }
+
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        guard textField === urlField else { return }
+        let text = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !text.isEmpty else { return }
+        let normalized = text.hasPrefix("http") ? text : "https://\(text)"
+        guard let url = URL(string: normalized), url.host != nil else { return }
+        guard url.absoluteString != resolvedURL?.absoluteString else { return }
+        fetchAndReveal(url: url)
+    }
+}
+
+// MARK: - UITextViewDelegate
+
 extension LinkCardEditorViewController: UITextViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
-        if textView === commentTextView {
-            commentPlaceholder.isHidden = !textView.text.isEmpty
-        } else if textView === linksTextView {
-            linksPlaceholder.isHidden = !textView.text.isEmpty
+        commentPlaceholder.isHidden = !textView.text.isEmpty
+    }
+}
+
+// MARK: - PHPickerViewControllerDelegate
+
+extension LinkCardEditorViewController: PHPickerViewControllerDelegate {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
+        provider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
+            guard let image = object as? UIImage else { return }
+            DispatchQueue.main.async {
+                self?.customCoverImage = image
+                self?.fetchedPreviewImage = nil
+                self?.showCoverPreview(image)
+            }
         }
     }
 }

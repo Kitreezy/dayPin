@@ -48,10 +48,21 @@ final class CalendarViewController: UIViewController {
         collectionView.delegate = self
         buildMonths()
         scrollToToday(animated: false)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSchemeChanged),
+            name: .dayPinColorSchemeChanged,
+            object: nil
+        )
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        collectionView.reloadData()
+    }
+
+    @objc private func onSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
         collectionView.reloadData()
     }
 

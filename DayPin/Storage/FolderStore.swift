@@ -30,6 +30,7 @@ final class FolderStore {
 
     private var folders: [Folder] = []
     private let key = "daypin.folders"
+    private let defaults = UserDefaults.standard
 
     // MARK: - Public
 
@@ -65,11 +66,11 @@ final class FolderStore {
 
     private func persist() {
         guard let data = try? JSONEncoder().encode(folders) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+        defaults.set(data, forKey: key)
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: key),
+        guard let data = defaults.data(forKey: key),
               let decoded = try? JSONDecoder().decode([Folder].self, from: data) else { return }
         folders = decoded
     }

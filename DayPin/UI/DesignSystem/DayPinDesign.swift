@@ -1,47 +1,51 @@
 import UIKit
 
 // MARK: - DayPin Design System
-// "Deep Space & Soft Cream" aesthetic
-// Single source of truth for all colors, typography, and gradients.
 
 enum DayPinDesign {
 
-    // MARK: - Color Palette
+    // MARK: - Scheme-driven accent colors (computed from current theme)
 
-    /// #9276FF — Primary interactive accent (buttons, selections, progress)
-    static let accent      = UIColor(hex: "#9276FF")!
-    /// #7A5AF8 — Gradient start (deeper violet)
-    static let accentDeep  = UIColor(hex: "#7A5AF8")!
-    /// #B692FF — Gradient end (lighter violet)
-    static let accentLight = UIColor(hex: "#B692FF")!
-    /// #FFF4D9 — Pale gold for micro-interactions / notification dots
-    static let paleGold    = UIColor(hex: "#FFF4D9")!
+    static var accent: UIColor      { ThemeManager.shared.colorScheme.accent }
+    static var accentDeep: UIColor  { ThemeManager.shared.colorScheme.accentDeep }
+    static var accentLight: UIColor { ThemeManager.shared.colorScheme.accentLight }
 
-    /// #F5F3EF (light) / #0D0D0D (dark)
-    static let background = UIColor { t in
-        t.userInterfaceStyle == .dark
-            ? UIColor(hex: "#0D0D0D")!
-            : UIColor(hex: "#F5F3EF")!
+    // MARK: - Per-card-type tints
+
+    static var textCardTint: UIColor  { ThemeManager.shared.colorScheme.textTint }
+    static var imageCardTint: UIColor { ThemeManager.shared.colorScheme.imageTint }
+    static var linkCardTint: UIColor  { ThemeManager.shared.colorScheme.linkTint }
+
+    // MARK: - Static colors (not scheme-dependent)
+
+    static let paleGold = UIColor(hex: "#FFF4D9")!
+
+    /// Neutral base tinted ~3-4% with the current accent — adapts to light/dark and scheme.
+    static var background: UIColor {
+        UIColor { t in
+            let isDark = t.userInterfaceStyle == .dark
+            let base   = isDark ? UIColor(hex: "#0D0D0D")! : UIColor(hex: "#F5F3EF")!
+            let tint   = ThemeManager.shared.colorScheme.accent
+            return base.blendedWith(tint, fraction: isDark ? 0.04 : 0.03)
+        }
     }
 
-    /// Warm off-white card surface in light; near-black in dark
     static let cardSurface = UIColor { t in
         t.userInterfaceStyle == .dark
             ? UIColor(hex: "#161616")!
             : UIColor(hex: "#FDFCFA")!
     }
 
-    /// In dark mode: 1px border at 10% accent opacity. In light: no border.
     static let cardBorderColor = UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor(hex: "#9276FF")!.withAlphaComponent(0.12)
+            ? UIColor.white.withAlphaComponent(0.06)
             : UIColor.clear
     }
     static func cardBorderWidth(for traitCollection: UITraitCollection) -> CGFloat {
         traitCollection.userInterfaceStyle == .dark ? 1.0 : 0.0
     }
 
-    // MARK: - Typography (SF Pro, Dynamic Type compatible)
+    // MARK: - Typography
 
     static let fontScreenTitle   = UIFont.systemFont(ofSize: 34, weight: .bold)
     static let fontSectionHeader = UIFont.systemFont(ofSize: 22, weight: .semibold)
@@ -49,9 +53,8 @@ enum DayPinDesign {
     static let fontButton        = UIFont.systemFont(ofSize: 17, weight: .semibold)
     static let fontCaption       = UIFont.systemFont(ofSize: 12, weight: .medium)
 
-    // MARK: - Gradient Helpers
+    // MARK: - Gradient
 
-    /// Linear diagonal gradient: #7A5AF8 → #B692FF
     static func accentGradientLayer(frame: CGRect,
                                     cornerRadius: CGFloat = 12) -> CAGradientLayer {
         let g = CAGradientLayer()
@@ -63,17 +66,16 @@ enum DayPinDesign {
         return g
     }
 
-    // MARK: - Shadow
+    // MARK: - Shadow (neutral, not accent-tinted)
 
-    /// Subtle violet-tinted shadow for cards
     static func applyCardShadow(to layer: CALayer) {
-        layer.shadowColor   = accent.cgColor
-        layer.shadowOpacity = 0.10
-        layer.shadowRadius  = 14
-        layer.shadowOffset  = CGSize(width: 0, height: 4)
+        layer.shadowColor   = UIColor.black.cgColor
+        layer.shadowOpacity = 0.07
+        layer.shadowRadius  = 12
+        layer.shadowOffset  = CGSize(width: 0, height: 3)
     }
 
-    // MARK: - Navigation Bar Appearance (Liquid Glass)
+    // MARK: - Navigation Bar Appearance
 
     static func makeNavBarAppearance() -> UINavigationBarAppearance {
         let a = UINavigationBarAppearance()
@@ -86,7 +88,7 @@ enum DayPinDesign {
         }
         a.shadowColor = UIColor { t in
             t.userInterfaceStyle == .dark
-                ? UIColor(hex: "#9276FF")!.withAlphaComponent(0.08)
+                ? UIColor.black.withAlphaComponent(0.12)
                 : UIColor.black.withAlphaComponent(0.06)
         }
         a.titleTextAttributes = [
@@ -109,11 +111,10 @@ enum DayPinDesign {
         }
         a.shadowColor = UIColor { t in
             t.userInterfaceStyle == .dark
-                ? UIColor(hex: "#9276FF")!.withAlphaComponent(0.06)
+                ? UIColor.black.withAlphaComponent(0.10)
                 : UIColor.black.withAlphaComponent(0.05)
         }
 
-        // Selected item: accent violet
         let selectedAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 10, weight: .medium),
             .foregroundColor: accent
@@ -134,9 +135,25 @@ enum DayPinDesign {
     }
 }
 
+// MARK: - UIColor helpers
+
+private extension UIColor {
+    /// Linearly interpolate `fraction` of the way from self toward `other`.
+    func blendedWith(_ other: UIColor, fraction f: CGFloat) -> UIColor {
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0
+        getRed(&r1, green: &g1, blue: &b1, alpha: nil)
+        other.getRed(&r2, green: &g2, blue: &b2, alpha: nil)
+        return UIColor(
+            red:   r1 + (r2 - r1) * f,
+            green: g1 + (g2 - g1) * f,
+            blue:  b1 + (b2 - b1) * f,
+            alpha: 1
+        )
+    }
+}
+
 // MARK: - GradientButton
-// UIButton subclass with a diagonal violet gradient background.
-// Keeps the gradient layer in sync with layout.
 
 final class GradientButton: UIButton {
 
@@ -145,14 +162,11 @@ final class GradientButton: UIButton {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        gradientLayer.colors     = [DayPinDesign.accentDeep.cgColor,
-                                    DayPinDesign.accentLight.cgColor]
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
         gradientLayer.endPoint   = CGPoint(x: 1, y: 1)
 
         gradientContainer.isUserInteractionEnabled = false
         gradientContainer.layer.insertSublayer(gradientLayer, at: 0)
-        // Insert as the very first subview so it stays behind imageView & titleLabel
         insertSubview(gradientContainer, at: 0)
     }
 
@@ -160,7 +174,8 @@ final class GradientButton: UIButton {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        // UIButton переставляет subviews во время layout — принудительно отправляем контейнер назад
+        // Refresh gradient colors from current scheme on every layout pass
+        gradientLayer.colors = [DayPinDesign.accentDeep.cgColor, DayPinDesign.accentLight.cgColor]
         sendSubviewToBack(gradientContainer)
         let r = layer.cornerRadius
         gradientContainer.frame               = bounds

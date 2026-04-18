@@ -62,37 +62,38 @@ final class TodayViewController: UIViewController {
         bar.translatesAutoresizingMaskIntoConstraints = false
         bar.isHidden = true
 
-        let deleteBtn = UIButton(type: .system)
-        deleteBtn.setTitle("Удалить", for: .normal)
-        let trashCfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .medium)
-        deleteBtn.setImage(UIImage(systemName: "trash", withConfiguration: trashCfg), for: .normal)
-        deleteBtn.tintColor = .systemRed
-        deleteBtn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
-        deleteBtn.addTarget(self, action: #selector(deleteSelectedTapped), for: .touchUpInside)
+        let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+
+        let copyBtn = UIButton(type: .system)
+        copyBtn.setImage(UIImage(systemName: "calendar.badge.plus", withConfiguration: iconCfg), for: .normal)
+        copyBtn.tintColor = DayPinDesign.accent
+        copyBtn.addTarget(self, action: #selector(copySelectedTapped), for: .touchUpInside)
 
         selectionCountLabel.font      = .systemFont(ofSize: 13, weight: .medium)
         selectionCountLabel.textColor = .secondaryLabel
         selectionCountLabel.textAlignment = .center
 
         let folderBtn = UIButton(type: .system)
-        folderBtn.setTitle("В папку", for: .normal)
-        let folderCfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .medium)
-        folderBtn.setImage(UIImage(systemName: "folder.badge.plus", withConfiguration: folderCfg), for: .normal)
+        folderBtn.setImage(UIImage(systemName: "folder.badge.plus", withConfiguration: iconCfg), for: .normal)
         folderBtn.tintColor = DayPinDesign.accent
-        folderBtn.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
         folderBtn.addTarget(self, action: #selector(moveSelectedToFolderTapped), for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [deleteBtn, selectionCountLabel, folderBtn])
+        let deleteBtn = UIButton(type: .system)
+        deleteBtn.setImage(UIImage(systemName: "trash", withConfiguration: iconCfg), for: .normal)
+        deleteBtn.tintColor = .systemRed
+        deleteBtn.addTarget(self, action: #selector(deleteSelectedTapped), for: .touchUpInside)
+
+        let stack = UIStackView(arrangedSubviews: [copyBtn, selectionCountLabel, folderBtn, deleteBtn])
         stack.axis         = .horizontal
         stack.distribution = .equalSpacing
         stack.alignment    = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         bar.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: bar.topAnchor, constant: 12),
-            stack.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 20),
-            stack.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -20),
-            stack.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -12)
+            stack.topAnchor.constraint(equalTo: bar.topAnchor, constant: 14),
+            stack.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -24),
+            stack.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -14)
         ])
         return bar
     }()
@@ -148,6 +149,12 @@ final class TodayViewController: UIViewController {
             name: .dayPinDataRestored,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged,
+            object: nil
+        )
     }
 
     @objc private func onDataRestored() {
@@ -155,6 +162,14 @@ final class TodayViewController: UIViewController {
         weekStrip.navigate(to: currentDate)
         updateNavTitle()
         loadCards()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        collectionView.reloadData()
+        setupThemeButton()
+        addButton.layer.shadowColor = DayPinDesign.accent.cgColor
+        addButton.setNeedsLayout()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -297,22 +312,6 @@ final class TodayViewController: UIViewController {
     }
 
     private func setupThemeButton() {
-        let themeActions = AppTheme.allCases.map { theme in
-            UIAction(
-                title: theme.displayName,
-                image: UIImage(systemName: theme.icon),
-                state: ThemeManager.shared.current == theme ? .on : .off
-            ) { [weak self] _ in
-                ThemeManager.shared.current = theme
-                self?.setupThemeButton()
-            }
-        }
-        let themeMenu = UIMenu(
-            title: "Тема оформления",
-            image: UIImage(systemName: "paintbrush"),
-            children: themeActions
-        )
-
         let menu = UIMenu(options: .displayInline, children: [
             UIAction(title: "Выбрать заметки",
                      image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
@@ -326,7 +325,10 @@ final class TodayViewController: UIViewController {
                      image: UIImage(systemName: "externaldrive")) { [weak self] _ in
                 self?.backupTapped()
             },
-            themeMenu
+            UIAction(title: "Оформление",
+                     image: UIImage(systemName: "paintbrush")) { [weak self] _ in
+                self?.openThemePicker()
+            }
         ])
 
         let moreBtn = UIBarButtonItem(
@@ -335,6 +337,11 @@ final class TodayViewController: UIViewController {
         )
         moreBtn.tintColor = DayPinDesign.accent
         navigationItem.rightBarButtonItems = [moreBtn]
+    }
+
+    private func openThemePicker() {
+        let vc = ThemePickerViewController()
+        presentEditorSheet(vc)
     }
 
     // MARK: - Day navigation
@@ -600,13 +607,13 @@ final class TodayViewController: UIViewController {
     func presentTextEditor(card: TextCard?) {
         let vc = TextCardEditorViewController(card: card, dayDate: currentDate)
         vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        presentEditorSheet(vc)
     }
 
     func presentLinkEditor(card: LinkCard?) {
         let vc = LinkCardEditorViewController(card: card, dayDate: currentDate)
         vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        presentEditorSheet(vc)
     }
 
     func presentImagePicker() {
@@ -639,9 +646,39 @@ final class TodayViewController: UIViewController {
     }
 
     func deleteCard(_ card: NoteCard) {
+        var foundSection = -1, foundItem = -1
+        for (si, sec) in activeSections.enumerated() {
+            if let ii = sec.cards.firstIndex(where: { $0.id == card.id }) {
+                foundSection = si; foundItem = ii; break
+            }
+        }
+
         CardStore.shared.delete(card: card)
         allCards = CardStore.shared.cards(for: currentDate)
-        applyFilters(animated: true)
+
+        guard foundSection >= 0 else { applyFilters(); return }
+
+        let ip = IndexPath(item: foundItem, section: foundSection)
+        activeSections[foundSection].cards.remove(at: foundItem)
+        let sectionEmpty = activeSections[foundSection].cards.isEmpty
+        if sectionEmpty { activeSections.remove(at: foundSection) }
+        let allEmpty = activeSections.isEmpty
+
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        collectionView.performBatchUpdates {
+            self.collectionView.deleteItems(at: [ip])
+            // Don't delete the section when it becomes the only one left turning into
+            // the empty-state section — numberOfSections still returns 1 in that case.
+            if sectionEmpty && !allEmpty {
+                self.collectionView.deleteSections(IndexSet(integer: foundSection))
+            }
+        } completion: { _ in
+            if allEmpty {
+                UIView.transition(with: self.collectionView, duration: 0.2, options: .transitionCrossDissolve) {
+                    self.collectionView.reloadData()
+                }
+            }
+        }
     }
 
     func shareCard(_ card: NoteCard) {
@@ -650,6 +687,20 @@ final class TodayViewController: UIViewController {
         if let img = card as? ImageCard, let data = img.imageData, let image = UIImage(data: data) { items.append(image) }
         if let link = card as? LinkCard { items.append(link.url) }
         present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
+    }
+
+    // MARK: - Multi-select: copy to day
+
+    @objc private func copySelectedTapped() {
+        let cards = activeSections.flatMap { $0.cards }.filter { selectedIDs.contains($0.id) }
+        guard !cards.isEmpty else { return }
+        let vc = CopyToDayViewController()
+        vc.onCopy = { [weak self] date in
+            cards.forEach { CardStore.shared.save(card: $0.duplicated(to: date)) }
+            self?.exitSelectMode()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        present(UINavigationController(rootViewController: vc), animated: true)
     }
 }
 
@@ -787,6 +838,15 @@ extension TodayViewController: UICollectionViewDelegate {
                 self.enterSelectMode(initialCard: card)
             }
             let share  = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.shareCard(card) }
+            let copyToDay = UIAction(title: "Скопировать в день", image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
+                guard let self else { return }
+                let vc = CopyToDayViewController()
+                vc.onCopy = { date in
+                    CardStore.shared.save(card: card.duplicated(to: date))
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+                self.present(UINavigationController(rootViewController: vc), animated: true)
+            }
             let edit   = UIAction(title: L10n.edit,  image: UIImage(systemName: "pencil")) { [weak self] _ in
                 switch card.type {
                 case .text:  self?.presentTextEditor(card: card as? TextCard)
@@ -813,7 +873,7 @@ extension TodayViewController: UICollectionViewDelegate {
                     : folderActions
             )
             let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in self?.deleteCard(card) }
-            return UIMenu(children: [select, share, edit, folderMenu, delete])
+            return UIMenu(children: [select, share, copyToDay, edit, folderMenu, delete])
         })
     }
 }

@@ -17,8 +17,18 @@ final class WaveBackgroundView: UIView {
     private func setup() {
         isUserInteractionEnabled = false
         backgroundColor = .clear
-        layer.addSublayer(wave2)   // wave2 below
+        layer.addSublayer(wave2)
         layer.addSublayer(wave1)
+        updateColors()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSchemeChanged),
+            name: .dayPinColorSchemeChanged,
+            object: nil
+        )
+    }
+
+    @objc private func onSchemeChanged() {
         updateColors()
     }
 

@@ -37,7 +37,7 @@ final class TextCardEditorViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if card == nil { titleField.becomeFirstResponder() }
+        commentTextView.becomeFirstResponder()
     }
 
     // MARK: - Nav
@@ -54,8 +54,8 @@ final class TextCardEditorViewController: UIViewController {
         formCard.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(formCard)
 
-        titleField.placeholder = L10n.titlePlaceholder
-        titleField.font = .systemFont(ofSize: 17, weight: .semibold)
+        titleField.placeholder = "Заголовок (необязательно)"
+        titleField.font = .systemFont(ofSize: 15, weight: .regular)
         titleField.borderStyle = .none
         titleField.returnKeyType = .next
         titleField.delegate = self
@@ -268,7 +268,19 @@ final class TextCardEditorViewController: UIViewController {
     @objc private func cancel() { dismiss(animated: true) }
 
     @objc private func save() {
-        guard let titleText = titleField.text, !titleText.isEmpty else { titleField.shake(); return }
+        var titleText = titleField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let bodyText  = commentTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        if titleText.isEmpty && bodyText.isEmpty { commentTextView.shake(); return }
+
+        if titleText.isEmpty {
+            let firstLine = bodyText
+                .components(separatedBy: .newlines)
+                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }?
+                .trimmingCharacters(in: .whitespaces) ?? "Заметка"
+            titleText = firstLine.count > 60 ? String(firstLine.prefix(57)) + "…" : firstLine
+        }
+
         let saved = card ?? TextCard(title: titleText, dayDate: dayDate)
         saved.title = titleText
 

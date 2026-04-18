@@ -236,13 +236,13 @@ final class DayCardsViewController: UIViewController {
     private func presentTextEditor() {
         let vc = TextCardEditorViewController(card: nil, dayDate: date)
         vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        presentEditorSheet(vc)
     }
 
     private func presentLinkEditor() {
         let vc = LinkCardEditorViewController(card: nil, dayDate: date)
         vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        presentEditorSheet(vc)
     }
 
     private func presentImagePicker() {
@@ -272,6 +272,35 @@ final class DayCardsViewController: UIViewController {
         let vc = ImageCardEditorViewController(imageData: card.imageData, dayDate: date, existingCard: card)
         vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
         present(UINavigationController(rootViewController: vc), animated: true)
+    }
+
+    private func deleteCard(_ card: NoteCard, at indexPath: IndexPath) {
+        guard indexPath.section < activeSections.count,
+              indexPath.item < activeSections[indexPath.section].cards.count else {
+            CardStore.shared.delete(card: card); loadCards(); return
+        }
+
+        CardStore.shared.delete(card: card)
+        allCards = CardStore.shared.cards(for: date)
+
+        activeSections[indexPath.section].cards.remove(at: indexPath.item)
+        let sectionEmpty = activeSections[indexPath.section].cards.isEmpty
+        if sectionEmpty { activeSections.remove(at: indexPath.section) }
+        let allEmpty = activeSections.isEmpty
+
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        collectionView.performBatchUpdates {
+            self.collectionView.deleteItems(at: [indexPath])
+            if sectionEmpty && !allEmpty {
+                self.collectionView.deleteSections(IndexSet(integer: indexPath.section))
+            }
+        } completion: { _ in
+            if allEmpty {
+                UIView.transition(with: self.collectionView, duration: 0.2, options: .transitionCrossDissolve) {
+                    self.collectionView.reloadData()
+                }
+            }
+        }
     }
 }
 
@@ -333,25 +362,41 @@ extension DayCardsViewController: UICollectionViewDelegate {
         guard !activeSections.isEmpty else { return nil }
         let card = activeSections[indexPath.section].cards[indexPath.item]
         return UIContextMenuConfiguration(actionProvider: { _ in
+            let share = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                guard let self else { return }
+                var items: [Any] = [card.title]
+                if let img = card as? ImageCard, let data = img.imageData, let image = UIImage(data: data) { items.append(image) }
+                if let link = card as? LinkCard { items.append(link.url) }
+                self.present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
+            }
+            let copyToDay = UIAction(title: "Скопировать в день", image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
+                guard let self else { return }
+                let vc = CopyToDayViewController()
+                vc.onCopy = { date in
+                    CardStore.shared.save(card: card.duplicated(to: date))
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+                self.present(UINavigationController(rootViewController: vc), animated: true)
+            }
             let edit = UIAction(title: L10n.edit, image: UIImage(systemName: "pencil")) { [weak self] _ in
+                guard let self else { return }
                 switch card.type {
                 case .text:
-                    let vc = TextCardEditorViewController(card: card as? TextCard, dayDate: self?.date ?? Date())
+                    let vc = TextCardEditorViewController(card: card as? TextCard, dayDate: date)
                     vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-                    self?.present(UINavigationController(rootViewController: vc), animated: true)
+                    presentEditorSheet(vc)
                 case .image:
-                    if let c = card as? ImageCard { self?.presentImageEditor(card: c) }
+                    if let c = card as? ImageCard { presentImageEditor(card: c) }
                 case .link:
-                    let vc = LinkCardEditorViewController(card: card as? LinkCard, dayDate: self?.date ?? Date())
+                    let vc = LinkCardEditorViewController(card: card as? LinkCard, dayDate: date)
                     vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-                    self?.present(UINavigationController(rootViewController: vc), animated: true)
+                    presentEditorSheet(vc)
                 }
             }
             let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-                CardStore.shared.delete(card: card)
-                self?.loadCards()
+                self?.deleteCard(card, at: indexPath)
             }
-            return UIMenu(children: [edit, delete])
+            return UIMenu(children: [share, copyToDay, edit, delete])
         })
     }
 }

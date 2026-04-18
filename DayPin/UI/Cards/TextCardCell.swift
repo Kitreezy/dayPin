@@ -83,9 +83,11 @@ final class TextCardCell: UICollectionViewCell {
         let df = DateFormatter()
         df.dateFormat = "HH:mm"
         dateLabel.text = df.string(from: card.createdAt)
+
+        let tint = card.colorHex.flatMap { UIColor(hex: $0) } ?? DayPinDesign.textCardTint
         typeIcon.image = UIImage(systemName: "text.alignleft")
-        typeIcon.tintColor = DayPinDesign.accent
-        cardView.setAccentColor(DayPinDesign.accent)
+        typeIcon.tintColor = tint
+        cardView.setAccentColor(tint)
     }
 
     override var isHighlighted: Bool {

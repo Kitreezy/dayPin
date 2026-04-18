@@ -145,7 +145,7 @@ final class CardDetailViewController: UIViewController {
             CardStore.shared.save(card: saved)
             self?.navigationController?.popViewController(animated: true)
         }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        presentEditorSheet(vc)
     }
 
     @objc private func addToFolder() {

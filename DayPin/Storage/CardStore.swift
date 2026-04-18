@@ -11,6 +11,7 @@ final class CardStore {
 
     private var storage: [NoteCardDTO] = []
     private let key = "daypin.cards"
+    private let defaults = UserDefaults.standard
 
     // MARK: - Публичные запросы (только живые карточки)
 
@@ -120,11 +121,11 @@ final class CardStore {
 
     private func persist() {
         guard let data = try? JSONEncoder().encode(storage) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+        defaults.set(data, forKey: key)
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: key),
+        guard let data = defaults.data(forKey: key),
               let decoded = try? JSONDecoder().decode([NoteCardDTO].self, from: data) else { return }
         storage = decoded
     }
@@ -154,6 +155,7 @@ struct NoteCardDTO: Codable {
     var annotations: [ImageAnnotation]?
     // Folder
     var folderID: UUID?
+    var colorHex: String?
     // LinkCard
     var urlString: String?
     var previewTitle: String?
@@ -169,6 +171,7 @@ struct NoteCardDTO: Codable {
         createdAt = card.createdAt
         dayDate   = card.dayDate
         folderID  = card.folderID
+        colorHex  = card.colorHex
         deletedAt = nil
 
         if let text = card as? TextCard { rtfData = text.rtfData }
@@ -192,12 +195,14 @@ struct NoteCardDTO: Codable {
             c.rtfData   = rtfData
             c.createdAt = createdAt
             c.folderID  = folderID
+            c.colorHex  = colorHex
             return c
         case .image:
             let c = ImageCard(id: id, title: title, comment: comment, dayDate: dayDate,
                               imageData: imageData, annotations: annotations ?? [])
             c.createdAt = createdAt
             c.folderID  = folderID
+            c.colorHex  = colorHex
             return c
         case .link:
             guard let urlStr = urlString, let url = URL(string: urlStr) else { return nil }
@@ -209,6 +214,7 @@ struct NoteCardDTO: Codable {
             c.previewImageData   = previewImageData
             c.createdAt          = createdAt
             c.folderID           = folderID
+            c.colorHex           = colorHex
             return c
         }
     }

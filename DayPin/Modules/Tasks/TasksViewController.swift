@@ -107,11 +107,22 @@ final class TasksViewController: UIViewController {
         ])
         collectionView.dataSource = self
         collectionView.delegate   = self
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSchemeChanged),
+            name: .dayPinColorSchemeChanged,
+            object: nil
+        )
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         loadAll()
+    }
+
+    @objc private func onSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        collectionView.reloadData()
     }
 
     // MARK: - Data loading
@@ -161,7 +172,7 @@ final class TasksViewController: UIViewController {
         case .text:
             let vc = TextCardEditorViewController(card: card as? TextCard, dayDate: card.dayDate)
             vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadAll() }
-            present(UINavigationController(rootViewController: vc), animated: true)
+            presentEditorSheet(vc)
         case .image:
             guard let img = card as? ImageCard else { return }
             let vc = ImageCardEditorViewController(imageData: img.imageData, dayDate: card.dayDate, existingCard: img)
@@ -170,7 +181,7 @@ final class TasksViewController: UIViewController {
         case .link:
             let vc = LinkCardEditorViewController(card: card as? LinkCard, dayDate: card.dayDate)
             vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadAll() }
-            present(UINavigationController(rootViewController: vc), animated: true)
+            presentEditorSheet(vc)
         }
     }
 }

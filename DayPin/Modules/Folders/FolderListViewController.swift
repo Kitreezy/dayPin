@@ -46,11 +46,22 @@ final class FolderListViewController: UIViewController {
 
         collectionView.dataSource = self
         collectionView.delegate   = self
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSchemeChanged),
+            name: .dayPinColorSchemeChanged,
+            object: nil
+        )
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         reload()
+    }
+
+    @objc private func onSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        collectionView.reloadData()
     }
 
     // MARK: - Layout

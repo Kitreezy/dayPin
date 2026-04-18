@@ -8,7 +8,7 @@ final class WeekCalendarView: UIView {
 
     private let calendar = Calendar.current
     private var selectedDate: Date
-    private var centerDate: Date       // middle day of the strip
+    private var centerDate: Date
     private var dayButtons: [DayButton] = []
     private let stack = UIStackView()
 
@@ -19,6 +19,12 @@ final class WeekCalendarView: UIView {
         self.centerDate    = Calendar.current.startOfDay(for: selectedDate)
         super.init(frame: .zero)
         buildStrip()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSchemeChanged),
+            name: .dayPinColorSchemeChanged,
+            object: nil
+        )
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -60,7 +66,6 @@ final class WeekCalendarView: UIView {
 
     // MARK: - Public
 
-    /// Navigate to a date — rebuilds strip if date is outside current window, else just updates selection.
     func navigate(to date: Date) {
         let newDate = calendar.startOfDay(for: date)
         selectedDate = newDate
@@ -72,6 +77,13 @@ final class WeekCalendarView: UIView {
         } else {
             dayButtons.forEach { $0.setSelected(calendar.isDate($0.date, inSameDayAs: newDate)) }
         }
+    }
+
+    // MARK: - Scheme change
+
+    @objc private func onSchemeChanged() {
+        // Rebuild strip so all DayButtons pick up fresh accent color
+        buildStrip()
     }
 
     // MARK: - Actions
@@ -105,7 +117,7 @@ private final class DayButton: UIButton {
 
     private func setup() {
         let dfLetter = DateFormatter()
-        dfLetter.dateFormat = "EEEEEE"   // 2-letter abbreviation: пн/вт/ср or Mo/Tu/We
+        dfLetter.dateFormat = "EEEEEE"
         dfLetter.locale = Locale.current
         dayLabel.text      = dfLetter.string(from: date).uppercased()
         dayLabel.font      = .systemFont(ofSize: 10, weight: .medium)
@@ -119,7 +131,7 @@ private final class DayButton: UIButton {
         numLabel.textAlignment = .center
         numLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        circle.layer.cornerRadius      = 14
+        circle.layer.cornerRadius       = 14
         circle.isUserInteractionEnabled = false
         circle.translatesAutoresizingMaskIntoConstraints = false
 
@@ -150,12 +162,12 @@ private final class DayButton: UIButton {
 
     func setSelected(_ selected: Bool) {
         if selected {
-            circle.backgroundColor  = DayPinDesign.accent
+            circle.backgroundColor   = DayPinDesign.accent
             circle.layer.borderWidth = 0
             numLabel.textColor = .white
             numLabel.font      = .systemFont(ofSize: 15, weight: .semibold)
         } else {
-            circle.backgroundColor  = .clear
+            circle.backgroundColor   = .clear
             circle.layer.borderWidth = isToday ? 1.5 : 0
             circle.layer.borderColor = DayPinDesign.accent.withAlphaComponent(0.45).cgColor
             numLabel.textColor = isToday ? DayPinDesign.accent : .label

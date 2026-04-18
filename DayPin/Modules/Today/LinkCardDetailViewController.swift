@@ -3,11 +3,12 @@ import SafariServices
 
 final class LinkCardDetailViewController: UIViewController {
 
-    private let card: LinkCard
-    private let cardView = GlassCardView(style: .card)
-    private let titleLabel = UILabel()
-    private let linksStack = UIStackView()
+    private var card: LinkCard
+    private let cardView    = GlassCardView(style: .card)
+    private let titleLabel  = UILabel()
+    private let linksStack  = UIStackView()
     private let commentLabel = UILabel()
+    private let coverImageView = UIImageView()
 
     init(card: LinkCard) {
         self.card = card
@@ -30,8 +31,41 @@ final class LinkCardDetailViewController: UIViewController {
     }
 
     private func setupUI() {
+        let scroll = UIScrollView()
+        scroll.showsVerticalScrollIndicator = false
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scroll)
+        NSLayoutConstraint.activate([
+            scroll.topAnchor.constraint(equalTo: view.topAnchor),
+            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        scroll.addSubview(container)
+        NSLayoutConstraint.activate([
+            container.topAnchor.constraint(equalTo: scroll.topAnchor),
+            container.leadingAnchor.constraint(equalTo: scroll.leadingAnchor),
+            container.trailingAnchor.constraint(equalTo: scroll.trailingAnchor),
+            container.bottomAnchor.constraint(equalTo: scroll.bottomAnchor),
+            container.widthAnchor.constraint(equalTo: scroll.widthAnchor)
+        ])
+
+        // Cover image (above card, full width)
+        coverImageView.contentMode = .scaleAspectFill
+        coverImageView.layer.cornerRadius = 16
+        coverImageView.layer.masksToBounds = true
+        coverImageView.isUserInteractionEnabled = true
+        coverImageView.translatesAutoresizingMaskIntoConstraints = false
+        coverImageView.isHidden = true
+        let tap = UITapGestureRecognizer(target: self, action: #selector(coverTapped))
+        coverImageView.addGestureRecognizer(tap)
+        container.addSubview(coverImageView)
+
         cardView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(cardView)
+        container.addSubview(cardView)
 
         titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
         titleLabel.numberOfLines = 0
@@ -47,12 +81,21 @@ final class LinkCardDetailViewController: UIViewController {
         cardView.stackView.addArrangedSubview(titleLabel)
         cardView.stackView.addArrangedSubview(linksStack)
         cardView.stackView.addArrangedSubview(commentLabel)
+
         render()
 
+        let hasCover = card.previewImageData != nil
         NSLayoutConstraint.activate([
-            cardView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            cardView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            cardView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
+            coverImageView.topAnchor.constraint(equalTo: container.topAnchor, constant: hasCover ? 16 : 0),
+            coverImageView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+            coverImageView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            coverImageView.heightAnchor.constraint(equalToConstant: 180),
+
+            cardView.topAnchor.constraint(equalTo: hasCover ? coverImageView.bottomAnchor : container.topAnchor,
+                                          constant: 16),
+            cardView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+            cardView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            cardView.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -24)
         ])
     }
 
@@ -62,6 +105,15 @@ final class LinkCardDetailViewController: UIViewController {
         commentLabel.text = card.comment
         commentLabel.isHidden = card.comment.isEmpty
 
+        // Cover image
+        if let data = card.previewImageData, let image = UIImage(data: data) {
+            coverImageView.image   = image
+            coverImageView.isHidden = false
+        } else {
+            coverImageView.isHidden = true
+        }
+
+        // Links
         linksStack.arrangedSubviews.forEach {
             linksStack.removeArrangedSubview($0)
             $0.removeFromSuperview()
@@ -74,17 +126,25 @@ final class LinkCardDetailViewController: UIViewController {
             cfg.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
             cfg.image = UIImage(systemName: "link.circle")
             cfg.imagePadding = 6
-            cfg.baseForegroundColor = .systemBlue
+            cfg.baseForegroundColor = DayPinDesign.linkCardTint
             cfg.title = url.absoluteString
             button.configuration = cfg
             button.contentHorizontalAlignment = .leading
             button.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
             button.tag = index
             button.layer.cornerRadius = 10
-            button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.08)
+            button.backgroundColor = DayPinDesign.linkCardTint.withAlphaComponent(0.08)
             button.addTarget(self, action: #selector(openLinkTapped(_:)), for: .touchUpInside)
             linksStack.addArrangedSubview(button)
         }
+    }
+
+    @objc private func coverTapped() {
+        guard let image = coverImageView.image else { return }
+        let viewer = FullScreenImageViewController(image: image, sourceView: coverImageView)
+        viewer.modalPresentationStyle = .overFullScreen
+        viewer.modalTransitionStyle   = .crossDissolve
+        present(viewer, animated: false)
     }
 
     @objc private func openLinkTapped(_ sender: UIButton) {
@@ -103,8 +163,9 @@ final class LinkCardDetailViewController: UIViewController {
         let vc = LinkCardEditorViewController(card: card, dayDate: card.dayDate)
         vc.onSave = { [weak self] saved in
             CardStore.shared.save(card: saved)
+            self?.card = saved
             self?.render()
         }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        presentEditorSheet(vc)
     }
 }

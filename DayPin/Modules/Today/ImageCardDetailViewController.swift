@@ -49,9 +49,10 @@ final class ImageCardDetailViewController: UIViewController {
         let listBtn = UIBarButtonItem(image: UIImage(systemName: "list.bullet"),
                                       style: .plain, target: self, action: #selector(showPinList))
 
-        let shareAction  = UIAction(title: "Поделиться", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.share() }
-        let folderAction = UIAction(title: "В папку",    image: UIImage(systemName: "folder.badge.plus"))   { [weak self] _ in self?.addToFolder() }
-        let menu = UIMenu(children: [shareAction, folderAction])
+        let shareAction  = UIAction(title: "Поделиться",       image: UIImage(systemName: "square.and.arrow.up"))   { [weak self] _ in self?.share() }
+        let copyAction   = UIAction(title: "Скопировать в день", image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in self?.copyToDay() }
+        let folderAction = UIAction(title: "В папку",           image: UIImage(systemName: "folder.badge.plus"))   { [weak self] _ in self?.addToFolder() }
+        let menu = UIMenu(children: [shareAction, copyAction, folderAction])
         let moreBtn = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: menu)
 
         navigationItem.rightBarButtonItems = [moreBtn, editBtn, listBtn]
@@ -175,6 +176,16 @@ final class ImageCardDetailViewController: UIViewController {
         let notes = annotations.map { "• \($0.text)" }.joined(separator: "\n")
         if !notes.isEmpty { items.append(notes) }
         present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
+    }
+
+    @objc private func copyToDay() {
+        let vc = CopyToDayViewController()
+        vc.onCopy = { [weak self] date in
+            guard let self else { return }
+            CardStore.shared.save(card: self.card.duplicated(to: date))
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        present(UINavigationController(rootViewController: vc), animated: true)
     }
 
     @objc private func editCard() {

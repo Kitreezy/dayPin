@@ -19,6 +19,8 @@ class NoteCard: Identifiable, ObservableObject {
     var createdAt: Date
     var dayDate: Date
     var folderID: UUID?
+    /// Optional per-card color override (hex string). Nil = use type-based theme tint.
+    var colorHex: String?
 
     init(id: UUID = UUID(), type: CardType, title: String, comment: String = "", dayDate: Date) {
         self.id = id

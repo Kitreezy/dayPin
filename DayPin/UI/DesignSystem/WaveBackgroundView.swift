@@ -70,8 +70,8 @@ final class WaveBackgroundView: UIView {
 
     private func updateColors() {
         let isDark = traitCollection.userInterfaceStyle == .dark
-        wave1.fillColor = DayPinDesign.accent.withAlphaComponent(isDark ? 0.07 : 0.05).cgColor
-        wave2.fillColor = DayPinDesign.accentDeep.withAlphaComponent(isDark ? 0.05 : 0.03).cgColor
+        wave1.fillColor = DayPinDesign.accent.withAlphaComponent(isDark ? 0.10 : 0.08).cgColor
+        wave2.fillColor = DayPinDesign.accentDeep.withAlphaComponent(isDark ? 0.08 : 0.06).cgColor
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {

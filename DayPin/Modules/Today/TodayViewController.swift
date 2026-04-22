@@ -105,7 +105,7 @@ final class TodayViewController: UIViewController {
         cv.alwaysBounceVertical = true
         cv.keyboardDismissMode = .onDrag
         cv.showsVerticalScrollIndicator = false
-        cv.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 90, right: 0)
+        cv.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 8, right: 0)
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.register(TextCardCell.self,  forCellWithReuseIdentifier: TextCardCell.reuseID)
         cv.register(ImageCardCell.self, forCellWithReuseIdentifier: ImageCardCell.reuseID)
@@ -119,19 +119,11 @@ final class TodayViewController: UIViewController {
         return cv
     }()
 
-    private lazy var addButton: GradientButton = {
-        let btn = GradientButton()
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        btn.tintColor = .white
-        btn.layer.cornerRadius = 22
-        btn.layer.shadowColor   = DayPinDesign.accent.cgColor
-        btn.layer.shadowOpacity = 0.40
-        btn.layer.shadowRadius  = 12
-        btn.layer.shadowOffset  = CGSize(width: 0, height: 4)
-        let cfg = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
-        btn.setImage(UIImage(systemName: "plus", withConfiguration: cfg), for: .normal)
-        btn.addTarget(self, action: #selector(addTapped), for: .touchUpInside)
-        return btn
+    private lazy var addButton: GlassFABView = {
+        let fab = GlassFABView()
+        fab.translatesAutoresizingMaskIntoConstraints = false
+        fab.action = { [weak self] in self?.addTapped() }
+        return fab
     }()
 
     // MARK: - Lifecycle
@@ -168,8 +160,7 @@ final class TodayViewController: UIViewController {
         view.backgroundColor = DayPinDesign.background
         collectionView.reloadData()
         setupThemeButton()
-        addButton.layer.shadowColor = DayPinDesign.accent.cgColor
-        addButton.setNeedsLayout()
+        addButton.refresh()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -280,7 +271,7 @@ final class TodayViewController: UIViewController {
             filterChips.topAnchor.constraint(equalTo: weekStrip.bottomAnchor, constant: 2),
             filterChips.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             filterChips.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            filterChips.heightAnchor.constraint(equalToConstant: 32),
+            filterChips.heightAnchor.constraint(equalToConstant: 42),
 
             collectionView.topAnchor.constraint(equalTo: filterChips.bottomAnchor, constant: 2),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -289,8 +280,8 @@ final class TodayViewController: UIViewController {
 
             addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-            addButton.widthAnchor.constraint(equalToConstant: 44),
-            addButton.heightAnchor.constraint(equalToConstant: 44),
+            addButton.widthAnchor.constraint(equalToConstant: 52),
+            addButton.heightAnchor.constraint(equalToConstant: 52),
 
             selectionBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             selectionBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -617,6 +608,17 @@ final class TodayViewController: UIViewController {
     }
 
     func presentImagePicker() {
+        let picker = RecentPhotosPickerViewController()
+        picker.onSelect = { [weak self] data in
+            self?.presentImageCardEditor(imageData: data)
+        }
+        picker.onShowAll = { [weak self] in
+            self?.presentSystemImagePicker()
+        }
+        present(picker, animated: true)
+    }
+
+    private func presentSystemImagePicker() {
         var config = PHPickerConfiguration()
         config.selectionLimit = 1
         config.filter = .images

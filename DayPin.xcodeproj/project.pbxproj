@@ -41,6 +41,7 @@
 		A81528C63DBF3411F75342E4 /* PinListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BB7279FAD69E786324076A /* PinListViewController.swift */; };
 		AA4FEC496D4EA9FE35E1F88F /* ImageCardEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D718FFF5FF6335D37905A1B7 /* ImageCardEditorViewController.swift */; };
 		AD58B3583A00CA5C492276CF /* GlobalSearchViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E4BD0248AB8E3A0BACB09C /* GlobalSearchViewController.swift */; };
+		AF40BE05680485D247CE383F /* RecentPhotosPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F28155E6118FB515641044 /* RecentPhotosPickerViewController.swift */; };
 		B8E9C80C19C9F8B2E62C3085 /* UICollectionViewCell+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2AF22EB95AE7747F3A90FD3 /* UICollectionViewCell+Selection.swift */; };
 		B9811ECF500C51A5DB93B810 /* FilterChipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4FCBEC7DE8D63AA20EF826D /* FilterChipsView.swift */; };
 		BD9000384AA6D0FCC46E26E4 /* AnnotationInputPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B230C0D7C49C3BF8B15A26 /* AnnotationInputPopover.swift */; };
@@ -78,6 +79,7 @@
 		40A03181568ADFCA18D282AA /* CardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRenderer.swift; sourceTree = "<group>"; };
 		443F08F85AEC989A90078A36 /* LinkCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCardCell.swift; sourceTree = "<group>"; };
 		47E4BD0248AB8E3A0BACB09C /* GlobalSearchViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSearchViewController.swift; sourceTree = "<group>"; };
+		47F28155E6118FB515641044 /* RecentPhotosPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentPhotosPickerViewController.swift; sourceTree = "<group>"; };
 		4B36B1E5015BA3B9506BE320 /* CalendarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewController.swift; sourceTree = "<group>"; };
 		4CDAC5C9200B15A2043E1D00 /* ThemePickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePickerViewController.swift; sourceTree = "<group>"; };
 		4DEE3405B5E72EBFBBE8CE25 /* TextCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCardCell.swift; sourceTree = "<group>"; };
@@ -176,6 +178,7 @@
 				3847EB514F49124182B1EF07 /* CopyToDayViewController.swift */,
 				D718FFF5FF6335D37905A1B7 /* ImageCardEditorViewController.swift */,
 				BEE9D8070FCA5D0C95DCF6C6 /* LinkCardEditorViewController.swift */,
+				47F28155E6118FB515641044 /* RecentPhotosPickerViewController.swift */,
 				F60F1ADFEF2ACB76A96C5EB4 /* TextCardEditorViewController.swift */,
 			);
 			path = AddCard;
@@ -463,6 +466,7 @@
 				8CE890641F6C80DF1B777C9D /* NotePickerViewController.swift in Sources */,
 				19FC0DE6C76347A29F15A803 /* PinCalloutView.swift in Sources */,
 				A81528C63DBF3411F75342E4 /* PinListViewController.swift in Sources */,
+				AF40BE05680485D247CE383F /* RecentPhotosPickerViewController.swift in Sources */,
 				899F4F942DC38B00B82D3DB7 /* RecentlyDeletedViewController.swift in Sources */,
 				19F7A5A39DC838597A38E2C4 /* SceneDelegate.swift in Sources */,
 				3F89CC6B59C5C9231123836A /* TasksViewController.swift in Sources */,

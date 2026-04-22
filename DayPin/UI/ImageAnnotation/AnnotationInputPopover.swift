@@ -80,9 +80,9 @@ final class AnnotationInputPopover: UIView {
         dimView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cancelTapped)))
 
         // Pin indicator dot
-        pinIndicator.backgroundColor = .systemBlue
+        pinIndicator.backgroundColor = DayPinDesign.accent
         pinIndicator.layer.cornerRadius = 6
-        pinIndicator.layer.shadowColor = UIColor.systemBlue.cgColor
+        pinIndicator.layer.shadowColor = DayPinDesign.accent.cgColor
         pinIndicator.layer.shadowOpacity = 0.6
         pinIndicator.layer.shadowRadius = 8
         pinIndicator.layer.shadowOffset = .zero
@@ -147,7 +147,7 @@ final class AnnotationInputPopover: UIView {
         content.addSubview(textView)
 
         // Placeholder
-        placeholder.text = L10n.annotationPlaceholder
+        placeholder.text = "Комментарий (необязательно)"
         placeholder.font = .systemFont(ofSize: 16)
         placeholder.textColor = .placeholderText
         placeholder.isHidden = !(existingText?.isEmpty ?? true)
@@ -163,7 +163,7 @@ final class AnnotationInputPopover: UIView {
 
         saveButton.setTitle(L10n.save, for: .normal)
         saveButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        saveButton.setTitleColor(.systemBlue, for: .normal)
+        saveButton.setTitleColor(DayPinDesign.accent, for: .normal)
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         saveButton.translatesAutoresizingMaskIntoConstraints = false
 
@@ -254,16 +254,6 @@ final class AnnotationInputPopover: UIView {
 
     @objc private func saveTapped() {
         let text = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else {
-            textView.layer.borderColor = UIColor.systemRed.cgColor
-            textView.layer.borderWidth = 1
-            textView.layer.cornerRadius = 8
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                UIView.animate(withDuration: 0.2) { self.textView.layer.borderWidth = 0 }
-            }
-            return
-        }
         animateOut { [weak self] in
             self?.onSave?(text)
         }

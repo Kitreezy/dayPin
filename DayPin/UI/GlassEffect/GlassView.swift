@@ -106,7 +106,7 @@ final class GlassCardView: UIView {
         glass.contentView.viewWithTag(9001)?.removeFromSuperview()
         let overlay = UIView()
         overlay.tag = 9001
-        overlay.backgroundColor = color.withAlphaComponent(0.09)
+        overlay.backgroundColor = color.withAlphaComponent(0.13)
         overlay.isUserInteractionEnabled = false
         overlay.translatesAutoresizingMaskIntoConstraints = false
         glass.contentView.insertSubview(overlay, at: 0)

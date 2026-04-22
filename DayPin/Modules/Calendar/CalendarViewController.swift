@@ -288,17 +288,19 @@ final class CalendarDayCell: UICollectionViewCell {
         let isToday = Calendar.current.isDateInToday(date)
         let isWeekend = Calendar.current.isDateInWeekend(date)
 
+        dayDate = date
+
         if isToday {
-            backgroundColor = .systemBlue
+            backgroundColor = DayPinDesign.accent
             layer.cornerRadius = 12
             dayLabel.font = .systemFont(ofSize: 15, weight: .bold)
             dayLabel.textColor = .white
             dotView.backgroundColor = .white
         } else {
             backgroundColor = .clear
-            dayLabel.font = .systemFont(ofSize: 15, weight: isWeekend ? .regular : .regular)
+            dayLabel.font = .systemFont(ofSize: 15, weight: .regular)
             dayLabel.textColor = isWeekend ? .tertiaryLabel : .label
-            dotView.backgroundColor = .systemBlue
+            dotView.backgroundColor = DayPinDesign.accent
         }
 
         dotView.isHidden = !hasCards
@@ -307,9 +309,10 @@ final class CalendarDayCell: UICollectionViewCell {
     override var isHighlighted: Bool {
         didSet {
             UIView.animate(withDuration: 0.12) {
+                let isToday = Calendar.current.isDateInToday(self.dayDate ?? Date())
                 self.backgroundColor = self.isHighlighted
                     ? UIColor.secondarySystemFill
-                    : (Calendar.current.isDateInToday(self.dayDate ?? Date()) ? .systemBlue : .clear)
+                    : (isToday ? DayPinDesign.accent : .clear)
             }
         }
     }

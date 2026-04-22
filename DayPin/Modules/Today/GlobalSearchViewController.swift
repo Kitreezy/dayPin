@@ -233,27 +233,27 @@ private final class SearchResultCell: UITableViewCell {
         case .text:
             let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
             typeIcon.image = UIImage(systemName: "text.alignleft", withConfiguration: cfg)
-            typeIcon.tintColor = .systemBlue
-            (typeIcon.superview as? UIView)?.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.12)
+            typeIcon.tintColor = DayPinDesign.textCardTint
+            (typeIcon.superview as? UIView)?.backgroundColor = DayPinDesign.textCardTint.withAlphaComponent(0.12)
             pillLabel.text = "Заметка"
-            pill.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.12)
-            pillLabel.textColor = .systemBlue
+            pill.backgroundColor = DayPinDesign.textCardTint.withAlphaComponent(0.12)
+            pillLabel.textColor = DayPinDesign.textCardTint
         case .image:
             let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
             typeIcon.image = UIImage(systemName: "photo", withConfiguration: cfg)
-            typeIcon.tintColor = .systemOrange
-            (typeIcon.superview as? UIView)?.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.12)
+            typeIcon.tintColor = DayPinDesign.imageCardTint
+            (typeIcon.superview as? UIView)?.backgroundColor = DayPinDesign.imageCardTint.withAlphaComponent(0.12)
             pillLabel.text = "Фото"
-            pill.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.12)
-            pillLabel.textColor = .systemOrange
+            pill.backgroundColor = DayPinDesign.imageCardTint.withAlphaComponent(0.12)
+            pillLabel.textColor = DayPinDesign.imageCardTint
         case .link:
             let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
             typeIcon.image = UIImage(systemName: "link", withConfiguration: cfg)
-            typeIcon.tintColor = .systemGreen
-            (typeIcon.superview as? UIView)?.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.12)
+            typeIcon.tintColor = DayPinDesign.linkCardTint
+            (typeIcon.superview as? UIView)?.backgroundColor = DayPinDesign.linkCardTint.withAlphaComponent(0.12)
             pillLabel.text = "Ссылка"
-            pill.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.12)
-            pillLabel.textColor = .systemGreen
+            pill.backgroundColor = DayPinDesign.linkCardTint.withAlphaComponent(0.12)
+            pillLabel.textColor = DayPinDesign.linkCardTint
         }
     }
 }

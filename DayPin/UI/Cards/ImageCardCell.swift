@@ -5,54 +5,81 @@ final class ImageCardCell: UICollectionViewCell {
     static let reuseID = "ImageCardCell"
 
     private let thumbnailView = UIImageView()
-    private let titleLabel = UILabel()
+    private let titleLabel    = UILabel()
     private let pinCountLabel = UILabel()
-    private let pinIcon = UIImageView()
-    private let timeLabel = UILabel()
+    private let pinIcon       = UIImageView()
+    private let timeLabel     = UILabel()
     private let gradientLayer = CAGradientLayer()
+
+    // Glass panel: plain UIView — semi-transparent so the photo shows through.
+    // UIVisualEffectView doesn't blur sibling views in collection cells reliably.
+    private let glassPanel = UIView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil
+        )
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
+    @objc private func onSchemeChanged() {
+        refreshTint(DayPinDesign.imageCardTint)
+    }
+
+    private func refreshTint(_ tint: UIColor) {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+        tint.getRed(&r, green: &g, blue: &b, alpha: nil)
+        // Black base (alpha 0.52) lightly tinted — image shows through the 48% transparency
+        glassPanel.backgroundColor = UIColor(red: r * 0.18, green: g * 0.18, blue: b * 0.18, alpha: 0.52)
+    }
+
     private func setup() {
         backgroundColor = .clear
+        // No masksToBounds on the cell — thumbnail clips itself
         layer.cornerRadius = 18
-        layer.masksToBounds = true
-
         DayPinDesign.applyCardShadow(to: layer)
 
-        // Image
+        // ── Photo ──────────────────────────────────────────────
         thumbnailView.contentMode = .scaleAspectFill
-        thumbnailView.backgroundColor = .secondarySystemFill
+        thumbnailView.backgroundColor = UIColor(white: 0.12, alpha: 1)
+        thumbnailView.layer.cornerRadius = 18
+        thumbnailView.layer.masksToBounds = true
         thumbnailView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(thumbnailView)
 
-        // Gradient overlay
-        gradientLayer.colors = [UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.6).cgColor]
-        gradientLayer.locations = [0.45, 1.0]
+        // ── Vignette gradient ──────────────────────────────────
+        gradientLayer.colors = [UIColor.clear.cgColor,
+                                UIColor.black.withAlphaComponent(0.60).cgColor]
+        gradientLayer.locations = [0.28, 1.0]
+        gradientLayer.cornerRadius = 18
         contentView.layer.addSublayer(gradientLayer)
 
-        // Bottom info
-        let blurOverlay = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-        blurOverlay.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(blurOverlay)
+        // ── Floating glass panel ───────────────────────────────
+        glassPanel.layer.cornerRadius = 14
+        glassPanel.layer.borderWidth  = 0.5
+        glassPanel.layer.borderColor  = UIColor.white.withAlphaComponent(0.18).cgColor
+        glassPanel.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(glassPanel)
+        refreshTint(DayPinDesign.imageCardTint)
 
+
+        // ── Labels ─────────────────────────────────────────────
         titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
         titleLabel.textColor = .white
         titleLabel.numberOfLines = 2
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
         pinIcon.image = UIImage(systemName: "mappin.circle.fill")
-        pinIcon.tintColor = UIColor.white.withAlphaComponent(0.7)
+        pinIcon.tintColor = UIColor.white.withAlphaComponent(0.75)
         pinIcon.contentMode = .scaleAspectFit
         pinIcon.translatesAutoresizingMaskIntoConstraints = false
 
         pinCountLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        pinCountLabel.textColor = UIColor.white.withAlphaComponent(0.7)
+        pinCountLabel.textColor = UIColor.white.withAlphaComponent(0.90)
         pinCountLabel.translatesAutoresizingMaskIntoConstraints = false
 
         let pinRow = UIStackView(arrangedSubviews: [pinIcon, pinCountLabel])
@@ -65,36 +92,40 @@ final class ImageCardCell: UICollectionViewCell {
         timeLabel.textColor = UIColor.white.withAlphaComponent(0.55)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let topRow = UIStackView(arrangedSubviews: [pinRow, UIView(), timeLabel])
-        topRow.axis = .horizontal
-        topRow.alignment = .center
-        topRow.spacing = 6
-        topRow.translatesAutoresizingMaskIntoConstraints = false
+        let bottomRow = UIStackView(arrangedSubviews: [pinRow, UIView(), timeLabel])
+        bottomRow.axis = .horizontal
+        bottomRow.alignment = .center
+        bottomRow.spacing = 6
+        bottomRow.translatesAutoresizingMaskIntoConstraints = false
 
-        let infoStack = UIStackView(arrangedSubviews: [titleLabel, topRow])
+        let infoStack = UIStackView(arrangedSubviews: [titleLabel, bottomRow])
         infoStack.axis = .vertical
-        infoStack.spacing = 4
+        infoStack.spacing = 5
         infoStack.translatesAutoresizingMaskIntoConstraints = false
-        blurOverlay.contentView.addSubview(infoStack)
+        glassPanel.addSubview(infoStack)
 
-        let ratioConstraint = thumbnailView.heightAnchor.constraint(equalTo: thumbnailView.widthAnchor, multiplier: 0.65)
+        let ratioConstraint = thumbnailView.heightAnchor.constraint(
+            equalTo: thumbnailView.widthAnchor, multiplier: 0.65)
         ratioConstraint.priority = UILayoutPriority(999)
 
         NSLayoutConstraint.activate([
+            // Photo
             thumbnailView.topAnchor.constraint(equalTo: contentView.topAnchor),
             thumbnailView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             thumbnailView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             ratioConstraint,
             thumbnailView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            blurOverlay.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            blurOverlay.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            blurOverlay.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            // Glass panel — 8pt inset from sides, 8pt from bottom
+            glassPanel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
+            glassPanel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            glassPanel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
 
-            infoStack.topAnchor.constraint(equalTo: blurOverlay.contentView.topAnchor, constant: 12),
-            infoStack.leadingAnchor.constraint(equalTo: blurOverlay.contentView.leadingAnchor, constant: 14),
-            infoStack.trailingAnchor.constraint(equalTo: blurOverlay.contentView.trailingAnchor, constant: -14),
-            infoStack.bottomAnchor.constraint(equalTo: blurOverlay.contentView.bottomAnchor, constant: -12),
+            // Info stack
+            infoStack.topAnchor.constraint(equalTo: glassPanel.topAnchor, constant: 10),
+            infoStack.leadingAnchor.constraint(equalTo: glassPanel.leadingAnchor, constant: 12),
+            infoStack.trailingAnchor.constraint(equalTo: glassPanel.trailingAnchor, constant: -12),
+            infoStack.bottomAnchor.constraint(equalTo: glassPanel.bottomAnchor, constant: -10),
 
             pinIcon.widthAnchor.constraint(equalToConstant: 14),
             pinIcon.heightAnchor.constraint(equalToConstant: 14)
@@ -104,7 +135,6 @@ final class ImageCardCell: UICollectionViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = contentView.bounds
-        // Ensure corner radius applies correctly after layout
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 18).cgPath
     }
 
@@ -113,9 +143,23 @@ final class ImageCardCell: UICollectionViewCell {
         thumbnailView.image = card.imageData.flatMap { UIImage(data: $0) }
 
         let count = card.annotations.count
-        pinCountLabel.text = count > 0 ? L10n.annotationCount(count) : L10n.noAnnotations
         let tint = card.colorHex.flatMap { UIColor(hex: $0) } ?? DayPinDesign.imageCardTint
         pinIcon.tintColor = count > 0 ? tint : UIColor.white.withAlphaComponent(0.4)
+        refreshTint(tint)
+
+        if count == 0 {
+            pinCountLabel.text = L10n.noAnnotations
+        } else {
+            // Title is the primary field — always prefer it over the optional comment
+            let first = card.annotations.first(where: { !$0.title.isEmpty })?.title
+                     ?? card.annotations.first(where: { !$0.text.isEmpty })?.text
+            if let label = first {
+                let preview = label.count > 28 ? String(label.prefix(28)) + "…" : label
+                pinCountLabel.text = count > 1 ? "\(preview)  +\(count - 1)" : preview
+            } else {
+                pinCountLabel.text = L10n.annotationCount(count)
+            }
+        }
 
         let df = DateFormatter()
         df.dateFormat = "HH:mm"
@@ -125,7 +169,8 @@ final class ImageCardCell: UICollectionViewCell {
     override var isHighlighted: Bool {
         didSet {
             UIView.animate(withDuration: 0.12) {
-                self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.97, y: 0.97) : .identity
+                self.transform = self.isHighlighted
+                    ? CGAffineTransform(scaleX: 0.97, y: 0.97) : .identity
             }
         }
     }

@@ -479,14 +479,9 @@ final class PinCalloutView: UIView {
     @objc private func saveTapped() {
         let newTitle = (titleField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let newText  = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !newText.isEmpty else {
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
-            textView.shake()
-            return
-        }
         textView.resignFirstResponder()
         titleField.resignFirstResponder()
-        let cb      = editCallback
+        let cb       = editCallback
         let colorHex = selectedColorHex
         dismissSelf { cb(newTitle, newText, colorHex) }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()

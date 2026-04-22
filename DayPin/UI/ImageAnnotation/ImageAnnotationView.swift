@@ -22,6 +22,9 @@ final class ImageAnnotationView: UIView {
     private var pinViews:    [UUID: AnnotationPinView] = [:]
     private var annotations: [ImageAnnotation] = []
 
+    private var draggingAnnotationID: UUID?
+    private var dragOffset: CGPoint = .zero
+
     var image: UIImage? {
         didSet { imageView.image = image }
     }
@@ -91,16 +94,42 @@ final class ImageAnnotationView: UIView {
         switch gr.state {
         case .began:
             guard imageContentFrame.contains(point) else { return }
-            // Skip if touching existing pin
-            guard !pinViews.values.contains(where: { $0.frame.insetBy(dx: -12, dy: -12).contains(point) }) else { return }
+
+            // Check if touching an existing pin — start drag instead of ghost
+            if let (id, pin) = pinViews.first(where: { $0.value.frame.insetBy(dx: -14, dy: -14).contains(point) }) {
+                draggingAnnotationID = id
+                dragOffset = CGPoint(x: point.x - pin.center.x, y: point.y - pin.center.y)
+                UIView.animate(withDuration: 0.15) { pin.transform = CGAffineTransform(scaleX: 1.35, y: 1.35) }
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                return
+            }
+
             showGhost(at: point)
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
         case .changed:
+            if let id = draggingAnnotationID, let pin = pinViews[id] {
+                let clamped = clampedToImageFrame(CGPoint(x: point.x - dragOffset.x, y: point.y - dragOffset.y))
+                pin.center = clamped
+                return
+            }
             guard !ghostPin.isHidden else { return }
             ghostPin.center = clampedToImageFrame(point)
 
         case .ended:
+            if let id = draggingAnnotationID, let pin = pinViews[id] {
+                UIView.animate(withDuration: 0.15) { pin.transform = .identity }
+                let clamped    = clampedToImageFrame(CGPoint(x: point.x - dragOffset.x, y: point.y - dragOffset.y))
+                let normalized = normalizedPoint(from: clamped)
+                if var annotation = annotations.first(where: { $0.id == id }) {
+                    annotation.x = normalized.x
+                    annotation.y = normalized.y
+                    updateAnnotation(annotation)
+                }
+                draggingAnnotationID = nil
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                return
+            }
             guard !ghostPin.isHidden else { return }
             let finalPoint = clampedToImageFrame(point)
             hideGhost()
@@ -110,6 +139,10 @@ final class ImageAnnotationView: UIView {
             presentAnnotationInput(at: normalized, windowPoint: windowPoint, existingAnnotation: nil)
 
         default:
+            if let id = draggingAnnotationID, let pin = pinViews[id] {
+                UIView.animate(withDuration: 0.15) { pin.transform = .identity }
+                draggingAnnotationID = nil
+            }
             hideGhost()
         }
     }
@@ -381,7 +414,7 @@ final class AnnotationPinView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     // Exposed so callers can change color after creation
-    var pinColor: UIColor = .systemBlue {
+    var pinColor: UIColor = DayPinDesign.accent {
         didSet { applyColor() }
     }
 

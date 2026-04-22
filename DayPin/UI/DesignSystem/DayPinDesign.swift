@@ -26,7 +26,7 @@ enum DayPinDesign {
             let isDark = t.userInterfaceStyle == .dark
             let base   = isDark ? UIColor(hex: "#0D0D0D")! : UIColor(hex: "#F5F3EF")!
             let tint   = ThemeManager.shared.colorScheme.accent
-            return base.blendedWith(tint, fraction: isDark ? 0.04 : 0.03)
+            return base.blendedWith(tint, fraction: isDark ? 0.05 : 0.07)
         }
     }
 
@@ -79,16 +79,23 @@ enum DayPinDesign {
 
     static func makeNavBarAppearance() -> UINavigationBarAppearance {
         let a = UINavigationBarAppearance()
-        a.configureWithDefaultBackground()
-        a.backgroundEffect = UIBlurEffect(style: .systemMaterial)
+        a.configureWithTransparentBackground()
+        a.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+        // Same tint formula as PillTabBar — accent RGB blended into near-black/near-white base
         a.backgroundColor = UIColor { t in
-            t.userInterfaceStyle == .dark
-                ? UIColor(hex: "#0D0D0D")!.withAlphaComponent(0.82)
-                : UIColor(hex: "#F5F3EF")!.withAlphaComponent(0.88)
+            let isDark  = t.userInterfaceStyle == .dark
+            let accent  = ThemeManager.shared.colorScheme.accent
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+            accent.getRed(&r, green: &g, blue: &b, alpha: nil)
+            let base: UIColor = isDark
+                ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
+                : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
+            return base.withAlphaComponent(isDark ? 0.38 : 0.30)
         }
+        // Hairline separator matches glass border aesthetic
         a.shadowColor = UIColor { t in
             t.userInterfaceStyle == .dark
-                ? UIColor.black.withAlphaComponent(0.12)
+                ? UIColor.white.withAlphaComponent(0.08)
                 : UIColor.black.withAlphaComponent(0.06)
         }
         a.titleTextAttributes = [
@@ -102,12 +109,13 @@ enum DayPinDesign {
 
     static func makeTabBarAppearance() -> UITabBarAppearance {
         let a = UITabBarAppearance()
-        a.configureWithDefaultBackground()
-        a.backgroundEffect = UIBlurEffect(style: .systemMaterial)
+        a.configureWithTransparentBackground()
+        a.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         a.backgroundColor = UIColor { t in
-            t.userInterfaceStyle == .dark
-                ? UIColor(hex: "#0D0D0D")!.withAlphaComponent(0.90)
-                : UIColor(hex: "#F5F3EF")!.withAlphaComponent(0.92)
+            let isDark = t.userInterfaceStyle == .dark
+            let base   = isDark ? UIColor(hex: "#0D0D0D")! : UIColor(hex: "#F5F5F5")!
+            let tinted = base.blendedWith(ThemeManager.shared.colorScheme.accent, fraction: isDark ? 0.09 : 0.07)
+            return tinted.withAlphaComponent(isDark ? 0.86 : 0.90)
         }
         a.shadowColor = UIColor { t in
             t.userInterfaceStyle == .dark
@@ -137,7 +145,7 @@ enum DayPinDesign {
 
 // MARK: - UIColor helpers
 
-private extension UIColor {
+extension UIColor {
     /// Linearly interpolate `fraction` of the way from self toward `other`.
     func blendedWith(_ other: UIColor, fraction f: CGFloat) -> UIColor {
         var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0
@@ -191,5 +199,97 @@ final class GradientButton: UIButton {
                 self.alpha = self.isHighlighted ? 0.82 : 1
             }
         }
+    }
+}
+
+// MARK: - GlassFABView
+
+final class GlassFABView: UIView {
+
+    var action: (() -> Void)?
+
+    private let blur       = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let overlay    = UIView()
+    private let iconButton = UIButton(type: .system)
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        build()
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func build() {
+        // Shadow on self — clipsToBounds stays false so shadow renders outside
+        layer.shadowColor   = UIColor.black.cgColor
+        layer.shadowOpacity = 0.15
+        layer.shadowRadius  = 14
+        layer.shadowOffset  = CGSize(width: 0, height: 4)
+
+        // Blur pill
+        blur.layer.cornerRadius = 26
+        blur.layer.borderWidth  = 0.5
+        blur.layer.borderColor  = UIColor.white.withAlphaComponent(0.20).cgColor
+        blur.clipsToBounds = true
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(blur)
+        NSLayoutConstraint.activate([
+            blur.topAnchor.constraint(equalTo: topAnchor),
+            blur.leadingAnchor.constraint(equalTo: leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: trailingAnchor),
+            blur.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+
+        // Accent tint overlay (behind icon, non-interactive)
+        overlay.isUserInteractionEnabled = false
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        blur.contentView.addSubview(overlay)
+
+        // + icon button — fills entire pill to handle taps
+        let cfg = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
+        iconButton.setImage(UIImage(systemName: "plus", withConfiguration: cfg), for: .normal)
+        iconButton.addTarget(self, action: #selector(tapped), for: .touchUpInside)
+        iconButton.translatesAutoresizingMaskIntoConstraints = false
+        blur.contentView.addSubview(iconButton)
+
+        NSLayoutConstraint.activate([
+            overlay.topAnchor.constraint(equalTo: blur.contentView.topAnchor),
+            overlay.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor),
+            overlay.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor),
+
+            iconButton.topAnchor.constraint(equalTo: blur.contentView.topAnchor),
+            iconButton.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor),
+            iconButton.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor),
+            iconButton.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
+        ])
+
+        refresh()
+    }
+
+    func refresh() {
+        let accent = DayPinDesign.accent
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+        accent.getRed(&r, green: &g, blue: &b, alpha: nil)
+        let isDark = traitCollection.userInterfaceStyle == .dark
+        let base: UIColor = isDark
+            ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
+            : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
+        overlay.backgroundColor = base.withAlphaComponent(isDark ? 0.38 : 0.28)
+        iconButton.tintColor = accent
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 26).cgPath
+    }
+
+    override func traitCollectionDidChange(_ prev: UITraitCollection?) {
+        super.traitCollectionDidChange(prev)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: prev) { refresh() }
+    }
+
+    @objc private func tapped() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        action?()
     }
 }

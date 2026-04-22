@@ -1,12 +1,9 @@
 import UIKit
 
-/// Horizontal scrollable chip filter bar.
-/// Chips: All / Text / Image / Link
 final class FilterChipsView: UIView {
 
     enum Filter: CaseIterable {
         case all, text, image, link
-
         var title: String {
             switch self {
             case .all:   return L10n.filterAll
@@ -15,28 +12,28 @@ final class FilterChipsView: UIView {
             case .link:  return L10n.filterLink
             }
         }
-        var icon: String {
-            switch self {
-            case .all:   return "square.grid.2x2"
-            case .text:  return "text.alignleft"
-            case .image: return "photo"
-            case .link:  return "link"
-            }
-        }
     }
 
     var onFilterChange: ((Filter) -> Void)?
     private(set) var selectedFilter: Filter = .all
 
     private let scrollView = UIScrollView()
+    private let stack      = UIStackView()
+    private let indicator  = UIView()
     private var buttons: [Filter: UIButton] = [:]
+    private var counts:  [Filter: Int]      = [:]
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil
+        )
     }
-
     required init?(coder: NSCoder) { fatalError() }
+
+    // MARK: - Setup
 
     private func setup() {
         backgroundColor = .clear
@@ -51,9 +48,8 @@ final class FilterChipsView: UIView {
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.spacing = 8
+        stack.axis    = .horizontal
+        stack.spacing = 22
         stack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(stack)
         NSLayoutConstraint.activate([
@@ -65,67 +61,129 @@ final class FilterChipsView: UIView {
         ])
 
         for filter in Filter.allCases {
-            let btn = makeChip(filter)
+            let btn = makeButton(filter)
             stack.addArrangedSubview(btn)
             buttons[filter] = btn
         }
 
-        updateSelection()
+        // Sliding underline
+        indicator.backgroundColor = DayPinDesign.accent
+        indicator.layer.cornerRadius = 1
+        addSubview(indicator)
+
+        refreshAllButtons()
     }
 
-    private func makeChip(_ filter: Filter) -> UIButton {
+    private func makeButton(_ filter: Filter) -> UIButton {
         let btn = UIButton(type: .system)
-        let cfg = UIImage.SymbolConfiguration(pointSize: 11, weight: .medium)
-        btn.setImage(UIImage(systemName: filter.icon, withConfiguration: cfg), for: .normal)
         btn.setTitle(filter.title, for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 13, weight: .medium)
-        btn.imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 6)
-        btn.contentEdgeInsets = UIEdgeInsets(top: 7, left: 13, bottom: 7, right: 13)
-        btn.layer.cornerRadius = 16
-        btn.clipsToBounds = true
+        btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .regular)
+        btn.setTitleColor(.secondaryLabel, for: .normal)
         btn.tag = Filter.allCases.firstIndex(of: filter) ?? 0
-        btn.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
+        btn.addTarget(self, action: #selector(tabTapped(_:)), for: .touchUpInside)
         return btn
     }
 
-    @objc private func chipTapped(_ sender: UIButton) {
+    // MARK: - Interaction
+
+    @objc private func tabTapped(_ sender: UIButton) {
         let filter = Filter.allCases[sender.tag]
         guard filter != selectedFilter else { return }
         selectedFilter = filter
-        updateSelection()
+        refreshAllButtons()
+        moveIndicator(animated: true)
         onFilterChange?(filter)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        scrollToReveal(filter)
     }
 
-    private func updateSelection() {
-        for (filter, btn) in buttons {
-            let selected = filter == selectedFilter
-            UIView.animate(withDuration: 0.18) {
-                btn.backgroundColor = selected
-                    ? DayPinDesign.accent
-                    : UIColor.secondarySystemFill
-                btn.tintColor  = selected ? .white : .secondaryLabel
-                btn.setTitleColor(selected ? .white : .secondaryLabel, for: .normal)
-            }
+    // MARK: - Layout
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        moveIndicator(animated: false)
+    }
+
+    private func moveIndicator(animated: Bool) {
+        guard let btn = buttons[selectedFilter], btn.frame.width > 0 else { return }
+        let btnInSelf = convert(btn.frame, from: stack)
+        let target = CGRect(x: btnInSelf.minX, y: bounds.height - 2, width: btnInSelf.width, height: 2)
+        let block = { self.indicator.frame = target }
+        if animated {
+            UIView.animate(withDuration: 0.3, delay: 0,
+                           usingSpringWithDamping: 0.75, initialSpringVelocity: 0.3,
+                           animations: block)
+        } else {
+            block()
         }
     }
 
-    func reset() {
-        selectedFilter = .all
-        updateSelection()
+    private func scrollToReveal(_ filter: Filter) {
+        guard let btn = buttons[filter] else { return }
+        let rect = scrollView.convert(btn.frame, from: stack)
+        scrollView.scrollRectToVisible(rect.insetBy(dx: -20, dy: 0), animated: true)
     }
 
-    /// Обновляет счётчики на чипах. Показывает count только если > 0.
-    func updateCounts(text: Int, image: Int, link: Int) {
-        let total = text + image + link
-        let map: [Filter: Int] = [.all: total, .text: text, .image: image, .link: link]
-        for (filter, btn) in buttons {
-            let count = map[filter] ?? 0
-            let base  = filter.title
+    // MARK: - Appearance
+
+    private func refreshAllButtons() {
+        for filter in Filter.allCases { refreshButton(filter) }
+    }
+
+    private func refreshButton(_ filter: Filter) {
+        guard let btn = buttons[filter] else { return }
+        let isSelected = filter == selectedFilter
+        let count      = counts[filter] ?? 0
+        let weight: UIFont.Weight = isSelected ? .semibold : .regular
+        let titleColor: UIColor   = isSelected ? .label : .secondaryLabel
+
+        if count > 0 {
+            let str = NSMutableAttributedString(
+                string: filter.title,
+                attributes: [
+                    .font: UIFont.systemFont(ofSize: 15, weight: weight),
+                    .foregroundColor: titleColor
+                ]
+            )
+            str.append(NSAttributedString(
+                string: "  \(count)",
+                attributes: [
+                    .font: UIFont.systemFont(ofSize: 11, weight: .regular),
+                    .foregroundColor: UIColor.tertiaryLabel
+                ]
+            ))
             UIView.performWithoutAnimation {
-                btn.setTitle(count > 0 ? "\(base)  \(count)" : base, for: .normal)
+                btn.setAttributedTitle(str, for: .normal)
+                btn.layoutIfNeeded()
+            }
+        } else {
+            UIView.performWithoutAnimation {
+                btn.setAttributedTitle(nil, for: .normal)
+                btn.setTitle(filter.title, for: .normal)
+                btn.setTitleColor(titleColor, for: .normal)
+                btn.titleLabel?.font = .systemFont(ofSize: 15, weight: weight)
                 btn.layoutIfNeeded()
             }
         }
+    }
+
+    @objc private func onSchemeChanged() {
+        indicator.backgroundColor = DayPinDesign.accent
+        refreshAllButtons()
+    }
+
+    // MARK: - Public API
+
+    func reset() {
+        selectedFilter = .all
+        refreshAllButtons()
+        setNeedsLayout()
+    }
+
+    func updateCounts(text: Int, image: Int, link: Int) {
+        let total = text + image + link
+        counts = [.all: total, .text: text, .image: image, .link: link]
+        refreshAllButtons()
+        setNeedsLayout()
     }
 }

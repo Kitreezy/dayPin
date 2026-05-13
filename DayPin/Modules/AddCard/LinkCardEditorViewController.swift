@@ -42,6 +42,7 @@ final class LinkCardEditorViewController: UIViewController {
     private let titleField         = UITextField()
     private let commentTextView    = UITextView()
     private let commentPlaceholder = UILabel()
+    private let tagsInputView      = TagsInputView()
 
     // Cover button (shown after metadata fetched)
     private let coverCard = GlassCardView(style: .card)
@@ -206,9 +207,17 @@ final class LinkCardEditorViewController: UIViewController {
         commentPlaceholder.translatesAutoresizingMaskIntoConstraints = false
         commentTextView.addSubview(commentPlaceholder)
 
+        let tagsDivider = UIView()
+        tagsDivider.backgroundColor = .separator
+        tagsDivider.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
+
+        tagsInputView.heightAnchor.constraint(equalToConstant: 36).isActive = true
+
         detailsCard.stackView.addArrangedSubview(titleField)
         detailsCard.stackView.addArrangedSubview(divider)
         detailsCard.stackView.addArrangedSubview(commentTextView)
+        detailsCard.stackView.addArrangedSubview(tagsDivider)
+        detailsCard.stackView.addArrangedSubview(tagsInputView)
 
         NSLayoutConstraint.activate([
             commentPlaceholder.topAnchor.constraint(equalTo: commentTextView.topAnchor, constant: 8),
@@ -380,6 +389,7 @@ final class LinkCardEditorViewController: UIViewController {
         titleField.text      = card.title
         commentTextView.text = card.comment
         commentPlaceholder.isHidden = !card.comment.isEmpty
+        tagsInputView.tagIDs = card.tagIDs
         resolvedURL   = card.url
         cardsRevealed = true
 
@@ -415,6 +425,7 @@ final class LinkCardEditorViewController: UIViewController {
         saved.extraURLs          = card?.extraURLs ?? []
         saved.previewTitle       = fetchedMetadata?.title ?? card?.previewTitle
         saved.previewDescription = card?.previewDescription
+        saved.tagIDs             = tagsInputView.selectedTagIDs
 
         // Priority: custom cover > fetched metadata image > existing saved image
         let coverImage = customCoverImage ?? fetchedPreviewImage

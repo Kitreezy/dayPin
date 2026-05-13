@@ -1,4 +1,5 @@
 import UIKit
+import WidgetKit
 
 // MARK: - Notification Names
 
@@ -66,6 +67,10 @@ final class ThemeManager {
         }
         set {
             UserDefaults.standard.set(newValue.id.rawValue, forKey: schemeKey)
+            // Sync to App Group so the widget can read the accent color
+            AppGroup.defaults.set(newValue.id.rawValue, forKey: "daypin.colorSchemeID")
+            // Reload widget so it picks up the new accent immediately
+            WidgetCenter.shared.reloadAllTimelines()
             NotificationCenter.default.post(name: .dayPinColorSchemeChanged, object: nil)
         }
     }
@@ -74,6 +79,8 @@ final class ThemeManager {
 
     func apply() {
         applyBrightness()
+        // Write current scheme to App Group for widget (covers cold-launch case)
+        AppGroup.defaults.set(colorScheme.id.rawValue, forKey: "daypin.colorSchemeID")
     }
 
     private func applyBrightness() {

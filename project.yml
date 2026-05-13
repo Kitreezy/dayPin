@@ -37,9 +37,39 @@ targets:
         UIUserInterfaceStyle: Automatic
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        # URL scheme for widget deep links
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - daypin
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.daypin.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: DayPin/DayPin.entitlements
     dependencies:
       - sdk: CoreData.framework
+      - sdk: WidgetKit.framework
+      - target: DayPinWidget
+        embed: true
+        codeSign: true
+
+  DayPinWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: DayPinWidget
+    info:
+      path: DayPinWidget/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.daypin.app.widget
+        SWIFT_VERSION: 5.9
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        CODE_SIGN_ENTITLEMENTS: DayPinWidget/DayPinWidget.entitlements
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework

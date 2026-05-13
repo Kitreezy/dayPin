@@ -11,6 +11,7 @@ final class TextCardEditorViewController: UIViewController {
     private let commentTextView      = UITextView()
     private let commentPlaceholder   = UILabel()
     private let formattingBar        = FormattingToolbar()
+    private let tagsInputView        = TagsInputView()
 
     init(card: TextCard?, dayDate: Date) {
         self.card    = card
@@ -81,9 +82,17 @@ final class TextCardEditorViewController: UIViewController {
 
         commentTextView.addSubview(commentPlaceholder)
 
+        let tagsDivider = UIView()
+        tagsDivider.backgroundColor = .separator
+        tagsDivider.translatesAutoresizingMaskIntoConstraints = false
+
+        tagsInputView.translatesAutoresizingMaskIntoConstraints = false
+
         formCard.stackView.addArrangedSubview(titleField)
         formCard.stackView.addArrangedSubview(divider)
         formCard.stackView.addArrangedSubview(commentTextView)
+        formCard.stackView.addArrangedSubview(tagsDivider)
+        formCard.stackView.addArrangedSubview(tagsInputView)
 
         NSLayoutConstraint.activate([
             formCard.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
@@ -94,6 +103,8 @@ final class TextCardEditorViewController: UIViewController {
             titleField.heightAnchor.constraint(equalToConstant: 44),
             divider.heightAnchor.constraint(equalToConstant: 0.5),
             commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 160),
+            tagsDivider.heightAnchor.constraint(equalToConstant: 0.5),
+            tagsInputView.heightAnchor.constraint(equalToConstant: 36),
 
             commentPlaceholder.topAnchor.constraint(equalTo: commentTextView.topAnchor, constant: 8),
             commentPlaceholder.leadingAnchor.constraint(equalTo: commentTextView.leadingAnchor, constant: 5)
@@ -109,6 +120,7 @@ final class TextCardEditorViewController: UIViewController {
             commentTextView.text = card.comment
         }
         commentPlaceholder.isHidden = !commentTextView.text.isEmpty
+        tagsInputView.tagIDs = card.tagIDs
     }
 
     // MARK: - Formatting
@@ -282,7 +294,8 @@ final class TextCardEditorViewController: UIViewController {
         }
 
         let saved = card ?? TextCard(title: titleText, dayDate: dayDate)
-        saved.title = titleText
+        saved.title  = titleText
+        saved.tagIDs = tagsInputView.selectedTagIDs
 
         let attributed = commentTextView.attributedText ?? NSAttributedString()
         if attributed.length > 0 {

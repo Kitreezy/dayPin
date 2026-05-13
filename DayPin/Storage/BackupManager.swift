@@ -7,8 +7,29 @@ struct DayPinBackup: Codable {
     let exportDate: Date
     let cards: [NoteCardDTO]
     let folders: [Folder]
+    var tags: [Tag]
 
-    static let currentVersion = 1
+    static let currentVersion = 2
+
+    // Backward-compat memberwise init
+    init(version: Int, exportDate: Date, cards: [NoteCardDTO], folders: [Folder], tags: [Tag] = []) {
+        self.version    = version
+        self.exportDate = exportDate
+        self.cards      = cards
+        self.folders    = folders
+        self.tags       = tags
+    }
+
+    // Custom decode so old backups without `tags` still load
+    enum CodingKeys: String, CodingKey { case version, exportDate, cards, folders, tags }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version    = try c.decode(Int.self,           forKey: .version)
+        exportDate = try c.decode(Date.self,          forKey: .exportDate)
+        cards      = try c.decode([NoteCardDTO].self, forKey: .cards)
+        folders    = try c.decode([Folder].self,      forKey: .folders)
+        tags       = try c.decodeIfPresent([Tag].self, forKey: .tags) ?? []
+    }
 }
 
 // MARK: - BackupManager
@@ -26,7 +47,8 @@ final class BackupManager {
             version: DayPinBackup.currentVersion,
             exportDate: Date(),
             cards: CardStore.shared.allDTOs(),
-            folders: FolderStore.shared.all()
+            folders: FolderStore.shared.all(),
+            tags: TagStore.shared.all()
         )
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -46,6 +68,7 @@ final class BackupManager {
     struct RestoreResult {
         let cards: Int
         let folders: Int
+        let tags: Int
     }
 
     /// Deserialises backup data and REPLACES current data.
@@ -56,8 +79,9 @@ final class BackupManager {
         decoder.dateDecodingStrategy = .iso8601
         let backup = try decoder.decode(DayPinBackup.self, from: data)
         FolderStore.shared.restore(folders: backup.folders)
+        TagStore.shared.restore(tags: backup.tags)
         CardStore.shared.restore(dtos: backup.cards)
-        return RestoreResult(cards: backup.cards.count, folders: backup.folders.count)
+        return RestoreResult(cards: backup.cards.count, folders: backup.folders.count, tags: backup.tags.count)
     }
 
     /// Reads backup metadata without restoring — used to show preview in UI.

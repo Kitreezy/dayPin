@@ -73,6 +73,11 @@ enum L10n {
     static var filterImage: String { s("Фото", "Photo") }
     static var filterLink:  String { s("Ссылки", "Links") }
 
+    // MARK: - Tags
+    static var tags:    String { s("Теги", "Tags") }
+    static var addTag:  String { s("Добавить тег", "Add tag") }
+    static var newTag:  String { s("Новый тег", "New tag") }
+
     // MARK: - Search
     static var searchPlaceholder: String { s("Поиск заметок...", "Search notes...") }
     static var searchNoResults:   String { s("Ничего не найдено", "No results") }
@@ -87,6 +92,14 @@ enum L10n {
     static var themeLight:  String { s("Светлая", "Light") }
     static var themeDark:   String { s("Тёмная", "Dark") }
     static var theme:       String { s("Тема", "Theme") }
+
+    // MARK: - Reminders
+    static var reminder:            String { s("Напоминание", "Reminder") }
+    static var reminderSet:         String { s("Напомнить в", "Reminder at") }
+    static var removeReminder:      String { s("Убрать напоминание", "Remove reminder") }
+    static var setReminder:         String { s("Установить", "Set") }
+    static var remindMe:            String { s("Напомнить", "Remind me") }
+    static var reminderDefaultBody: String { s("Напоминание о заметке", "Note reminder") }
 
     // MARK: - Annotation count
     static func annotationCount(_ n: Int) -> String {

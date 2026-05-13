@@ -21,6 +21,12 @@ class NoteCard: Identifiable, ObservableObject {
     var folderID: UUID?
     /// Optional per-card color override (hex string). Nil = use type-based theme tint.
     var colorHex: String?
+    /// IDs of tags attached to this card.
+    var tagIDs: [UUID] = []
+    /// Scheduled reminder date, if any.
+    var reminderDate: Date?
+    /// UNUserNotification identifier used to cancel the scheduled notification.
+    var reminderNotificationID: String?
 
     init(id: UUID = UUID(), type: CardType, title: String, comment: String = "", dayDate: Date) {
         self.id = id

@@ -3,6 +3,7 @@ import UIKit
 final class CardDetailViewController: UIViewController {
 
     private let card: TextCard
+    private var bellButton: UIBarButtonItem?
 
     init(card: TextCard) {
         self.card = card
@@ -34,13 +35,60 @@ final class CardDetailViewController: UIViewController {
         let editBtn = UIBarButtonItem(image: UIImage(systemName: "pencil"),
                                       style: .plain, target: self, action: #selector(edit))
 
+        let bellSymbol = (card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date())
+            ? "bell.fill" : "bell"
+        let bell = UIBarButtonItem(image: UIImage(systemName: bellSymbol),
+                                   style: .plain, target: self, action: #selector(bellTapped))
+        bell.tintColor = (card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date())
+            ? DayPinDesign.accent : nil
+        bellButton = bell
+
         let shareAction  = UIAction(title: "Поделиться", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.share() }
         let folderAction = UIAction(title: "В папку",    image: UIImage(systemName: "folder.badge.plus"))   { [weak self] _ in self?.addToFolder() }
         let menu = UIMenu(children: [shareAction, folderAction])
         let moreBtn = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"),
                                       menu: menu)
 
-        navigationItem.rightBarButtonItems = [moreBtn, editBtn]
+        navigationItem.rightBarButtonItems = [moreBtn, editBtn, bell]
+    }
+
+    private func refreshBellButton() {
+        let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()
+        let symbol = hasReminder ? "bell.fill" : "bell"
+        bellButton?.image = UIImage(systemName: symbol)
+        bellButton?.tintColor = hasReminder ? DayPinDesign.accent : nil
+    }
+
+    @objc private func bellTapped() {
+        let picker = ReminderPickerViewController(existingDate: card.reminderDate)
+        picker.onConfirm = { [weak self] date in
+            guard let self else { return }
+            ReminderManager.shared.schedule(for: self.card, at: date) { [weak self] notifID in
+                guard let self else { return }
+                self.card.reminderDate = date
+                self.card.reminderNotificationID = notifID
+                CardStore.shared.save(card: self.card)
+                self.refreshBellButton()
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
+        if card.reminderDate != nil {
+            picker.onRemove = { [weak self] in
+                guard let self else { return }
+                ReminderManager.shared.cancel(for: self.card)
+                self.card.reminderDate = nil
+                self.card.reminderNotificationID = nil
+                CardStore.shared.save(card: self.card)
+                self.refreshBellButton()
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
+        if let sheet = picker.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 24
+        }
+        present(picker, animated: true)
     }
 
     // MARK: - UI

@@ -108,6 +108,8 @@ final class ImageCardCell: UICollectionViewCell {
             equalTo: thumbnailView.widthAnchor, multiplier: 0.65)
         ratioConstraint.priority = UILayoutPriority(999)
 
+        setupReminderDot()
+
         NSLayoutConstraint.activate([
             // Photo
             thumbnailView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -129,6 +131,24 @@ final class ImageCardCell: UICollectionViewCell {
 
             pinIcon.widthAnchor.constraint(equalToConstant: 14),
             pinIcon.heightAnchor.constraint(equalToConstant: 14)
+        ])
+    }
+
+    private let reminderDot = UIImageView()
+
+    private func setupReminderDot() {
+        let cfg = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+        reminderDot.image = UIImage(systemName: "bell.fill", withConfiguration: cfg)
+        reminderDot.tintColor = .white
+        reminderDot.contentMode = .scaleAspectFit
+        reminderDot.translatesAutoresizingMaskIntoConstraints = false
+        reminderDot.isHidden = true
+        contentView.addSubview(reminderDot)
+        NSLayoutConstraint.activate([
+            reminderDot.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            reminderDot.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+            reminderDot.widthAnchor.constraint(equalToConstant: 14),
+            reminderDot.heightAnchor.constraint(equalToConstant: 14)
         ])
     }
 
@@ -164,6 +184,9 @@ final class ImageCardCell: UICollectionViewCell {
         let df = DateFormatter()
         df.dateFormat = "HH:mm"
         timeLabel.text = df.string(from: card.createdAt)
+
+        let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()
+        reminderDot.isHidden = !hasReminder
     }
 
     override var isHighlighted: Bool {

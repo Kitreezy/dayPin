@@ -9,6 +9,7 @@ final class TextCardCell: UICollectionViewCell {
     private let titleLabel = UILabel()
     private let commentLabel = UILabel()
     private let dateLabel = UILabel()
+    private let reminderDot = UIImageView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -52,7 +53,15 @@ final class TextCardCell: UICollectionViewCell {
         commentLabel.numberOfLines = 4
         commentLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let topRow = UIStackView(arrangedSubviews: [typeIcon, UIView(), dateLabel])
+        // Small bell badge for reminders
+        let bellCfg = UIImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+        reminderDot.image = UIImage(systemName: "bell.fill", withConfiguration: bellCfg)
+        reminderDot.tintColor = DayPinDesign.accent
+        reminderDot.contentMode = .scaleAspectFit
+        reminderDot.translatesAutoresizingMaskIntoConstraints = false
+        reminderDot.isHidden = true
+
+        let topRow = UIStackView(arrangedSubviews: [typeIcon, UIView(), reminderDot, dateLabel])
         topRow.axis = .horizontal
         topRow.spacing = 4
         topRow.alignment = .center
@@ -71,7 +80,9 @@ final class TextCardCell: UICollectionViewCell {
             stack.bottomAnchor.constraint(lessThanOrEqualTo: cv.bottomAnchor, constant: -12),
 
             typeIcon.widthAnchor.constraint(equalToConstant: 14),
-            typeIcon.heightAnchor.constraint(equalToConstant: 14)
+            typeIcon.heightAnchor.constraint(equalToConstant: 14),
+            reminderDot.widthAnchor.constraint(equalToConstant: 12),
+            reminderDot.heightAnchor.constraint(equalToConstant: 12)
         ])
     }
 
@@ -88,6 +99,10 @@ final class TextCardCell: UICollectionViewCell {
         typeIcon.image = UIImage(systemName: "text.alignleft")
         typeIcon.tintColor = tint
         cardView.setAccentColor(tint)
+
+        let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()
+        reminderDot.isHidden = !hasReminder
+        reminderDot.tintColor = tint
     }
 
     override var isHighlighted: Bool {

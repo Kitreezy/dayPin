@@ -147,6 +147,18 @@ final class TodayViewController: UIViewController {
             name: .dayPinColorSchemeChanged,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onTriggerAdd),
+            name: NSNotification.Name("daypin.triggerAdd"),
+            object: nil
+        )
+    }
+
+    @objc private func onTriggerAdd() {
+        // Called via daypin://add deep link (e.g. from widget)
+        guard !isSelectMode else { return }
+        addTapped()
     }
 
     @objc private func onDataRestored() {

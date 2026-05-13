@@ -81,6 +81,9 @@ final class ImageCardDetailViewController: UIViewController {
 
     // MARK: - Floating Controls
 
+    private var bellBlurPill: UIVisualEffectView?
+    private var bellImageView: UIImageView?
+
     private func setupFloatingControls() {
         // Back pill — top-left
         let backBlur = makeBlurPill()
@@ -96,12 +99,27 @@ final class ImageCardDetailViewController: UIViewController {
         backBlur.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(goBack)))
         view.addSubview(backBlur)
 
-        // Right pills stack (edit, list, more)
+        // Bell pill button
+        let bellIcon = makeBellIcon()
+        let bellBlur = makeBlurPill()
+        bellIcon.translatesAutoresizingMaskIntoConstraints = false
+        bellBlur.contentView.addSubview(bellIcon)
+        NSLayoutConstraint.activate([
+            bellIcon.centerXAnchor.constraint(equalTo: bellBlur.contentView.centerXAnchor),
+            bellIcon.centerYAnchor.constraint(equalTo: bellBlur.contentView.centerYAnchor),
+            bellBlur.widthAnchor.constraint(equalToConstant: 36),
+            bellBlur.heightAnchor.constraint(equalToConstant: 36)
+        ])
+        bellBlur.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(bellTapped)))
+        bellBlurPill = bellBlur
+        bellImageView = bellIcon
+
+        // Right pills stack (bell, edit, list, more)
         let editBlur  = makePillButton(icon: "pencil",          action: #selector(editCard))
         let listBlur  = makePillButton(icon: "list.bullet",     action: #selector(showPinList))
         let moreBlur  = makePillButton(icon: "ellipsis",        action: #selector(moreTapped))
 
-        let rightStack = UIStackView(arrangedSubviews: [editBlur, listBlur, moreBlur])
+        let rightStack = UIStackView(arrangedSubviews: [bellBlur, editBlur, listBlur, moreBlur])
         rightStack.axis = .horizontal
         rightStack.spacing = 8
         rightStack.translatesAutoresizingMaskIntoConstraints = false
@@ -116,6 +134,56 @@ final class ImageCardDetailViewController: UIViewController {
             rightStack.centerYAnchor.constraint(equalTo: backBlur.centerYAnchor),
             rightStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
         ])
+    }
+
+    private func makeBellIcon() -> UIImageView {
+        let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()
+        let symbolName = hasReminder ? "bell.fill" : "bell"
+        let cfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        let img = UIImageView(image: UIImage(systemName: symbolName, withConfiguration: cfg))
+        img.tintColor = hasReminder ? DayPinDesign.accent : .white
+        img.contentMode = .scaleAspectFit
+        return img
+    }
+
+    private func refreshBellIcon() {
+        let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()
+        let symbolName = hasReminder ? "bell.fill" : "bell"
+        let cfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        bellImageView?.image = UIImage(systemName: symbolName, withConfiguration: cfg)
+        bellImageView?.tintColor = hasReminder ? DayPinDesign.accent : .white
+    }
+
+    @objc private func bellTapped() {
+        let picker = ReminderPickerViewController(existingDate: card.reminderDate)
+        picker.onConfirm = { [weak self] date in
+            guard let self else { return }
+            ReminderManager.shared.schedule(for: self.card, at: date) { [weak self] notifID in
+                guard let self else { return }
+                self.card.reminderDate = date
+                self.card.reminderNotificationID = notifID
+                CardStore.shared.save(card: self.card)
+                self.refreshBellIcon()
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
+        if card.reminderDate != nil {
+            picker.onRemove = { [weak self] in
+                guard let self else { return }
+                ReminderManager.shared.cancel(for: self.card)
+                self.card.reminderDate = nil
+                self.card.reminderNotificationID = nil
+                CardStore.shared.save(card: self.card)
+                self.refreshBellIcon()
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
+        if let sheet = picker.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 24
+        }
+        present(picker, animated: true)
     }
 
     private func makeBlurPill() -> UIVisualEffectView {

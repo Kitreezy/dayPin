@@ -42,6 +42,7 @@ final class ImageCardEditorViewController: UIViewController {
     private let existingCard: ImageCard?
 
     private let titleField     = UITextField()
+    private let tagsInputView  = TagsInputView()
     private let zoomScrollView = UIScrollView()
     private let annotationView = ImageAnnotationView()
     private var annotations: [ImageAnnotation] = []
@@ -174,6 +175,22 @@ final class ImageCardEditorViewController: UIViewController {
             titleField.centerYAnchor.constraint(equalTo: titleBlur.contentView.centerYAnchor)
         ])
 
+        // ── Tags row — floating blur pill above strip ─────────────
+        let tagsBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+        tagsBlur.layer.cornerRadius = 12
+        tagsBlur.clipsToBounds = true
+        tagsBlur.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(tagsBlur)
+
+        tagsInputView.translatesAutoresizingMaskIntoConstraints = false
+        tagsBlur.contentView.addSubview(tagsInputView)
+        NSLayoutConstraint.activate([
+            tagsInputView.topAnchor.constraint(equalTo: tagsBlur.contentView.topAnchor, constant: 4),
+            tagsInputView.leadingAnchor.constraint(equalTo: tagsBlur.contentView.leadingAnchor, constant: 8),
+            tagsInputView.trailingAnchor.constraint(equalTo: tagsBlur.contentView.trailingAnchor, constant: -8),
+            tagsInputView.bottomAnchor.constraint(equalTo: tagsBlur.contentView.bottomAnchor, constant: -4)
+        ])
+
         // ── Combined bottom panel: hint + photo strip ────────────
         let bottomPanel = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
         bottomPanel.translatesAutoresizingMaskIntoConstraints = false
@@ -226,6 +243,12 @@ final class ImageCardEditorViewController: UIViewController {
         bottomPanel.contentView.addSubview(stripCollection)
 
         NSLayoutConstraint.activate([
+            // Tags row — just above bottom panel
+            tagsBlur.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            tagsBlur.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            tagsBlur.bottomAnchor.constraint(equalTo: bottomPanel.topAnchor, constant: -8),
+            tagsBlur.heightAnchor.constraint(equalToConstant: 44),
+
             // Panel sits just above the home indicator area
             bottomPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -268,6 +291,7 @@ final class ImageCardEditorViewController: UIViewController {
         annotationView.image = card.imageData.flatMap { UIImage(data: $0) }
         annotations = card.annotations
         annotationView.load(annotations: annotations)
+        tagsInputView.tagIDs = card.tagIDs
     }
 
     // MARK: - Recent Photos
@@ -355,6 +379,7 @@ final class ImageCardEditorViewController: UIViewController {
         saved.title       = finalTitle
         saved.imageData   = currentImageData
         saved.annotations = annotations
+        saved.tagIDs      = tagsInputView.selectedTagIDs
         onSave?(saved)
         dismiss(animated: true)
     }

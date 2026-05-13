@@ -13,6 +13,7 @@ final class LinkCardCell: UICollectionViewCell {
     private let urlLabel      = UILabel()
     private let commentLabel  = UILabel()
     private let glassTimeLabel = UILabel()
+    private let reminderDot   = UIImageView()
 
     // MARK: - Thumbnail mode (previewImageData present)
 
@@ -90,8 +91,15 @@ final class LinkCardCell: UICollectionViewCell {
         mainStack.alignment = .leading
         mainStack.translatesAutoresizingMaskIntoConstraints = false
 
+        let bellCfg = UIImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+        reminderDot.image = UIImage(systemName: "bell.fill", withConfiguration: bellCfg)
+        reminderDot.contentMode = .scaleAspectFit
+        reminderDot.translatesAutoresizingMaskIntoConstraints = false
+        reminderDot.isHidden = true
+
         content.addSubview(mainStack)
         content.addSubview(glassTimeLabel)
+        content.addSubview(reminderDot)
 
         NSLayoutConstraint.activate([
             linkIconBadge.widthAnchor.constraint(equalToConstant: 32),
@@ -102,7 +110,12 @@ final class LinkCardCell: UICollectionViewCell {
             mainStack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -12),
 
             glassTimeLabel.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -12),
-            glassTimeLabel.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -10)
+            glassTimeLabel.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -10),
+
+            reminderDot.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -10),
+            reminderDot.topAnchor.constraint(equalTo: content.topAnchor, constant: 10),
+            reminderDot.widthAnchor.constraint(equalToConstant: 12),
+            reminderDot.heightAnchor.constraint(equalToConstant: 12)
         ])
     }
 
@@ -203,6 +216,9 @@ final class LinkCardCell: UICollectionViewCell {
 
         let tint = card.colorHex.flatMap { UIColor(hex: $0) } ?? DayPinDesign.linkCardTint
         let hasThumb = card.previewImageData != nil
+        let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()
+        reminderDot.isHidden = hasThumb || !hasReminder   // only show in glass mode
+        reminderDot.tintColor = tint
 
         if hasThumb, let data = card.previewImageData, let image = UIImage(data: data) {
             // Thumbnail mode

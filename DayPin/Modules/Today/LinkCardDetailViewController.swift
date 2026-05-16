@@ -115,13 +115,13 @@ final class LinkCardDetailViewController: UIViewController {
         cardView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(cardView)
 
-        titleLabel.font = .systemFont(ofSize: 20, weight: .bold)
+        titleLabel.font = .inter(ofSize: 20, weight: .bold)
         titleLabel.numberOfLines = 0
 
         linksStack.axis = .vertical
         linksStack.spacing = 8
 
-        commentLabel.font = .systemFont(ofSize: 16)
+        commentLabel.font = .inter(ofSize: 16)
         commentLabel.textColor = .secondaryLabel
         commentLabel.numberOfLines = 0
 
@@ -178,7 +178,7 @@ final class LinkCardDetailViewController: UIViewController {
             cfg.title = url.absoluteString
             button.configuration = cfg
             button.contentHorizontalAlignment = .leading
-            button.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
+            button.titleLabel?.font = .inter(ofSize: 13, weight: .semibold)
             button.tag = index
             button.layer.cornerRadius = 10
             button.backgroundColor = DayPinDesign.linkCardTint.withAlphaComponent(0.08)

@@ -22,7 +22,7 @@ final class RecentlyDeletedViewController: UIViewController {
     private lazy var emptyLabel: UILabel = {
         let lbl = UILabel()
         lbl.text          = "Нет удалённых заметок"
-        lbl.font          = .systemFont(ofSize: 16, weight: .medium)
+        lbl.font          = .inter(ofSize: 16, weight: .medium)
         lbl.textColor     = .secondaryLabel
         lbl.textAlignment = .center
         lbl.isHidden      = true
@@ -219,15 +219,15 @@ private final class RecentlyDeletedCell: UITableViewCell {
         typeIcon.translatesAutoresizingMaskIntoConstraints = false
         iconBg.addSubview(typeIcon)
 
-        titleLbl.font      = .systemFont(ofSize: 15, weight: .semibold)
+        titleLbl.font      = .inter(ofSize: 15, weight: .semibold)
         titleLbl.textColor = .label
         titleLbl.translatesAutoresizingMaskIntoConstraints = false
 
-        dateLbl.font      = .systemFont(ofSize: 12)
+        dateLbl.font      = .inter(ofSize: 12)
         dateLbl.textColor = .secondaryLabel
         dateLbl.translatesAutoresizingMaskIntoConstraints = false
 
-        daysLbl.font          = .systemFont(ofSize: 12, weight: .medium)
+        daysLbl.font          = .inter(ofSize: 12, weight: .medium)
         daysLbl.textAlignment = .right
         daysLbl.translatesAutoresizingMaskIntoConstraints = false
 
@@ -266,7 +266,7 @@ private final class RecentlyDeletedCell: UITableViewCell {
 
         let df = DateFormatter()
         df.dateFormat = "d MMM, HH:mm"
-        df.locale = Locale.current
+        df.locale = L10n.activeLocale
         dateLbl.text = "Удалена: \(df.string(from: deletedAt))"
 
         // Days remaining

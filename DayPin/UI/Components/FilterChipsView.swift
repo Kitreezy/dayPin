@@ -77,7 +77,7 @@ final class FilterChipsView: UIView {
     private func makeButton(_ filter: Filter) -> UIButton {
         let btn = UIButton(type: .system)
         btn.setTitle(filter.title, for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .regular)
+        btn.titleLabel?.font = .inter(ofSize: 15, weight: .regular)
         btn.setTitleColor(.secondaryLabel, for: .normal)
         btn.tag = Filter.allCases.firstIndex(of: filter) ?? 0
         btn.addTarget(self, action: #selector(tabTapped(_:)), for: .touchUpInside)
@@ -141,14 +141,14 @@ final class FilterChipsView: UIView {
             let str = NSMutableAttributedString(
                 string: filter.title,
                 attributes: [
-                    .font: UIFont.systemFont(ofSize: 15, weight: weight),
+                    .font: UIFont.inter(ofSize: 15, weight: weight),
                     .foregroundColor: titleColor
                 ]
             )
             str.append(NSAttributedString(
                 string: "  \(count)",
                 attributes: [
-                    .font: UIFont.systemFont(ofSize: 11, weight: .regular),
+                    .font: UIFont.inter(ofSize: 11, weight: .regular),
                     .foregroundColor: UIColor.tertiaryLabel
                 ]
             ))
@@ -161,7 +161,7 @@ final class FilterChipsView: UIView {
                 btn.setAttributedTitle(nil, for: .normal)
                 btn.setTitle(filter.title, for: .normal)
                 btn.setTitleColor(titleColor, for: .normal)
-                btn.titleLabel?.font = .systemFont(ofSize: 15, weight: weight)
+                btn.titleLabel?.font = .inter(ofSize: 15, weight: weight)
                 btn.layoutIfNeeded()
             }
         }

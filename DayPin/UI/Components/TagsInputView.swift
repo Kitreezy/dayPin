@@ -58,7 +58,7 @@ final class TagsInputView: UIView {
         let cfg = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
         addButton.setImage(UIImage(systemName: "plus", withConfiguration: cfg), for: .normal)
         addButton.setTitle(" \(L10n.addTag)", for: .normal)
-        addButton.titleLabel?.font = .systemFont(ofSize: 13, weight: .regular)
+        addButton.titleLabel?.font = .inter(ofSize: 13, weight: .regular)
         addButton.tintColor = DayPinDesign.accent
         addButton.setTitleColor(DayPinDesign.accent, for: .normal)
         addButton.layer.cornerRadius = 9
@@ -116,7 +116,7 @@ final class TagsInputView: UIView {
 
         // Title
         let titleAttrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 13, weight: .medium),
+            .font: UIFont.inter(ofSize: 13, weight: .medium),
             .foregroundColor: color
         ]
         let xCfg = UIImage.SymbolConfiguration(pointSize: 9, weight: .medium)
@@ -234,7 +234,7 @@ final class TagPickerViewController: UIViewController {
         view.addSubview(container)
 
         searchField.placeholder   = L10n.newTag
-        searchField.font          = .systemFont(ofSize: 15)
+        searchField.font          = .inter(ofSize: 15)
         searchField.borderStyle   = .roundedRect
         searchField.clearButtonMode = .whileEditing
         searchField.returnKeyType = .done

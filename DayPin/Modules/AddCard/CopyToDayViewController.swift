@@ -60,7 +60,7 @@ final class CopyToDayViewController: UIViewController {
 
         copyButton.setTitle("Скопировать", for: .normal)
         copyButton.setTitleColor(.white, for: .normal)
-        copyButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        copyButton.titleLabel?.font = .inter(ofSize: 16, weight: .semibold)
         copyButton.addTarget(self, action: #selector(copyTapped), for: .touchUpInside)
         copyButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(copyButton)

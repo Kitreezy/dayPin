@@ -141,7 +141,7 @@ final class LinkCardEditorViewController: UIViewController {
         linkIcon.setContentHuggingPriority(.required, for: .horizontal)
 
         urlField.placeholder            = "Вставьте ссылку…"
-        urlField.font                   = .systemFont(ofSize: 15)
+        urlField.font                   = .inter(ofSize: 15)
         urlField.borderStyle            = .none
         urlField.keyboardType           = .URL
         urlField.autocapitalizationType = .none
@@ -165,7 +165,7 @@ final class LinkCardEditorViewController: UIViewController {
 
     private func buildClipboardHint() {
         clipboardBtn.setTitleColor(DayPinDesign.accent, for: .normal)
-        clipboardBtn.titleLabel?.font = .systemFont(ofSize: 13)
+        clipboardBtn.titleLabel?.font = .inter(ofSize: 13)
         clipboardBtn.contentHorizontalAlignment = .leading
         clipboardBtn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
         clipboardBtn.heightAnchor.constraint(equalToConstant: 28).isActive = true
@@ -187,7 +187,7 @@ final class LinkCardEditorViewController: UIViewController {
 
     private func buildDetailsCard() {
         titleField.placeholder = "Название"
-        titleField.font        = .systemFont(ofSize: 15)
+        titleField.font        = .inter(ofSize: 15)
         titleField.borderStyle = .none
         titleField.heightAnchor.constraint(equalToConstant: 44).isActive = true
 
@@ -195,14 +195,14 @@ final class LinkCardEditorViewController: UIViewController {
         divider.backgroundColor = .separator
         divider.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
 
-        commentTextView.font            = .systemFont(ofSize: 15)
+        commentTextView.font            = .inter(ofSize: 15)
         commentTextView.backgroundColor = .clear
         commentTextView.isScrollEnabled = false
         commentTextView.delegate        = self
         commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
 
         commentPlaceholder.text      = "Комментарий…"
-        commentPlaceholder.font      = .systemFont(ofSize: 15)
+        commentPlaceholder.font      = .inter(ofSize: 15)
         commentPlaceholder.textColor = .placeholderText
         commentPlaceholder.translatesAutoresizingMaskIntoConstraints = false
         commentTextView.addSubview(commentPlaceholder)
@@ -246,7 +246,7 @@ final class LinkCardEditorViewController: UIViewController {
         coverPlaceholderIcon.heightAnchor.constraint(equalToConstant: 28).isActive = true
 
         coverPlaceholderLabel.text = "Добавить обложку"
-        coverPlaceholderLabel.font = .systemFont(ofSize: 13)
+        coverPlaceholderLabel.font = .inter(ofSize: 13)
         coverPlaceholderLabel.textColor = .secondaryLabel
         coverPlaceholderLabel.textAlignment = .center
 
@@ -257,7 +257,7 @@ final class LinkCardEditorViewController: UIViewController {
 
         let headerLabel = UILabel()
         headerLabel.text = "Обложка"
-        headerLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        headerLabel.font = .inter(ofSize: 13, weight: .medium)
         headerLabel.textColor = .secondaryLabel
 
         coverCard.stackView.addArrangedSubview(headerLabel)

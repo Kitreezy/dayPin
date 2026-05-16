@@ -221,7 +221,7 @@ final class ImageCardDetailViewController: UIViewController {
 
         let hintLabel = UILabel()
         hintLabel.text = L10n.annotationHint
-        hintLabel.font = .systemFont(ofSize: 12)
+        hintLabel.font = .inter(ofSize: 12)
         hintLabel.textColor = UIColor.white.withAlphaComponent(0.8)
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         hintBlur.contentView.addSubview(hintLabel)

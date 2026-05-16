@@ -2,12 +2,27 @@ import UIKit
 
 final class TasksViewController: UIViewController {
 
-    // MARK: - Layout
+    // MARK: - Search state
+
+    private var isSearchOpen = false
+    private var searchQuery  = ""
+
+    // MARK: - Header UI
+
+    private let headerContainer  = UIView()
+    private let titleLabel       = UILabel()
+    private let searchBtn        = UIButton(type: .system)
+    private let searchContainer  = UIView()
+    private let searchBar        = UISearchBar()
+
+    // MARK: - Filter + Collection
+
+    private let filterChips = FilterChipsView()
+    private var activeFilter: FilterChipsView.Filter = .all
 
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
             guard let self, sectionIndex < self.sections.count else {
-                // Fallback
                 let size  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(100))
                 let item  = NSCollectionLayoutItem(layoutSize: size)
                 let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
@@ -24,7 +39,7 @@ final class TasksViewController: UIViewController {
             section.contentInsets   = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 16, trailing: 11)
             section.interGroupSpacing = 10
 
-            let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(40))
+            let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(28))
             let hdr = NSCollectionLayoutBoundarySupplementaryItem(
                 layoutSize: hdrSize,
                 elementKind: UICollectionView.elementKindSectionHeader,
@@ -38,6 +53,7 @@ final class TasksViewController: UIViewController {
         cv.backgroundColor = .clear
         cv.alwaysBounceVertical = true
         cv.showsVerticalScrollIndicator = false
+        cv.keyboardDismissMode = .onDrag
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.register(TextCardCell.self,  forCellWithReuseIdentifier: TextCardCell.reuseID)
         cv.register(ImageCardCell.self, forCellWithReuseIdentifier: ImageCardCell.reuseID)
@@ -52,50 +68,102 @@ final class TasksViewController: UIViewController {
 
     private var allSections: [(date: Date, cards: [NoteCard])] = []
     private var sections:    [(date: Date, cards: [NoteCard])] = []
-    private var searchQuery: String = ""
-    private var activeFilter: FilterChipsView.Filter = .all
-
-    private let searchBar   = UISearchBar()
-    private let filterChips = FilterChipsView()
 
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = DayPinDesign.background
+        addStandardBackground()
+        setupUI()
 
-        let wave = WaveBackgroundView()
-        wave.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(wave)
+        // Custom tap: closes search if open, otherwise dismisses keyboard
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleBackgroundTap))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+
+        NotificationCenter.default.addObserver(self, selector: #selector(onSchemeChanged),
+                                               name: .dayPinColorSchemeChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onSchemeChanged),
+                                               name: .dayPinLanguageChanged, object: nil)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+        loadAll()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
+    @objc private func handleBackgroundTap() {
+        if isSearchOpen {
+            closeSearch()
+        } else {
+            view.endEditing(true)
+        }
+    }
+
+    // MARK: - UI Setup
+
+    private func setupUI() {
+        // Header container (title + search button)
+        headerContainer.backgroundColor = .clear
+        headerContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(headerContainer)
+
+        titleLabel.text      = L10n.isRussian ? "Все" : "All"
+        titleLabel.font      = .inter(ofSize: 34, weight: .bold)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        headerContainer.addSubview(titleLabel)
+
+        let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        searchBtn.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: iconCfg), for: .normal)
+        searchBtn.layer.cornerRadius = 10
+        searchBtn.layer.borderWidth  = 1
+        searchBtn.layer.masksToBounds = true
+        searchBtn.translatesAutoresizingMaskIntoConstraints = false
+        searchBtn.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
+        headerContainer.addSubview(searchBtn)
+        refreshButtonColors()
+
         NSLayoutConstraint.activate([
-            wave.topAnchor.constraint(equalTo: view.topAnchor),
-            wave.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            wave.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            wave.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.45)
+            headerContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 4),
+            headerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerContainer.heightAnchor.constraint(equalToConstant: 52),
+
+            titleLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 20),
+            titleLabel.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+
+            searchBtn.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+            searchBtn.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+            searchBtn.widthAnchor.constraint(equalToConstant: 34),
+            searchBtn.heightAnchor.constraint(equalToConstant: 34)
         ])
 
-        searchBar.placeholder = L10n.searchPlaceholder
-        searchBar.searchBarStyle = .minimal
-        searchBar.delegate = self
-        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        // Search overlay
+        setupSearchOverlay()
 
+        // Filter chips
         filterChips.translatesAutoresizingMaskIntoConstraints = false
         filterChips.onFilterChange = { [weak self] filter in
             self?.activeFilter = filter
             self?.applyFilters()
         }
-
-        collectionView.keyboardDismissMode = .onDrag
-        view.addSubview(searchBar)
         view.addSubview(filterChips)
+
+        // Collection
         view.addSubview(collectionView)
+        collectionView.dataSource = self
+        collectionView.delegate   = self
 
         NSLayoutConstraint.activate([
-            searchBar.topAnchor.constraint(equalTo: view.topAnchor),
-            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-
-            filterChips.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
+            filterChips.topAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: 2),
             filterChips.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             filterChips.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             filterChips.heightAnchor.constraint(equalToConstant: 38),
@@ -105,24 +173,79 @@ final class TasksViewController: UIViewController {
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-        collectionView.dataSource = self
-        collectionView.delegate   = self
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(onSchemeChanged),
-            name: .dayPinColorSchemeChanged,
-            object: nil
-        )
     }
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        loadAll()
+    private func setupSearchOverlay() {
+        searchContainer.backgroundColor      = .clear
+        searchContainer.clipsToBounds        = true
+        searchContainer.alpha                = 0
+        searchContainer.isUserInteractionEnabled = false
+        searchContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(searchContainer)
+
+        searchBar.placeholder           = L10n.searchPlaceholder
+        searchBar.searchBarStyle        = .minimal
+        searchBar.tintColor             = DayPinDesign.accent
+        searchBar.backgroundImage       = UIImage()
+        searchBar.setValue(L10n.cancel, forKey: "cancelButtonText")
+        searchBar.setShowsCancelButton(true, animated: false)
+        searchBar.searchTextField.font  = .inter(ofSize: 16, weight: .regular)
+        searchBar.searchTextField.layer.cornerRadius = 12
+        searchBar.searchTextField.layer.masksToBounds = true
+        searchBar.delegate              = self
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.addSubview(searchBar)
+
+        NSLayoutConstraint.activate([
+            searchContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 4),
+            searchContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            searchContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            searchContainer.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor),
+
+            searchBar.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+            searchBar.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 8),
+            searchBar.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -8)
+        ])
     }
 
-    @objc private func onSchemeChanged() {
-        view.backgroundColor = DayPinDesign.background
-        collectionView.reloadData()
+    private func refreshButtonColors() {
+        let accent = DayPinDesign.accent
+        searchBtn.tintColor         = accent
+        searchBtn.backgroundColor   = accent.withAlphaComponent(0.12)
+        searchBtn.layer.borderColor = accent.withAlphaComponent(0.3).cgColor
+    }
+
+    // MARK: - Search toggle
+
+    @objc private func searchButtonTapped() {
+        isSearchOpen = true
+        searchContainer.isUserInteractionEnabled = true
+        searchContainer.transform = CGAffineTransform(translationX: 0, y: -8)
+        searchContainer.alpha     = 0
+        UIView.animate(withDuration: 0.28, delay: 0,
+                       usingSpringWithDamping: 0.85, initialSpringVelocity: 0.3) {
+            self.headerContainer.alpha     = 0
+            self.headerContainer.transform = CGAffineTransform(translationX: 0, y: -6)
+            self.searchContainer.alpha     = 1
+            self.searchContainer.transform = .identity
+        }
+        searchBar.becomeFirstResponder()
+    }
+
+    private func closeSearch() {
+        searchQuery = ""
+        isSearchOpen = false
+        searchBar.text = ""
+        searchBar.resignFirstResponder()
+        searchContainer.isUserInteractionEnabled = false
+        UIView.animate(withDuration: 0.25, delay: 0,
+                       usingSpringWithDamping: 0.9, initialSpringVelocity: 0) {
+            self.headerContainer.alpha     = 1
+            self.headerContainer.transform = .identity
+            self.searchContainer.alpha     = 0
+            self.searchContainer.transform = CGAffineTransform(translationX: 0, y: -8)
+        }
+        applyFilters()
     }
 
     // MARK: - Data loading
@@ -161,8 +284,31 @@ final class TasksViewController: UIViewController {
             }
         }
 
+        let allCards = allSections.flatMap { $0.cards }
+        filterChips.updateCounts(
+            text:  allCards.filter { $0.type == .text  }.count,
+            image: allCards.filter { $0.type == .image }.count,
+            link:  allCards.filter { $0.type == .link  }.count
+        )
+
         sections = result
         collectionView.reloadData()
+    }
+
+    // MARK: - Scheme change
+
+    @objc private func onSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        titleLabel.text = L10n.isRussian ? "Все" : "All"
+        refreshButtonColors()
+        collectionView.reloadData()
+    }
+
+    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+        super.traitCollectionDidChange(previous)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previous) {
+            refreshButtonColors()
+        }
     }
 
     // MARK: - Editor helper
@@ -189,18 +335,22 @@ final class TasksViewController: UIViewController {
 // MARK: - UISearchBarDelegate
 
 extension TasksViewController: UISearchBarDelegate {
+
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         searchQuery = searchText
         applyFilters()
     }
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) { searchBar.resignFirstResponder() }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+    }
+
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        searchBar.text = ""; searchBar.resignFirstResponder()
-        searchQuery = ""; applyFilters()
+        closeSearch()
     }
 }
 
-// MARK: - DataSource
+// MARK: - UICollectionViewDataSource
 
 extension TasksViewController: UICollectionViewDataSource {
 
@@ -225,7 +375,9 @@ extension TasksViewController: UICollectionViewDataSource {
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+    func collectionView(_ collectionView: UICollectionView,
+                        viewForSupplementaryElementOfKind kind: String,
+                        at indexPath: IndexPath) -> UICollectionReusableView {
         let header = collectionView.dequeueReusableSupplementaryView(
             ofKind: kind, withReuseIdentifier: TasksSectionHeader.reuseID, for: indexPath
         ) as! TasksSectionHeader
@@ -234,7 +386,7 @@ extension TasksViewController: UICollectionViewDataSource {
     }
 }
 
-// MARK: - Delegate
+// MARK: - UICollectionViewDelegate
 
 extension TasksViewController: UICollectionViewDelegate {
 
@@ -272,7 +424,7 @@ extension TasksViewController: UICollectionViewDelegate {
     }
 }
 
-// MARK: - Section Header
+// MARK: - TasksSectionHeader
 
 final class TasksSectionHeader: UICollectionReusableView {
 
@@ -282,12 +434,12 @@ final class TasksSectionHeader: UICollectionReusableView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.font      = .inter(ofSize: 11, weight: .semibold)
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             label.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
     }
@@ -302,7 +454,7 @@ final class TasksSectionHeader: UICollectionReusableView {
         } else {
             let df = DateFormatter()
             df.dateFormat = "d MMMM yyyy"
-            df.locale = Locale.current
+            df.locale = L10n.activeLocale
             label.text = df.string(from: date).uppercased()
         }
     }

@@ -47,11 +47,11 @@ enum DayPinDesign {
 
     // MARK: - Typography
 
-    static let fontScreenTitle   = UIFont.systemFont(ofSize: 34, weight: .bold)
-    static let fontSectionHeader = UIFont.systemFont(ofSize: 22, weight: .semibold)
-    static let fontBody          = UIFont.systemFont(ofSize: 17, weight: .regular)
-    static let fontButton        = UIFont.systemFont(ofSize: 17, weight: .semibold)
-    static let fontCaption       = UIFont.systemFont(ofSize: 12, weight: .medium)
+    static let fontScreenTitle   = UIFont.inter(ofSize: 34, weight: .bold)
+    static let fontSectionHeader = UIFont.inter(ofSize: 22, weight: .semibold)
+    static let fontBody          = UIFont.inter(ofSize: 17, weight: .regular)
+    static let fontButton        = UIFont.inter(ofSize: 17, weight: .semibold)
+    static let fontCaption       = UIFont.inter(ofSize: 12, weight: .medium)
 
     // MARK: - Gradient
 
@@ -79,27 +79,14 @@ enum DayPinDesign {
 
     static func makeNavBarAppearance() -> UINavigationBarAppearance {
         let a = UINavigationBarAppearance()
+        // Fully transparent — gradient background shows through seamlessly.
+        // Shadow and blur removed so the bar feels like part of the screen.
         a.configureWithTransparentBackground()
-        a.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-        // Same tint formula as PillTabBar — accent RGB blended into near-black/near-white base
-        a.backgroundColor = UIColor { t in
-            let isDark  = t.userInterfaceStyle == .dark
-            let accent  = ThemeManager.shared.colorScheme.accent
-            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
-            accent.getRed(&r, green: &g, blue: &b, alpha: nil)
-            let base: UIColor = isDark
-                ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
-                : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
-            return base.withAlphaComponent(isDark ? 0.38 : 0.30)
-        }
-        // Hairline separator matches glass border aesthetic
-        a.shadowColor = UIColor { t in
-            t.userInterfaceStyle == .dark
-                ? UIColor.white.withAlphaComponent(0.08)
-                : UIColor.black.withAlphaComponent(0.06)
-        }
+        a.backgroundEffect = nil
+        a.backgroundColor  = .clear
+        a.shadowColor      = .clear
         a.titleTextAttributes = [
-            .font: UIFont.systemFont(ofSize: 17, weight: .semibold),
+            .font: UIFont.inter(ofSize: 17, weight: .semibold),
             .foregroundColor: UIColor.label
         ]
         return a
@@ -124,11 +111,11 @@ enum DayPinDesign {
         }
 
         let selectedAttrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 10, weight: .medium),
+            .font: UIFont.inter(ofSize: 10, weight: .medium),
             .foregroundColor: accent
         ]
         let normalAttrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 10, weight: .regular),
+            .font: UIFont.inter(ofSize: 10, weight: .regular),
             .foregroundColor: UIColor.secondaryLabel
         ]
         [a.inlineLayoutAppearance,

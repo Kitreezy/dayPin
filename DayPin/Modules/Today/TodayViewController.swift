@@ -10,43 +10,39 @@ final class TodayViewController: UIViewController {
 
     // MARK: - Data
 
-    private var allCards: [NoteCard] = []
-
-    private struct TypeSection {
-        let type: CardType
-        var cards: [NoteCard]
-        var header: String {
-            switch type {
-            case .text:  return L10n.sectionText
-            case .image: return L10n.sectionImage
-            case .link:  return L10n.sectionLink
-            }
-        }
-        var accentColor: UIColor {
-            switch type {
-            case .text:  return DayPinDesign.accent
-            case .image: return DayPinDesign.accentLight
-            case .link:  return DayPinDesign.accentDeep
-            }
-        }
-    }
-
-    private var activeSections: [TypeSection] = []
+    private var allCards:    [NoteCard] = []
+    private var flatCards:   [NoteCard] = []
     private var activeFilter: FilterChipsView.Filter = .all
 
     // MARK: - Multi-select state
-    private var isSelectMode  = false
-    private var selectedIDs   = Set<UUID>()
 
-    // MARK: - UI
+    private var isSelectMode = false
+    private var selectedIDs  = Set<UUID>()
 
-    private let weekStrip       = WeekCalendarView()
-    private let filterChips     = FilterChipsView()
-    private let searchResultsVC = GlobalSearchViewController()
-    private let navSearchBar    = UISearchBar()
-    private let navTitleLabel   = UILabel()
+    // MARK: - Search state
 
-    // Плавающая панель действий при мульти-выборе
+    private var isSearchOpen  = false
+    private var searchQuery   = ""
+
+    // MARK: - UI: Header
+
+    private let headerContainer  = UIView()
+    private let titleLabel       = UILabel()
+    private let dateLabel        = UILabel()
+    private let searchBtn        = UIButton(type: .system)
+    private let moreBtn          = UIButton(type: .system)
+
+    // Search overlay — slides in over the header when search is active
+    private let searchContainer  = UIView()
+    private let searchBar        = UISearchBar()
+
+    // MARK: - UI: Content
+
+    private let weekStrip    = WeekCalendarView()
+    private let filterChips  = FilterChipsView()
+
+    // MARK: - Multi-select bar
+
     private lazy var selectionBar: UIView = {
         let bar = UIView()
         bar.backgroundColor = UIColor { t in
@@ -69,7 +65,7 @@ final class TodayViewController: UIViewController {
         copyBtn.tintColor = DayPinDesign.accent
         copyBtn.addTarget(self, action: #selector(copySelectedTapped), for: .touchUpInside)
 
-        selectionCountLabel.font      = .systemFont(ofSize: 13, weight: .medium)
+        selectionCountLabel.font      = .inter(ofSize: 13, weight: .medium)
         selectionCountLabel.textColor = .secondaryLabel
         selectionCountLabel.textAlignment = .center
 
@@ -111,11 +107,6 @@ final class TodayViewController: UIViewController {
         cv.register(ImageCardCell.self, forCellWithReuseIdentifier: ImageCardCell.reuseID)
         cv.register(LinkCardCell.self,  forCellWithReuseIdentifier: LinkCardCell.reuseID)
         cv.register(EmptyCardCell.self, forCellWithReuseIdentifier: EmptyCardCell.reuseID)
-        cv.register(
-            CardTypeSectionHeader.self,
-            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
-            withReuseIdentifier: CardTypeSectionHeader.reuseID
-        )
         return cv
     }()
 
@@ -131,10 +122,8 @@ final class TodayViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = DayPinDesign.background
-        setupSearchController()
         setupUI()
         setupGestures()
-        setupThemeButton()
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onDataRestored),
@@ -153,10 +142,35 @@ final class TodayViewController: UIViewController {
             name: NSNotification.Name("daypin.triggerAdd"),
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged,
+            object: nil
+        )
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+        loadCards()
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            refreshButtonColors()
+        }
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
+    // MARK: - Notifications
+
     @objc private func onTriggerAdd() {
-        // Called via daypin://add deep link (e.g. from widget)
         guard !isSelectMode else { return }
         addTapped()
     }
@@ -164,103 +178,106 @@ final class TodayViewController: UIViewController {
     @objc private func onDataRestored() {
         currentDate = Calendar.current.startOfDay(for: Date())
         weekStrip.navigate(to: currentDate)
-        updateNavTitle()
+        updateDateLabels()
         loadCards()
     }
 
     @objc private func onColorSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
+        refreshButtonColors()
         collectionView.reloadData()
-        setupThemeButton()
         addButton.refresh()
+        rebuildMoreMenu()
     }
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        loadCards()
+    @objc private func onLanguageChanged() {
+        updateDateLabels()
+        searchBar.placeholder = L10n.searchPlaceholder
+        rebuildMoreMenu()
+        collectionView.reloadData()
+    }
+
+    private func refreshButtonColors() {
+        let accent = DayPinDesign.accent
+        searchBtn.tintColor       = accent
+        searchBtn.backgroundColor = accent.withAlphaComponent(0.12)
+        searchBtn.layer.borderColor = accent.withAlphaComponent(0.3).cgColor
+
+        // moreBtn uses neutral surface color from the system so it adapts automatically
+        moreBtn.tintColor         = .secondaryLabel
+        moreBtn.backgroundColor   = UIColor.secondarySystemFill
+        moreBtn.layer.borderColor = UIColor.separator.cgColor
     }
 
     // MARK: - Setup
 
-    private func setupSearchController() {
-        // Date label — left side of nav bar
-        navTitleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        navTitleLabel.textColor = .label
-        updateNavTitle()
-        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: navTitleLabel)
-
-        // Search bar — nav bar title view (inline)
-        navSearchBar.placeholder = "Поиск"
-        navSearchBar.searchBarStyle = .minimal
-        navSearchBar.tintColor = DayPinDesign.accent
-        navSearchBar.delegate = self
-        navigationItem.titleView = navSearchBar
-
-        searchResultsVC.onOpen = { [weak self] card in
-            self?.navSearchBar.text = nil
-            self?.navSearchBar.resignFirstResponder()
-            self?.hideSearchOverlay()
-            self?.openCard(card)
-        }
-    }
-
-    private func updateNavTitle() {
-        if Calendar.current.isDateInToday(currentDate) {
-            navTitleLabel.text = "Сегодня"
-        } else {
-            let df = DateFormatter()
-            df.locale = Locale.current
-            df.setLocalizedDateFormatFromTemplate("EEEd")
-            navTitleLabel.text = df.string(from: currentDate).capitalized
-        }
-    }
-
-    private func showSearchOverlay() {
-        guard searchResultsVC.parent == nil else { return }
-        addChild(searchResultsVC)
-        let sv = searchResultsVC.view!
-        sv.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(sv)
-        NSLayoutConstraint.activate([
-            sv.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            sv.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            sv.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            sv.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-        searchResultsVC.didMove(toParent: self)
-        sv.alpha = 0
-        UIView.animate(withDuration: 0.18) { sv.alpha = 1 }
-    }
-
-    private func hideSearchOverlay() {
-        guard searchResultsVC.parent != nil else { return }
-        UIView.animate(withDuration: 0.15) {
-            self.searchResultsVC.view.alpha = 0
-        } completion: { _ in
-            self.searchResultsVC.willMove(toParent: nil)
-            self.searchResultsVC.view.removeFromSuperview()
-            self.searchResultsVC.removeFromParent()
-        }
-    }
-
     private func setupUI() {
-        // Wave watermark — behind everything
-        let wave = WaveBackgroundView()
-        wave.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(wave)
+        // Gradient background (shared helper)
+        addStandardBackground()
+
+        // Header container
+        headerContainer.backgroundColor = .clear
+        headerContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(headerContainer)
+
+        // Title — large bold, matches design
+        titleLabel.font = .inter(ofSize: 34, weight: .bold)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        // Date subtitle
+        dateLabel.font = .inter(ofSize: 13, weight: .regular)
+        dateLabel.textColor = .secondaryLabel
+        dateLabel.translatesAutoresizingMaskIntoConstraints = false
+        updateDateLabels()
+
+        // Search button — accent-tinted glass circle
+        let btnSymbolCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        searchBtn.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: btnSymbolCfg), for: .normal)
+        searchBtn.layer.cornerRadius = 17
+        searchBtn.layer.borderWidth  = 0.5
+        searchBtn.translatesAutoresizingMaskIntoConstraints = false
+        searchBtn.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
+
+        // More (···) button — neutral glass circle
+        moreBtn.setImage(UIImage(systemName: "ellipsis", withConfiguration: btnSymbolCfg), for: .normal)
+        moreBtn.layer.cornerRadius = 17
+        moreBtn.layer.borderWidth  = 0.5
+        moreBtn.showsMenuAsPrimaryAction = true
+        moreBtn.translatesAutoresizingMaskIntoConstraints = false
+
+        refreshButtonColors()  // sets tint/bg/border from current scheme
+        rebuildMoreMenu()
+
+        headerContainer.addSubview(titleLabel)
+        headerContainer.addSubview(dateLabel)
+        headerContainer.addSubview(searchBtn)
+        headerContainer.addSubview(moreBtn)
+
         NSLayoutConstraint.activate([
-            wave.topAnchor.constraint(equalTo: view.topAnchor),
-            wave.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            wave.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            wave.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.45)
+            titleLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 10),
+            titleLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: searchBtn.leadingAnchor, constant: -8),
+
+            searchBtn.trailingAnchor.constraint(equalTo: moreBtn.leadingAnchor, constant: -8),
+            searchBtn.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            searchBtn.widthAnchor.constraint(equalToConstant: 34),
+            searchBtn.heightAnchor.constraint(equalToConstant: 34),
+
+            moreBtn.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+            moreBtn.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            moreBtn.widthAnchor.constraint(equalToConstant: 34),
+            moreBtn.heightAnchor.constraint(equalToConstant: 34),
+
+            dateLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+            dateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            dateLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+            dateLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -10)
         ])
 
-        filterChips.translatesAutoresizingMaskIntoConstraints = false
-        filterChips.onFilterChange = { [weak self] filter in
-            self?.activeFilter = filter
-            self?.applyFilters()
-        }
+        setupSearchOverlay()
 
+        // Week strip and filter chips
         weekStrip.translatesAutoresizingMaskIntoConstraints = false
         weekStrip.onDaySelected = { [weak self] date in
             guard let self else { return }
@@ -268,17 +285,28 @@ final class TodayViewController: UIViewController {
             self.transitionToDate(date, direction: forward ? 1 : -1)
         }
 
-        view.addSubview(filterChips)
+        filterChips.translatesAutoresizingMaskIntoConstraints = false
+        filterChips.onFilterChange = { [weak self] filter in
+            self?.activeFilter = filter
+            self?.applyFilters()
+        }
+
+        view.addSubview(headerContainer)
         view.addSubview(weekStrip)
+        view.addSubview(filterChips)
         view.addSubview(collectionView)
         view.addSubview(addButton)
         view.addSubview(selectionBar)
 
         NSLayoutConstraint.activate([
-            weekStrip.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            headerContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            headerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
+            weekStrip.topAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: 4),
             weekStrip.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             weekStrip.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            weekStrip.heightAnchor.constraint(equalToConstant: 68),
+            weekStrip.heightAnchor.constraint(equalToConstant: 106),
 
             filterChips.topAnchor.constraint(equalTo: weekStrip.bottomAnchor, constant: 2),
             filterChips.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -304,17 +332,49 @@ final class TodayViewController: UIViewController {
         collectionView.delegate   = self
     }
 
-    private func setupGestures() {
-        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
-        swipeLeft.direction = .left
-        view.addGestureRecognizer(swipeLeft)
+    // MARK: - Search overlay setup
 
-        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
-        swipeRight.direction = .right
-        view.addGestureRecognizer(swipeRight)
+    private func setupSearchOverlay() {
+        // Transparent container — matches headerContainer height exactly so week strip
+        // stays flush. No background: the search field floats directly over the gradient.
+        searchContainer.backgroundColor        = .clear
+        searchContainer.clipsToBounds          = true
+        searchContainer.alpha                  = 0
+        searchContainer.isUserInteractionEnabled = false
+        searchContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        searchBar.placeholder    = L10n.searchPlaceholder
+        searchBar.searchBarStyle = .minimal
+        searchBar.tintColor      = DayPinDesign.accent
+        searchBar.setShowsCancelButton(true, animated: false)
+        searchBar.delegate       = self
+        // Strip the default opaque bar so only the inner rounded text field is visible
+        searchBar.backgroundImage = UIImage()
+        // Localised "Cancel" / "Отмена"
+        searchBar.setValue(L10n.cancel, forKey: "cancelButtonText")
+        // Larger text inside the field
+        searchBar.searchTextField.font            = .inter(ofSize: 16, weight: .regular)
+        searchBar.searchTextField.layer.cornerRadius = 12
+        searchBar.searchTextField.layer.masksToBounds = true
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.addSubview(searchBar)
+
+        view.addSubview(searchContainer)
+
+        NSLayoutConstraint.activate([
+            searchContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            searchContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            searchContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            searchContainer.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor),
+
+            searchBar.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+            searchBar.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor),
+            searchBar.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor),
+            searchBar.heightAnchor.constraint(equalToConstant: 52)
+        ])
     }
 
-    private func setupThemeButton() {
+    private func rebuildMoreMenu() {
         let menu = UIMenu(options: .displayInline, children: [
             UIAction(title: "Выбрать заметки",
                      image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
@@ -328,23 +388,98 @@ final class TodayViewController: UIViewController {
                      image: UIImage(systemName: "externaldrive")) { [weak self] _ in
                 self?.backupTapped()
             },
-            UIAction(title: "Оформление",
+            UIAction(title: L10n.isRussian ? "Оформление" : "Appearance",
                      image: UIImage(systemName: "paintbrush")) { [weak self] _ in
                 self?.openThemePicker()
+            },
+            UIAction(title: L10n.isRussian ? "Фон" : "Background",
+                     image: UIImage(systemName: "rectangle.fill")) { [weak self] _ in
+                self?.openBackgroundPicker()
+            },
+            UIAction(title: L10n.language,
+                     image: UIImage(systemName: "globe")) { [weak self] _ in
+                self?.showLanguagePicker()
             }
         ])
-
-        let moreBtn = UIBarButtonItem(
-            image: UIImage(systemName: "ellipsis.circle"),
-            menu: menu
-        )
-        moreBtn.tintColor = DayPinDesign.accent
-        navigationItem.rightBarButtonItems = [moreBtn]
+        moreBtn.menu = menu
     }
 
-    private func openThemePicker() {
-        let vc = ThemePickerViewController()
-        presentEditorSheet(vc)
+    private func setupGestures() {
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
+        swipeLeft.direction = .left
+        view.addGestureRecognizer(swipeLeft)
+
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
+        swipeRight.direction = .right
+        view.addGestureRecognizer(swipeRight)
+
+        // Tap anywhere on background: close search if open, otherwise dismiss keyboard
+        let bgTap = UITapGestureRecognizer(target: self, action: #selector(handleBackgroundTap))
+        bgTap.cancelsTouchesInView = false
+        view.addGestureRecognizer(bgTap)
+    }
+
+    @objc private func handleBackgroundTap() {
+        if isSearchOpen {
+            closeSearch()
+        } else {
+            view.endEditing(true)
+        }
+    }
+
+    // MARK: - Header labels
+
+    private func updateDateLabels() {
+        if Calendar.current.isDateInToday(currentDate) {
+            titleLabel.text = L10n.today
+        } else {
+            let df = DateFormatter()
+            df.locale = L10n.activeLocale
+            df.setLocalizedDateFormatFromTemplate("EEEd")
+            titleLabel.text = df.string(from: currentDate).capitalized
+        }
+
+        let df2 = DateFormatter()
+        df2.locale = L10n.activeLocale
+        df2.dateFormat = "EEEE, d MMMM yyyy"
+        dateLabel.text = df2.string(from: currentDate).capitalized
+    }
+
+    // MARK: - Search toggle
+
+    @objc private func searchButtonTapped() {
+        guard !isSearchOpen else { return }
+        isSearchOpen = true
+        searchContainer.isUserInteractionEnabled = true
+        // Start search bar slightly above its final position for a natural drop-in feel
+        searchContainer.transform = CGAffineTransform(translationX: 0, y: -8)
+        searchContainer.alpha = 0
+        UIView.animate(withDuration: 0.28, delay: 0,
+                       usingSpringWithDamping: 0.85, initialSpringVelocity: 0.3) {
+            self.headerContainer.alpha = 0
+            self.headerContainer.transform = CGAffineTransform(translationX: 0, y: -6)
+            self.searchContainer.alpha = 1
+            self.searchContainer.transform = .identity
+        }
+        searchBar.becomeFirstResponder()
+    }
+
+    private func closeSearch() {
+        isSearchOpen = false
+        searchQuery  = ""
+        searchBar.text = nil
+        searchBar.resignFirstResponder()
+        searchContainer.isUserInteractionEnabled = false
+        UIView.animate(withDuration: 0.22, delay: 0,
+                       usingSpringWithDamping: 0.9, initialSpringVelocity: 0) {
+            self.headerContainer.alpha = 1
+            self.headerContainer.transform = .identity
+            self.searchContainer.alpha = 0
+            self.searchContainer.transform = CGAffineTransform(translationX: 0, y: -8)
+        } completion: { _ in
+            self.searchContainer.transform = .identity
+        }
+        applyFilters()
     }
 
     // MARK: - Day navigation
@@ -368,7 +503,7 @@ final class TodayViewController: UIViewController {
         } completion: { _ in
             self.currentDate = newDate
             self.weekStrip.navigate(to: newDate)
-            self.updateNavTitle()
+            self.updateDateLabels()
             self.loadCards()
             self.collectionView.transform = CGAffineTransform(translationX: -inX, y: 0)
             self.collectionView.alpha = 0
@@ -383,33 +518,45 @@ final class TodayViewController: UIViewController {
 
     func loadCards() {
         allCards = CardStore.shared.cards(for: currentDate)
+        weekStrip.refreshNoteDots()   // keep note dots in sync
         applyFilters()
     }
 
     private func applyFilters(animated: Bool = false) {
-        let textAll  = allCards.filter { $0.type == .text }
-        let imageAll = allCards.filter { $0.type == .image }
-        let linkAll  = allCards.filter { $0.type == .link }
+        // When searching: scan ALL cards across all dates (global search)
+        if isSearchOpen && !searchQuery.isEmpty {
+            let q = searchQuery.lowercased()
+            flatCards = CardStore.shared.allCards().filter {
+                $0.title.lowercased().contains(q) || $0.comment.lowercased().contains(q)
+            }
+            flatCards.sort { $0.createdAt > $1.createdAt }
 
-        // Counts always reflect unfiltered day totals — so chips stay informative
-        filterChips.updateCounts(text: textAll.count, image: imageAll.count, link: linkAll.count)
-
-        var text  = textAll
-        var image = imageAll
-        var link  = linkAll
-
-        switch activeFilter {
-        case .text:  image = []; link  = []
-        case .image: text  = []; link  = []
-        case .link:  text  = []; image = []
-        case .all:   break
+            if animated {
+                UIView.transition(with: collectionView, duration: 0.2,
+                                  options: [.transitionCrossDissolve, .allowUserInteraction]) {
+                    self.collectionView.reloadData()
+                }
+            } else {
+                collectionView.reloadData()
+            }
+            return
         }
 
-        activeSections = [
-            TypeSection(type: .text,  cards: text),
-            TypeSection(type: .image, cards: image),
-            TypeSection(type: .link,  cards: link)
-        ].filter { !$0.cards.isEmpty }
+        // Normal per-day filtering
+        let textCards  = allCards.filter { $0.type == .text }
+        let imageCards = allCards.filter { $0.type == .image }
+        let linkCards  = allCards.filter { $0.type == .link }
+
+        filterChips.updateCounts(text: textCards.count, image: imageCards.count, link: linkCards.count)
+
+        switch activeFilter {
+        case .all:   flatCards = allCards
+        case .text:  flatCards = textCards
+        case .image: flatCards = imageCards
+        case .link:  flatCards = linkCards
+        }
+
+        flatCards.sort { $0.createdAt > $1.createdAt }
 
         if animated {
             UIView.transition(with: collectionView, duration: 0.28,
@@ -427,8 +574,7 @@ final class TodayViewController: UIViewController {
         UICollectionViewCompositionalLayout { [weak self] _, _ in
             guard let self else { return nil }
 
-            // Empty state → full-width single item, no header
-            if self.activeSections.isEmpty {
+            if self.flatCards.isEmpty {
                 let size  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(120))
                 let item  = NSCollectionLayoutItem(layoutSize: size)
                 let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
@@ -437,7 +583,6 @@ final class TodayViewController: UIViewController {
                 return sec
             }
 
-            // All sections: same 2-column grid with a compact type label header
             let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
             let item      = NSCollectionLayoutItem(layoutSize: itemSize)
             item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
@@ -447,14 +592,6 @@ final class TodayViewController: UIViewController {
             let sec = NSCollectionLayoutSection(group: group)
             sec.contentInsets    = NSDirectionalEdgeInsets(top: 4, leading: 11, bottom: 16, trailing: 11)
             sec.interGroupSpacing = 10
-
-            let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(32))
-            let hdr = NSCollectionLayoutBoundarySupplementaryItem(
-                layoutSize: hdrSize,
-                elementKind: UICollectionView.elementKindSectionHeader,
-                alignment: .top
-            )
-            sec.boundarySupplementaryItems = [hdr]
             return sec
         }
     }
@@ -466,15 +603,14 @@ final class TodayViewController: UIViewController {
         selectedIDs  = []
         if let card = initialCard { selectedIDs.insert(card.id) }
 
-        // Nav bar: «Готово» справа вместо обычных кнопок, поиск прячем
-        navigationItem.titleView = nil
+        // Hide custom header buttons, show done/cancel in nav area via nav bar
+        navigationController?.setNavigationBarHidden(false, animated: false)
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: "Отмена", style: .plain, target: self, action: #selector(exitSelectModeTapped)
         )
-        let doneBtn = UIBarButtonItem(
-            title: "Готово", style: .done, target: self, action: #selector(exitSelectModeTapped)
-        )
-        navigationItem.rightBarButtonItems = [doneBtn]
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(title: "Готово", style: .done, target: self, action: #selector(exitSelectModeTapped))
+        ]
 
         addButton.isHidden = true
         selectionBar.isHidden = false
@@ -490,9 +626,10 @@ final class TodayViewController: UIViewController {
         isSelectMode = false
         selectedIDs  = []
 
-        // Восстанавливаем nav bar
-        setupSearchController()
-        setupThemeButton()
+        navigationController?.setNavigationBarHidden(true, animated: false)
+        navigationItem.leftBarButtonItem  = nil
+        navigationItem.rightBarButtonItems = []
+
         addButton.isHidden    = false
         selectionBar.isHidden = true
 
@@ -525,7 +662,7 @@ final class TodayViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
             guard let self else { return }
-            let toDelete = self.activeSections.flatMap { $0.cards }.filter { self.selectedIDs.contains($0.id) }
+            let toDelete = self.flatCards.filter { self.selectedIDs.contains($0.id) }
             toDelete.forEach { CardStore.shared.delete(card: $0) }
             self.allCards = CardStore.shared.cards(for: self.currentDate)
             self.exitSelectMode()
@@ -550,7 +687,7 @@ final class TodayViewController: UIViewController {
         for folder in folders {
             sheet.addAction(UIAlertAction(title: folder.name, style: .default) { [weak self] _ in
                 guard let self else { return }
-                let toMove = self.activeSections.flatMap { $0.cards }.filter { self.selectedIDs.contains($0.id) }
+                let toMove = self.flatCards.filter { self.selectedIDs.contains($0.id) }
                 toMove.forEach { card in
                     card.folderID = folder.id
                     CardStore.shared.save(card: card)
@@ -586,6 +723,49 @@ final class TodayViewController: UIViewController {
     @objc private func backupTapped() {
         let vc = BackupViewController()
         present(UINavigationController(rootViewController: vc), animated: true)
+    }
+
+    // MARK: - Theme / Background
+
+    private func openThemePicker() {
+        let vc = ThemePickerViewController()
+        presentEditorSheet(vc)
+    }
+
+    private func openBackgroundPicker() {
+        let vc  = BackgroundPickerViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
+    }
+
+    // MARK: - Language picker
+
+    private func showLanguagePicker() {
+        let current = L10n.languageOverride ?? (L10n.isRussian ? "ru" : "en")
+        let sheet = UIAlertController(title: L10n.language, message: nil, preferredStyle: .actionSheet)
+
+        let ruTitle = L10n.langRussian + (current == "ru" ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: ruTitle, style: .default) { _ in
+            L10n.languageOverride = "ru"
+        })
+
+        let enTitle = L10n.langEnglish + (current == "en" ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: enTitle, style: .default) { _ in
+            L10n.languageOverride = "en"
+        })
+
+        let sysTitle = L10n.langSystem + (L10n.languageOverride == nil ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: sysTitle, style: .default) { _ in
+            L10n.languageOverride = nil
+        })
+
+        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        present(sheet, animated: true)
     }
 
     // MARK: - Add action
@@ -660,34 +840,24 @@ final class TodayViewController: UIViewController {
     }
 
     func deleteCard(_ card: NoteCard) {
-        var foundSection = -1, foundItem = -1
-        for (si, sec) in activeSections.enumerated() {
-            if let ii = sec.cards.firstIndex(where: { $0.id == card.id }) {
-                foundSection = si; foundItem = ii; break
-            }
+        guard let foundItem = flatCards.firstIndex(where: { $0.id == card.id }) else {
+            CardStore.shared.delete(card: card)
+            allCards = CardStore.shared.cards(for: currentDate)
+            applyFilters()
+            return
         }
 
         CardStore.shared.delete(card: card)
         allCards = CardStore.shared.cards(for: currentDate)
-
-        guard foundSection >= 0 else { applyFilters(); return }
-
-        let ip = IndexPath(item: foundItem, section: foundSection)
-        activeSections[foundSection].cards.remove(at: foundItem)
-        let sectionEmpty = activeSections[foundSection].cards.isEmpty
-        if sectionEmpty { activeSections.remove(at: foundSection) }
-        let allEmpty = activeSections.isEmpty
+        flatCards.remove(at: foundItem)
 
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        let wasEmpty = flatCards.isEmpty
         collectionView.performBatchUpdates {
-            self.collectionView.deleteItems(at: [ip])
-            // Don't delete the section when it becomes the only one left turning into
-            // the empty-state section — numberOfSections still returns 1 in that case.
-            if sectionEmpty && !allEmpty {
-                self.collectionView.deleteSections(IndexSet(integer: foundSection))
-            }
+            self.collectionView.deleteItems(at: [IndexPath(item: foundItem, section: 0)])
         } completion: { _ in
-            if allEmpty {
+            if wasEmpty {
                 UIView.transition(with: self.collectionView, duration: 0.2, options: .transitionCrossDissolve) {
                     self.collectionView.reloadData()
                 }
@@ -706,7 +876,7 @@ final class TodayViewController: UIViewController {
     // MARK: - Multi-select: copy to day
 
     @objc private func copySelectedTapped() {
-        let cards = activeSections.flatMap { $0.cards }.filter { selectedIDs.contains($0.id) }
+        let cards = flatCards.filter { selectedIDs.contains($0.id) }
         guard !cards.isEmpty else { return }
         let vc = CopyToDayViewController()
         vc.onCopy = { [weak self] date in
@@ -722,46 +892,16 @@ final class TodayViewController: UIViewController {
 
 extension TodayViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchText.isEmpty {
-            hideSearchOverlay()
-        } else {
-            showSearchOverlay()
-            searchResultsVC.reload(query: searchText)
-        }
-    }
-
-    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
-        // Replace left bar item with compact xmark instead of full "Отмена" text
-        let cfg = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        let cancelBtn = UIBarButtonItem(
-            image: UIImage(systemName: "xmark.circle.fill", withConfiguration: cfg),
-            style: .plain,
-            target: self,
-            action: #selector(dismissSearch)
-        )
-        cancelBtn.tintColor = UIColor.tertiaryLabel
-        navigationItem.leftBarButtonItem = cancelBtn
-    }
-
-    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-        if searchBar.text?.isEmpty ?? true {
-            navigationItem.leftBarButtonItem = UIBarButtonItem(customView: navTitleLabel)
-        }
-    }
-
-    @objc private func dismissSearch() {
-        navSearchBar.text = nil
-        navSearchBar.resignFirstResponder()
-        hideSearchOverlay()
-        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: navTitleLabel)
-    }
-
-    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-        dismissSearch()
+        searchQuery = searchText
+        applyFilters()
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        closeSearch()
     }
 }
 
@@ -769,19 +909,17 @@ extension TodayViewController: UISearchBarDelegate {
 
 extension TodayViewController: UICollectionViewDataSource {
 
-    func numberOfSections(in collectionView: UICollectionView) -> Int {
-        activeSections.isEmpty ? 1 : activeSections.count
-    }
+    func numberOfSections(in collectionView: UICollectionView) -> Int { 1 }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        activeSections.isEmpty ? 1 : activeSections[section].cards.count
+        flatCards.isEmpty ? 1 : flatCards.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        if activeSections.isEmpty {
+        if flatCards.isEmpty {
             return collectionView.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath) as! EmptyCardCell
         }
-        let card = activeSections[indexPath.section].cards[indexPath.item]
+        let card = flatCards[indexPath.item]
         let cell: UICollectionViewCell
         switch card.type {
         case .text:
@@ -798,17 +936,6 @@ extension TodayViewController: UICollectionViewDataSource {
                                    isSelected: selectedIDs.contains(card.id))
         return cell
     }
-
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        let header = collectionView.dequeueReusableSupplementaryView(
-            ofKind: kind, withReuseIdentifier: CardTypeSectionHeader.reuseID, for: indexPath
-        ) as! CardTypeSectionHeader
-        if !activeSections.isEmpty {
-            header.configure(title: activeSections[indexPath.section].header,
-                             color: activeSections[indexPath.section].accentColor)
-        }
-        return header
-    }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -816,8 +943,8 @@ extension TodayViewController: UICollectionViewDataSource {
 extension TodayViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard !activeSections.isEmpty else { return }
-        let card = activeSections[indexPath.section].cards[indexPath.item]
+        guard !flatCards.isEmpty else { return }
+        let card = flatCards[indexPath.item]
         if isSelectMode {
             toggleSelection(card)
         } else {
@@ -837,12 +964,9 @@ extension TodayViewController: UICollectionViewDelegate {
     }
 
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        guard !activeSections.isEmpty else { return nil }
+        guard !flatCards.isEmpty, !isSelectMode else { return nil }
 
-        // In select mode — tap selects, context menu disabled
-        if isSelectMode { return nil }
-
-        let card = activeSections[indexPath.section].cards[indexPath.item]
+        let card = flatCards[indexPath.item]
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
 
@@ -851,7 +975,9 @@ extension TodayViewController: UICollectionViewDelegate {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 self.enterSelectMode(initialCard: card)
             }
-            let share  = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.shareCard(card) }
+            let share = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                self?.shareCard(card)
+            }
             let copyToDay = UIAction(title: "Скопировать в день", image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
                 guard let self else { return }
                 let vc = CopyToDayViewController()
@@ -861,7 +987,7 @@ extension TodayViewController: UICollectionViewDelegate {
                 }
                 self.present(UINavigationController(rootViewController: vc), animated: true)
             }
-            let edit   = UIAction(title: L10n.edit,  image: UIImage(systemName: "pencil")) { [weak self] _ in
+            let edit = UIAction(title: L10n.edit, image: UIImage(systemName: "pencil")) { [weak self] _ in
                 switch card.type {
                 case .text:  self?.presentTextEditor(card: card as? TextCard)
                 case .image: if let c = card as? ImageCard { self?.presentImageEditor(card: c) }
@@ -886,7 +1012,9 @@ extension TodayViewController: UICollectionViewDelegate {
                     ? [UIAction(title: "Нет папок", attributes: .disabled) { _ in }]
                     : folderActions
             )
-            let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in self?.deleteCard(card) }
+            let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                self?.deleteCard(card)
+            }
             return UIMenu(children: [select, share, copyToDay, edit, folderMenu, delete])
         })
     }
@@ -914,7 +1042,7 @@ extension TodayViewController: UIImagePickerControllerDelegate, UINavigationCont
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
 }
 
-// MARK: - CardTypeSectionHeader
+// MARK: - CardTypeSectionHeader (kept for binary compatibility)
 
 final class CardTypeSectionHeader: UICollectionReusableView {
 
@@ -927,7 +1055,7 @@ final class CardTypeSectionHeader: UICollectionReusableView {
         super.init(frame: frame)
         colorDot.layer.cornerRadius = 3
         colorDot.translatesAutoresizingMaskIntoConstraints = false
-        label.font = .systemFont(ofSize: 11, weight: .semibold)
+        label.font = .inter(ofSize: 11, weight: .semibold)
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
 

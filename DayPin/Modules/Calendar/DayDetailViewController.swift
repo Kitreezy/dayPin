@@ -16,7 +16,7 @@ final class DayDetailViewController: UIViewController {
         super.viewDidLoad()
         let df = DateFormatter()
         df.dateFormat = "d MMMM"
-        df.locale = Locale.current
+        df.locale = L10n.activeLocale
         title = df.string(from: date)
         view.backgroundColor = DayPinDesign.background
 

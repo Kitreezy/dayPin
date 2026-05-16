@@ -158,7 +158,7 @@ final class GlassActionSheet: UIView {
         if let title {
             let lbl = UILabel()
             lbl.text = title
-            lbl.font = .systemFont(ofSize: 12, weight: .regular)
+            lbl.font = .inter(ofSize: 12, weight: .regular)
             lbl.textColor = UIColor.secondaryLabel
             lbl.numberOfLines = 2
             let wrapper = UIView()
@@ -282,7 +282,7 @@ private final class SheetButton: UIButton {
         setTitleColor(color, for: .normal)
         setTitleColor(color.withAlphaComponent(0.4), for: .highlighted)
         tintColor = color
-        titleLabel?.font = .systemFont(ofSize: 15, weight: isBold ? .semibold : .regular)
+        titleLabel?.font = .inter(ofSize: 15, weight: isBold ? .semibold : .regular)
         setTitle(title, for: .normal)
         contentHorizontalAlignment = isBold ? .center : .left
         contentEdgeInsets = isBold

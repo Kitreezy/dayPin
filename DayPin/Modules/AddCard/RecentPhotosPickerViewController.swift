@@ -57,7 +57,7 @@ final class RecentPhotosPickerViewController: UIViewController {
     private func setupHeader() {
         let label = UILabel()
         label.text = "Последние фото"
-        label.font = .systemFont(ofSize: 17, weight: .semibold)
+        label.font = .inter(ofSize: 17, weight: .semibold)
         label.textColor = .label
         label.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(label)
@@ -114,7 +114,7 @@ final class RecentPhotosPickerViewController: UIViewController {
         let cfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
         btn.setImage(UIImage(systemName: "photo.stack", withConfiguration: cfg), for: .normal)
         btn.setTitle("  Показать все фото", for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        btn.titleLabel?.font = .inter(ofSize: 16, weight: .semibold)
         btn.tintColor = DayPinDesign.accent
         btn.setTitleColor(DayPinDesign.accent, for: .normal)
         btn.addTarget(self, action: #selector(showAllTapped), for: .touchUpInside)

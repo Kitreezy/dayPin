@@ -61,7 +61,7 @@ enum CardRenderer {
 
         let badgePad: CGFloat = 7
         let fontSize  = max(imageSize.width * 0.022, 12)
-        let font      = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+        let font      = UIFont.inter(ofSize: fontSize, weight: .semibold)
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
         let ts        = (text as NSString).size(withAttributes: attrs)
         let bw        = ts.width + badgePad * 2
@@ -84,9 +84,9 @@ enum CardRenderer {
         let w: CGFloat     = 640
         let pad: CGFloat   = 36
         let maxW           = w - pad * 2
-        let titleFont      = UIFont.systemFont(ofSize: 28, weight: .bold)
-        let bodyFont       = UIFont.systemFont(ofSize: 17)
-        let brandFont      = UIFont.systemFont(ofSize: 12, weight: .medium)
+        let titleFont      = UIFont.inter(ofSize: 28, weight: .bold)
+        let bodyFont       = UIFont.inter(ofSize: 17)
+        let brandFont      = UIFont.inter(ofSize: 12, weight: .medium)
         let accent         = UIColor(red: 0.56, green: 0.35, blue: 1.0, alpha: 1)
 
         let titleAttr: [NSAttributedString.Key: Any] = [.font: titleFont, .foregroundColor: UIColor.white]
@@ -136,10 +136,10 @@ enum CardRenderer {
         let w: CGFloat     = 640
         let pad: CGFloat   = 36
         let maxW           = w - pad * 2
-        let titleFont      = UIFont.systemFont(ofSize: 24, weight: .bold)
-        let urlFont        = UIFont.systemFont(ofSize: 14)
-        let descFont       = UIFont.systemFont(ofSize: 15)
-        let brandFont      = UIFont.systemFont(ofSize: 12, weight: .medium)
+        let titleFont      = UIFont.inter(ofSize: 24, weight: .bold)
+        let urlFont        = UIFont.inter(ofSize: 14)
+        let descFont       = UIFont.inter(ofSize: 15)
+        let brandFont      = UIFont.inter(ofSize: 12, weight: .medium)
         let accent         = UIColor(red: 0.56, green: 0.35, blue: 1.0, alpha: 1)
 
         let titleAttr: [NSAttributedString.Key: Any] = [.font: titleFont, .foregroundColor: UIColor.white]
@@ -204,7 +204,7 @@ enum CardRenderer {
             accent.withAlphaComponent(0.2).setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
             let attrs: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: 26, weight: .bold),
+                .font: UIFont.inter(ofSize: 26, weight: .bold),
                 .foregroundColor: UIColor.white
             ]
             (title as NSString).draw(at: CGPoint(x: 28, y: 28), withAttributes: attrs)

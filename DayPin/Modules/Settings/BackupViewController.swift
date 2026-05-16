@@ -258,7 +258,7 @@ extension BackupViewController: UITableViewDataSource, UITableViewDelegate {
             С изображениями: \(imgs)
             Папок: \(folders)
             """
-            cfg.textProperties.font = .systemFont(ofSize: 14)
+            cfg.textProperties.font = .inter(ofSize: 14)
             cfg.textProperties.color = .secondaryLabel
             cfg.textProperties.numberOfLines = 0
             cell.contentConfiguration = cfg

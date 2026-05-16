@@ -86,7 +86,7 @@ final class TopTabBarView: UIView {
         let btn = UIButton(type: .system)
         btn.setTitle(title, for: .normal)
         btn.tag = tag
-        btn.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        btn.titleLabel?.font = .inter(ofSize: 15, weight: .medium)
         btn.addTarget(self, action: #selector(tabTapped(_:)), for: .touchUpInside)
         return btn
     }

@@ -168,11 +168,11 @@ private final class NotePickerCell: UITableViewCell {
         typeIcon.translatesAutoresizingMaskIntoConstraints = false
         iconBg.addSubview(typeIcon)
 
-        titleLbl.font          = .systemFont(ofSize: 15, weight: .semibold)
+        titleLbl.font          = .inter(ofSize: 15, weight: .semibold)
         titleLbl.textColor     = .label
         titleLbl.translatesAutoresizingMaskIntoConstraints = false
 
-        dateLbl.font      = .systemFont(ofSize: 12)
+        dateLbl.font      = .inter(ofSize: 12)
         dateLbl.textColor = .secondaryLabel
         dateLbl.translatesAutoresizingMaskIntoConstraints = false
 
@@ -231,7 +231,7 @@ private final class NotePickerCell: UITableViewCell {
 
         let df = DateFormatter()
         df.dateFormat = "d MMM, HH:mm"
-        df.locale = Locale.current
+        df.locale = L10n.activeLocale
         dateLbl.text = df.string(from: card.createdAt)
 
         let cfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .medium)

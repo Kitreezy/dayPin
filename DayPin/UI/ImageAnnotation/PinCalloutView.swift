@@ -178,12 +178,12 @@ final class PinCalloutView: UIView {
     private func buildViewContent() {
         titleDisplayLabel.text      = storedTitle
         titleDisplayLabel.isHidden  = storedTitle.isEmpty
-        titleDisplayLabel.font      = .systemFont(ofSize: 13, weight: .semibold)
+        titleDisplayLabel.font      = .inter(ofSize: 13, weight: .semibold)
         titleDisplayLabel.textColor = .white
         titleDisplayLabel.numberOfLines = 1
 
         textLabel.text      = storedText
-        textLabel.font      = .systemFont(ofSize: 13)
+        textLabel.font      = .inter(ofSize: 13)
         textLabel.textColor = UIColor.white.withAlphaComponent(0.85)
         textLabel.numberOfLines = 4
 
@@ -226,7 +226,7 @@ final class PinCalloutView: UIView {
             string: "Название",
             attributes: [.foregroundColor: UIColor.white.withAlphaComponent(0.35)]
         )
-        titleField.font        = .systemFont(ofSize: 13, weight: .semibold)
+        titleField.font        = .inter(ofSize: 13, weight: .semibold)
         titleField.textColor   = .white
         titleField.borderStyle = .none
         titleField.returnKeyType = .next
@@ -240,7 +240,7 @@ final class PinCalloutView: UIView {
 
         // Text view
         textView.backgroundColor = .clear
-        textView.font            = .systemFont(ofSize: 13)
+        textView.font            = .inter(ofSize: 13)
         textView.textColor       = .white
         textView.text            = storedText
         textView.isScrollEnabled = false
@@ -251,7 +251,7 @@ final class PinCalloutView: UIView {
         // Placeholder
         let ph = UILabel()
         ph.text      = L10n.annotationPlaceholder
-        ph.font      = .systemFont(ofSize: 13)
+        ph.font      = .inter(ofSize: 13)
         ph.textColor = UIColor.white.withAlphaComponent(0.35)
         ph.translatesAutoresizingMaskIntoConstraints = false
         ph.isHidden  = !storedText.isEmpty

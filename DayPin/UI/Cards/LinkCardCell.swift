@@ -68,20 +68,20 @@ final class LinkCardCell: UICollectionViewCell {
             linkIconImage.heightAnchor.constraint(equalToConstant: 14)
         ])
 
-        titleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+        titleLabel.font = .inter(ofSize: 14, weight: .semibold)
         titleLabel.textColor = .label
         titleLabel.numberOfLines = 2
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        urlLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        urlLabel.font = .inter(ofSize: 11, weight: .regular)
         urlLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        commentLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        commentLabel.font = .inter(ofSize: 12, weight: .regular)
         commentLabel.textColor = .secondaryLabel
         commentLabel.numberOfLines = 2
         commentLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        glassTimeLabel.font = .systemFont(ofSize: 10, weight: .regular)
+        glassTimeLabel.font = .inter(ofSize: 10, weight: .regular)
         glassTimeLabel.textColor = .tertiaryLabel
         glassTimeLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -155,16 +155,16 @@ final class LinkCardCell: UICollectionViewCell {
             thumbBadgeIcon.heightAnchor.constraint(equalToConstant: 12)
         ])
 
-        thumbTitle.font = .systemFont(ofSize: 13, weight: .semibold)
+        thumbTitle.font = .inter(ofSize: 13, weight: .semibold)
         thumbTitle.textColor = .white
         thumbTitle.numberOfLines = 2
         thumbTitle.translatesAutoresizingMaskIntoConstraints = false
 
-        thumbUrl.font = .systemFont(ofSize: 11, weight: .regular)
+        thumbUrl.font = .inter(ofSize: 11, weight: .regular)
         thumbUrl.textColor = UIColor.white.withAlphaComponent(0.7)
         thumbUrl.translatesAutoresizingMaskIntoConstraints = false
 
-        thumbTime.font = .systemFont(ofSize: 10, weight: .regular)
+        thumbTime.font = .inter(ofSize: 10, weight: .regular)
         thumbTime.textColor = UIColor.white.withAlphaComponent(0.55)
         thumbTime.translatesAutoresizingMaskIntoConstraints = false
 

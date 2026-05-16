@@ -56,7 +56,7 @@ final class TextCardEditorViewController: UIViewController {
         view.addSubview(formCard)
 
         titleField.placeholder = "Заголовок (необязательно)"
-        titleField.font = .systemFont(ofSize: 15, weight: .regular)
+        titleField.font = .inter(ofSize: 15, weight: .regular)
         titleField.borderStyle = .none
         titleField.returnKeyType = .next
         titleField.delegate = self
@@ -66,7 +66,7 @@ final class TextCardEditorViewController: UIViewController {
         divider.backgroundColor = .separator
         divider.translatesAutoresizingMaskIntoConstraints = false
 
-        commentTextView.font = .systemFont(ofSize: 15)
+        commentTextView.font = .inter(ofSize: 15)
         commentTextView.backgroundColor = .clear
         commentTextView.isScrollEnabled = true
         commentTextView.textContainer.lineBreakMode = .byWordWrapping
@@ -76,7 +76,7 @@ final class TextCardEditorViewController: UIViewController {
         commentTextView.inputAccessoryView = formattingBar
 
         commentPlaceholder.text = L10n.commentPlaceholder
-        commentPlaceholder.font = .systemFont(ofSize: 15)
+        commentPlaceholder.font = .inter(ofSize: 15)
         commentPlaceholder.textColor = .placeholderText
         commentPlaceholder.translatesAutoresizingMaskIntoConstraints = false
 
@@ -115,7 +115,7 @@ final class TextCardEditorViewController: UIViewController {
         guard let card else { return }
         titleField.text = card.title
         if let attributed = card.attributedComment {
-            commentTextView.attributedText = attributed.applying(baseFont: .systemFont(ofSize: 15))
+            commentTextView.attributedText = attributed.applying(baseFont: .inter(ofSize: 15))
         } else {
             commentTextView.text = card.comment
         }
@@ -230,7 +230,7 @@ final class TextCardEditorViewController: UIViewController {
     /// Toggles a format on `typingAttributes` (no text selected — applies to future input).
     private func applyToTypingAttributes(_ action: FormattingToolbar.Action) {
         var attrs = commentTextView.typingAttributes
-        let font = attrs[.font] as? UIFont ?? .systemFont(ofSize: 15)
+        let font = attrs[.font] as? UIFont ?? .inter(ofSize: 15)
 
         switch action {
         case .bold:
@@ -250,8 +250,8 @@ final class TextCardEditorViewController: UIViewController {
         case .heading:
             let isHeading = font.pointSize >= 20
             attrs[.font] = isHeading
-                ? UIFont.systemFont(ofSize: 15, weight: .regular)
-                : UIFont.systemFont(ofSize: 22, weight: .bold)
+                ? UIFont.inter(ofSize: 15, weight: .regular)
+                : UIFont.inter(ofSize: 22, weight: .bold)
         case .fontSmaller:
             let sz = max(10, font.pointSize - 2)
             attrs[.font] = UIFont(descriptor: font.fontDescriptor, size: sz)
@@ -266,7 +266,7 @@ final class TextCardEditorViewController: UIViewController {
     }
 
     private func typingAttrs() -> [NSAttributedString.Key: Any] {
-        [.font: UIFont.systemFont(ofSize: 15), .foregroundColor: UIColor.label]
+        [.font: UIFont.inter(ofSize: 15), .foregroundColor: UIColor.label]
     }
 
     // MARK: - Keyboard
@@ -406,7 +406,7 @@ private extension NSMutableAttributedString {
             if !font.fontDescriptor.symbolicTraits.contains(trait) { allHaveTrait = false }
         }
         enumerateAttribute(.font, in: range) { val, r, _ in
-            let base = (val as? UIFont) ?? .systemFont(ofSize: baseSize)
+            let base = (val as? UIFont) ?? .inter(ofSize: baseSize)
             var traits = base.fontDescriptor.symbolicTraits
             if allHaveTrait { traits.remove(trait) } else { traits.insert(trait) }
             if let desc = base.fontDescriptor.withSymbolicTraits(traits) {
@@ -437,7 +437,7 @@ private extension NSMutableAttributedString {
 
     func adjustFontSize(by delta: CGFloat, in range: NSRange, min minSize: CGFloat = 10, max maxSize: CGFloat = 36) {
         enumerateAttribute(.font, in: range) { val, r, _ in
-            let base = (val as? UIFont) ?? .systemFont(ofSize: 15)
+            let base = (val as? UIFont) ?? .inter(ofSize: 15)
             let newSize = min(max(base.pointSize + delta, minSize), maxSize)
             let newFont = UIFont(descriptor: base.fontDescriptor, size: newSize)
             addAttribute(.font, value: newFont, range: r)
@@ -450,8 +450,8 @@ private extension NSMutableAttributedString {
             if let f = val as? UIFont, f.pointSize < 20 { allHeading = false }
         }
         let targetFont: UIFont = allHeading
-            ? .systemFont(ofSize: 15, weight: .regular)
-            : .systemFont(ofSize: 22, weight: .bold)
+            ? .inter(ofSize: 15, weight: .regular)
+            : .inter(ofSize: 22, weight: .bold)
         addAttribute(.font, value: targetFont, range: range)
     }
 }
@@ -625,9 +625,9 @@ final class FormattingToolbar: UIInputView {
         if range.length > 0, let attrText = textView.attributedText, attrText.length > 0 {
             let idx = min(range.location, attrText.length - 1)
             displayFont = (attrText.attribute(.font, at: idx, effectiveRange: nil) as? UIFont)
-                ?? .systemFont(ofSize: 15)
+                ?? .inter(ofSize: 15)
         } else {
-            displayFont = (textView.typingAttributes[.font] as? UIFont) ?? .systemFont(ofSize: 15)
+            displayFont = (textView.typingAttributes[.font] as? UIFont) ?? .inter(ofSize: 15)
         }
         fontSizeLabel.text = "\(Int(displayFont.pointSize))"
 
@@ -656,7 +656,7 @@ final class FormattingToolbar: UIInputView {
             headingBtn?.backgroundColor = displayFont.pointSize >= 20 ? activeColor : .clear
         } else {
             let typing = textView.typingAttributes
-            let font   = typing[.font] as? UIFont ?? .systemFont(ofSize: 15)
+            let font   = typing[.font] as? UIFont ?? .inter(ofSize: 15)
             formatButtons[0].backgroundColor = font.fontDescriptor.symbolicTraits.contains(.traitBold)   ? activeColor : .clear
             formatButtons[1].backgroundColor = font.fontDescriptor.symbolicTraits.contains(.traitItalic) ? activeColor : .clear
             formatButtons[2].backgroundColor = (typing[.underlineStyle]     as? Int ?? 0) != 0 ? activeColor : .clear

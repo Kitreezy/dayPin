@@ -129,16 +129,16 @@ final class CardDetailViewController: UIViewController {
         // Date
         let df = DateFormatter()
         df.dateFormat = "d MMMM yyyy · HH:mm"
-        df.locale = Locale.current
+        df.locale = L10n.activeLocale
         let dateLabel = UILabel()
         dateLabel.text = df.string(from: card.createdAt)
-        dateLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        dateLabel.font = .inter(ofSize: 12, weight: .regular)
         dateLabel.textColor = .tertiaryLabel
 
         // Title
         let titleLabel = UILabel()
         titleLabel.text = card.title
-        titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
+        titleLabel.font = .inter(ofSize: 22, weight: .bold)
         titleLabel.textColor = .label
         titleLabel.numberOfLines = 0
 
@@ -149,7 +149,7 @@ final class CardDetailViewController: UIViewController {
         let displayText: NSAttributedString? = card.attributedComment ?? (
             card.comment.isEmpty ? nil : NSAttributedString(
                 string: card.comment,
-                attributes: [.font: UIFont.systemFont(ofSize: 16), .foregroundColor: UIColor.secondaryLabel]
+                attributes: [.font: UIFont.inter(ofSize: 16), .foregroundColor: UIColor.secondaryLabel]
             )
         )
 
@@ -159,7 +159,7 @@ final class CardDetailViewController: UIViewController {
             sep.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
 
             let commentLabel = UILabel()
-            commentLabel.attributedText = displayText.applying(baseColor: .secondaryLabel, baseFont: .systemFont(ofSize: 16))
+            commentLabel.attributedText = displayText.applying(baseColor: .secondaryLabel, baseFont: .inter(ofSize: 16))
             commentLabel.numberOfLines = 0
             commentLabel.lineBreakMode = .byWordWrapping
 

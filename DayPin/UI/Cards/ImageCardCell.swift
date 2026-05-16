@@ -68,7 +68,7 @@ final class ImageCardCell: UICollectionViewCell {
 
 
         // ── Labels ─────────────────────────────────────────────
-        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        titleLabel.font = .inter(ofSize: 15, weight: .semibold)
         titleLabel.textColor = .white
         titleLabel.numberOfLines = 2
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -78,7 +78,7 @@ final class ImageCardCell: UICollectionViewCell {
         pinIcon.contentMode = .scaleAspectFit
         pinIcon.translatesAutoresizingMaskIntoConstraints = false
 
-        pinCountLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        pinCountLabel.font = .inter(ofSize: 12, weight: .medium)
         pinCountLabel.textColor = UIColor.white.withAlphaComponent(0.90)
         pinCountLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -88,7 +88,7 @@ final class ImageCardCell: UICollectionViewCell {
         pinRow.alignment = .center
         pinRow.translatesAutoresizingMaskIntoConstraints = false
 
-        timeLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        timeLabel.font = .inter(ofSize: 11, weight: .regular)
         timeLabel.textColor = UIColor.white.withAlphaComponent(0.55)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
 

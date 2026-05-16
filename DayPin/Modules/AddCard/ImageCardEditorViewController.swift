@@ -146,7 +146,7 @@ final class ImageCardEditorViewController: UIViewController {
             string: L10n.photoName,
             attributes: [.foregroundColor: UIColor.white.withAlphaComponent(0.4)]
         )
-        titleField.font        = .systemFont(ofSize: 15, weight: .medium)
+        titleField.font        = .inter(ofSize: 15, weight: .medium)
         titleField.textColor   = .white
         titleField.borderStyle = .none
         titleField.translatesAutoresizingMaskIntoConstraints = false
@@ -206,7 +206,7 @@ final class ImageCardEditorViewController: UIViewController {
         // Hint label
         let hintLabel = UILabel()
         hintLabel.text      = L10n.annotationHint
-        hintLabel.font      = .systemFont(ofSize: 11, weight: .regular)
+        hintLabel.font      = .inter(ofSize: 11, weight: .regular)
         hintLabel.textColor = UIColor.white.withAlphaComponent(0.50)
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(hintLabel)

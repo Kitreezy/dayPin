@@ -107,7 +107,7 @@ final class FolderEditorViewController: UIViewController {
         ])
 
         // Эмодзи
-        previewEmoji.font          = .systemFont(ofSize: 52)
+        previewEmoji.font          = .inter(ofSize: 52)
         previewEmoji.textAlignment = .center
         previewEmoji.translatesAutoresizingMaskIntoConstraints = false
         previewGradient.addSubview(previewEmoji)
@@ -162,7 +162,7 @@ final class FolderEditorViewController: UIViewController {
         formCard.translatesAutoresizingMaskIntoConstraints = false
 
         nameField.placeholder   = "Название папки"
-        nameField.font          = .systemFont(ofSize: 16, weight: .semibold)
+        nameField.font          = .inter(ofSize: 16, weight: .semibold)
         nameField.borderStyle   = .none
         nameField.returnKeyType = .done
         nameField.delegate      = self
@@ -180,7 +180,7 @@ final class FolderEditorViewController: UIViewController {
         // ── Цвет папки ─────────────────────────────────────────────────────
         let colorLabel = UILabel()
         colorLabel.text      = "ЦВЕТ ПАПКИ"
-        colorLabel.font      = .systemFont(ofSize: 11, weight: .semibold)
+        colorLabel.font      = .inter(ofSize: 11, weight: .semibold)
         colorLabel.textColor = .secondaryLabel
         colorLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(colorLabel)
@@ -222,7 +222,7 @@ final class FolderEditorViewController: UIViewController {
         btn.setTitle("  \(title)", for: .normal)
         let cfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .medium)
         btn.setImage(UIImage(systemName: icon, withConfiguration: cfg), for: .normal)
-        btn.titleLabel?.font    = .systemFont(ofSize: 13, weight: .medium)
+        btn.titleLabel?.font    = .inter(ofSize: 13, weight: .medium)
         btn.tintColor           = DayPinDesign.accent
         btn.backgroundColor     = UIColor { t in
             t.userInterfaceStyle == .dark
@@ -283,7 +283,7 @@ final class FolderEditorViewController: UIViewController {
         let alert = UIAlertController(title: "Выберите эмодзи", message: "Введите или вставьте один эмодзи", preferredStyle: .alert)
         alert.addTextField { tf in
             tf.placeholder  = "😊"
-            tf.font         = .systemFont(ofSize: 30)
+            tf.font         = .inter(ofSize: 30)
             tf.textAlignment = .center
             if #available(iOS 16.0, *) {
                 tf.keyboardType = .default

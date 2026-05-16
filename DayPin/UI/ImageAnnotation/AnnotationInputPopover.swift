@@ -125,7 +125,7 @@ final class AnnotationInputPopover: UIView {
 
         // Title
         titleLabel.text = existingText == nil ? L10n.addAnnotation : L10n.editAnnotationTitle
-        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        titleLabel.font = .inter(ofSize: 15, weight: .semibold)
         titleLabel.textColor = .label
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(titleLabel)
@@ -136,7 +136,7 @@ final class AnnotationInputPopover: UIView {
         content.addSubview(separator)
 
         // Text view
-        textView.font = .systemFont(ofSize: 16)
+        textView.font = .inter(ofSize: 16)
         textView.backgroundColor = .clear
         textView.textColor = .label
         textView.isScrollEnabled = false
@@ -148,7 +148,7 @@ final class AnnotationInputPopover: UIView {
 
         // Placeholder
         placeholder.text = "Комментарий (необязательно)"
-        placeholder.font = .systemFont(ofSize: 16)
+        placeholder.font = .inter(ofSize: 16)
         placeholder.textColor = .placeholderText
         placeholder.isHidden = !(existingText?.isEmpty ?? true)
         placeholder.translatesAutoresizingMaskIntoConstraints = false
@@ -156,13 +156,13 @@ final class AnnotationInputPopover: UIView {
 
         // Buttons
         cancelButton.setTitle(L10n.cancel, for: .normal)
-        cancelButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        cancelButton.titleLabel?.font = .inter(ofSize: 15, weight: .medium)
         cancelButton.setTitleColor(.secondaryLabel, for: .normal)
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
 
         saveButton.setTitle(L10n.save, for: .normal)
-        saveButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+        saveButton.titleLabel?.font = .inter(ofSize: 15, weight: .semibold)
         saveButton.setTitleColor(DayPinDesign.accent, for: .normal)
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         saveButton.translatesAutoresizingMaskIntoConstraints = false

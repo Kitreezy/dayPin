@@ -33,7 +33,7 @@ final class ThemePickerViewController: UIViewController {
 
     private func setupUI() {
         titleLabel.text = "Яркость"
-        titleLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        titleLabel.font = .inter(ofSize: 13, weight: .medium)
         titleLabel.textColor = .secondaryLabel
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -42,7 +42,7 @@ final class ThemePickerViewController: UIViewController {
         brightnessSegment.translatesAutoresizingMaskIntoConstraints = false
 
         schemeLabel.text = "Цветовая схема"
-        schemeLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        schemeLabel.font = .inter(ofSize: 13, weight: .medium)
         schemeLabel.textColor = .secondaryLabel
         schemeLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -194,10 +194,10 @@ private final class SchemeCell: UICollectionViewCell {
         }
 
         // Emoji + name row
-        emojiLabel.font = .systemFont(ofSize: 18)
+        emojiLabel.font = .inter(ofSize: 18)
         emojiLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        nameLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+        nameLabel.font = .inter(ofSize: 14, weight: .semibold)
         nameLabel.textColor = .label
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
 

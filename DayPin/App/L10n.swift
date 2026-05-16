@@ -1,14 +1,41 @@
 import Foundation
 
+extension Notification.Name {
+    static let dayPinLanguageChanged = Notification.Name("dayPinLanguageChanged")
+}
+
 enum L10n {
 
-    private static var isRussian: Bool {
-        Locale.preferredLanguages.first?.hasPrefix("ru") == true
+    // MARK: - In-app language override (nil = follow device)
+    static var languageOverride: String? {
+        get { UserDefaults.standard.string(forKey: "daypin.langOverride") }
+        set {
+            if let v = newValue { UserDefaults.standard.set(v, forKey: "daypin.langOverride") }
+            else { UserDefaults.standard.removeObject(forKey: "daypin.langOverride") }
+            NotificationCenter.default.post(name: .dayPinLanguageChanged, object: nil)
+        }
+    }
+
+    /// `true` when the active language is Russian (device or override).
+    static var isRussian: Bool {
+        if let override = languageOverride { return override == "ru" }
+        return Locale.preferredLanguages.first?.hasPrefix("ru") == true
+    }
+
+    /// Locale object matching the active language — use this in DateFormatters.
+    static var activeLocale: Locale {
+        Locale(identifier: isRussian ? "ru_RU" : "en_US")
     }
 
     private static func s(_ ru: String, _ en: String) -> String {
         isRussian ? ru : en
     }
+
+    // MARK: - Language names
+    static var language:     String { s("Язык", "Language") }
+    static var langRussian:  String { "Русский" }
+    static var langEnglish:  String { "English" }
+    static var langSystem:   String { s("Системный", "System") }
 
     // MARK: - Tabs
     static var tabToday: String      { s("Сегодня", "Today") }

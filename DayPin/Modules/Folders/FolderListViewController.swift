@@ -26,15 +26,7 @@ final class FolderListViewController: UIViewController {
         title = "Папки"
         view.backgroundColor = DayPinDesign.background
 
-        let wave = WaveBackgroundView()
-        wave.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(wave)
-        NSLayoutConstraint.activate([
-            wave.topAnchor.constraint(equalTo: view.topAnchor),
-            wave.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            wave.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            wave.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.45)
-        ])
+        addStandardBackground()
 
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -276,7 +268,7 @@ final class FolderCardCell: UICollectionViewCell {
         ])
 
         // Emoji label
-        emojiLabel.font          = .systemFont(ofSize: 40)
+        emojiLabel.font          = .inter(ofSize: 40)
         emojiLabel.textAlignment = .center
         emojiLabel.translatesAutoresizingMaskIntoConstraints = false
         header.addSubview(emojiLabel)
@@ -300,7 +292,7 @@ final class FolderCardCell: UICollectionViewCell {
         ])
 
         // Name label
-        nameLabel.font          = .systemFont(ofSize: 14, weight: .semibold)
+        nameLabel.font          = .inter(ofSize: 14, weight: .semibold)
         nameLabel.textColor     = .label
         nameLabel.numberOfLines = 1
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -366,7 +358,7 @@ final class FolderCardCell: UICollectionViewCell {
         if cards.isEmpty {
             let empty = UILabel()
             empty.text      = "нет заметок"
-            empty.font      = .systemFont(ofSize: 10, weight: .regular)
+            empty.font      = .inter(ofSize: 10, weight: .regular)
             empty.textColor = .tertiaryLabel
             typeBadgesRow.addArrangedSubview(empty)
         }
@@ -386,7 +378,7 @@ final class FolderCardCell: UICollectionViewCell {
 
         let lbl = UILabel()
         lbl.text      = "\(count)"
-        lbl.font      = .systemFont(ofSize: 10, weight: .semibold)
+        lbl.font      = .inter(ofSize: 10, weight: .semibold)
         lbl.textColor = color
         lbl.translatesAutoresizingMaskIntoConstraints = false
 
@@ -459,7 +451,7 @@ final class AddFolderCardCell: UICollectionViewCell {
 
         let label = UILabel()
         label.text      = "Новая папка"
-        label.font      = .systemFont(ofSize: 14, weight: .medium)
+        label.font      = .inter(ofSize: 14, weight: .medium)
         label.textColor = DayPinDesign.accent
         label.translatesAutoresizingMaskIntoConstraints = false
 

@@ -461,7 +461,7 @@ final class AnnotationPinView: UIView {
         titleBlur.translatesAutoresizingMaskIntoConstraints = false
         addSubview(titleBlur)
 
-        titleLabel.font = .systemFont(ofSize: 10, weight: .bold)
+        titleLabel.font = .inter(ofSize: 10, weight: .bold)
         titleLabel.textColor = UIColor.white.withAlphaComponent(0.9)
         titleLabel.numberOfLines = 1
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)

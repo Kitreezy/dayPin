@@ -39,16 +39,16 @@ final class TextCardCell: UICollectionViewCell {
         typeIcon.contentMode = .scaleAspectFit
         typeIcon.translatesAutoresizingMaskIntoConstraints = false
 
-        dateLabel.font = .systemFont(ofSize: 10, weight: .regular)
+        dateLabel.font = .inter(ofSize: 10, weight: .regular)
         dateLabel.textColor = .tertiaryLabel
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        titleLabel.font = .inter(ofSize: 15, weight: .semibold)
         titleLabel.textColor = .label
         titleLabel.numberOfLines = 3
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        commentLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        commentLabel.font = .inter(ofSize: 12, weight: .regular)
         commentLabel.textColor = .secondaryLabel
         commentLabel.numberOfLines = 4
         commentLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -147,13 +147,13 @@ final class EmptyCardCell: UICollectionViewCell {
 
         let titleLabel = UILabel()
         titleLabel.text = L10n.emptyDay
-        titleLabel.font = .systemFont(ofSize: 16, weight: .medium)
+        titleLabel.font = .inter(ofSize: 16, weight: .medium)
         titleLabel.textColor = .tertiaryLabel
         titleLabel.textAlignment = .center
 
         let hintLabel = UILabel()
         hintLabel.text = L10n.emptyDayHint
-        hintLabel.font = .systemFont(ofSize: 13)
+        hintLabel.font = .inter(ofSize: 13)
         hintLabel.textColor = .quaternaryLabel
         hintLabel.textAlignment = .center
 

@@ -77,7 +77,7 @@ final class GlobalSearchViewController: UIViewController {
 
     private func setupEmpty() {
         emptyLabel.text = "Ничего не найдено"
-        emptyLabel.font = .systemFont(ofSize: 16)
+        emptyLabel.font = .inter(ofSize: 16)
         emptyLabel.textColor = .secondaryLabel
         emptyLabel.textAlignment = .center
         emptyLabel.isHidden = true
@@ -157,12 +157,12 @@ private final class SearchResultCell: UITableViewCell {
         typeIcon.translatesAutoresizingMaskIntoConstraints = false
         iconWrapper.addSubview(typeIcon)
 
-        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        titleLabel.font = .inter(ofSize: 15, weight: .semibold)
         titleLabel.textColor = .label
         titleLabel.numberOfLines = 1
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        snippetLabel.font = .systemFont(ofSize: 13)
+        snippetLabel.font = .inter(ofSize: 13)
         snippetLabel.textColor = .secondaryLabel
         snippetLabel.numberOfLines = 2
         snippetLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -173,7 +173,7 @@ private final class SearchResultCell: UITableViewCell {
 
         pill.layer.cornerRadius = 8
         pill.translatesAutoresizingMaskIntoConstraints = false
-        pillLabel.font = .systemFont(ofSize: 10, weight: .medium)
+        pillLabel.font = .inter(ofSize: 10, weight: .medium)
         pillLabel.translatesAutoresizingMaskIntoConstraints = false
         pill.addSubview(pillLabel)
 
@@ -226,7 +226,7 @@ private final class SearchResultCell: UITableViewCell {
 
         let df = DateFormatter()
         df.dateFormat = "d MMM"
-        df.locale = Locale.current
+        df.locale = L10n.activeLocale
         dateLabel.text = df.string(from: result.date)
 
         switch result.card.type {

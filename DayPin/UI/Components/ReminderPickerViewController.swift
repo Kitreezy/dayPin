@@ -68,7 +68,7 @@ final class ReminderPickerViewController: UIViewController {
 
         // Title
         titleLabel.text = L10n.remindMe
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        titleLabel.font = .inter(ofSize: 17, weight: .semibold)
         titleLabel.textColor = .label
         titleLabel.textAlignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -89,7 +89,7 @@ final class ReminderPickerViewController: UIViewController {
         // Set button
         setButton.setTitle(L10n.setReminder, for: .normal)
         setButton.setTitleColor(.white, for: .normal)
-        setButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        setButton.titleLabel?.font = .inter(ofSize: 17, weight: .semibold)
         setButton.layer.cornerRadius = 14
         setButton.addTarget(self, action: #selector(confirmTapped), for: .touchUpInside)
         setButton.translatesAutoresizingMaskIntoConstraints = false
@@ -97,7 +97,7 @@ final class ReminderPickerViewController: UIViewController {
         // Remove button (only shown if a reminder already exists)
         removeButton.setTitle(L10n.removeReminder, for: .normal)
         removeButton.setTitleColor(.systemRed, for: .normal)
-        removeButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
+        removeButton.titleLabel?.font = .inter(ofSize: 16, weight: .medium)
         removeButton.addTarget(self, action: #selector(removeTapped), for: .touchUpInside)
         removeButton.translatesAutoresizingMaskIntoConstraints = false
         removeButton.isHidden = (existingDate == nil || onRemove == nil)
@@ -105,7 +105,7 @@ final class ReminderPickerViewController: UIViewController {
         // Cancel button
         cancelButton.setTitle(L10n.cancel, for: .normal)
         cancelButton.setTitleColor(.secondaryLabel, for: .normal)
-        cancelButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .regular)
+        cancelButton.titleLabel?.font = .inter(ofSize: 16, weight: .regular)
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
 

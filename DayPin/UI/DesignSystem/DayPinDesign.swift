@@ -38,11 +38,11 @@ enum DayPinDesign {
 
     static let cardBorderColor = UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor.white.withAlphaComponent(0.06)
-            : UIColor.clear
+            ? UIColor.white.withAlphaComponent(0.08)
+            : UIColor.black.withAlphaComponent(0.07)
     }
     static func cardBorderWidth(for traitCollection: UITraitCollection) -> CGFloat {
-        traitCollection.userInterfaceStyle == .dark ? 1.0 : 0.0
+        traitCollection.userInterfaceStyle == .dark ? 1.0 : 0.5
     }
 
     // MARK: - Typography
@@ -68,11 +68,14 @@ enum DayPinDesign {
 
     // MARK: - Shadow (neutral, not accent-tinted)
 
-    static func applyCardShadow(to layer: CALayer) {
+    /// Pass `traitCollection` to get an appropriate shadow strength for the current appearance.
+    /// When `nil`, falls back to the conservative dark-mode strength (backward-compatible).
+    static func applyCardShadow(to layer: CALayer, for traitCollection: UITraitCollection? = nil) {
+        let isDark = traitCollection.map { $0.userInterfaceStyle == .dark } ?? true
         layer.shadowColor   = UIColor.black.cgColor
-        layer.shadowOpacity = 0.07
-        layer.shadowRadius  = 12
-        layer.shadowOffset  = CGSize(width: 0, height: 3)
+        layer.shadowOpacity = isDark ? 0.07 : 0.13
+        layer.shadowRadius  = isDark ? 12    : 8
+        layer.shadowOffset  = CGSize(width: 0, height: isDark ? 3 : 2)
     }
 
     // MARK: - Navigation Bar Appearance

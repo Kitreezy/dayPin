@@ -98,6 +98,7 @@ final class GlassCardView: UIView {
         super.traitCollectionDidChange(previousTraitCollection)
         glass.layer.borderColor = DayPinDesign.cardBorderColor.cgColor
         glass.layer.borderWidth = DayPinDesign.cardBorderWidth(for: traitCollection)
+        DayPinDesign.applyCardShadow(to: layer, for: traitCollection)
     }
 
     /// Adds a subtle tinted overlay inside the card.
@@ -119,7 +120,7 @@ final class GlassCardView: UIView {
     }
 
     private func setup() {
-        DayPinDesign.applyCardShadow(to: layer)
+        DayPinDesign.applyCardShadow(to: layer, for: traitCollection)
         layer.cornerRadius = 16
         backgroundColor = .clear
 

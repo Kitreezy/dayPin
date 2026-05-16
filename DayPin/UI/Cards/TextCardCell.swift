@@ -130,24 +130,31 @@ final class EmptyCardCell: UICollectionViewCell {
     private func setup() {
         backgroundColor = .clear
 
-        let card = GlassCardView(style: .card)
-        card.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(card)
+        // Very light frosted glass — stays transparent over any background
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        blur.layer.cornerRadius  = 16
+        blur.layer.masksToBounds = true
+        blur.layer.borderWidth   = 0.5
+        blur.layer.borderColor   = UIColor.separator.withAlphaComponent(0.35).cgColor
+        // Hairline white sheen inside the blur to give it a frosted-glass feel without adding weight
+        blur.contentView.backgroundColor = UIColor.white.withAlphaComponent(0.06)
+        contentView.addSubview(blur)
         NSLayoutConstraint.activate([
-            card.topAnchor.constraint(equalTo: contentView.topAnchor),
-            card.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            card.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            blur.topAnchor.constraint(equalTo: contentView.topAnchor),
+            blur.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            blur.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
 
         let icon = UIImageView(image: UIImage(systemName: "note.text"))
-        icon.tintColor = .quaternaryLabel
+        icon.tintColor = .tertiaryLabel
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
 
         let titleLabel = UILabel()
         titleLabel.text = L10n.emptyDay
-        titleLabel.font = .inter(ofSize: 16, weight: .medium)
+        titleLabel.font = .inter(ofSize: 15, weight: .medium)
         titleLabel.textColor = .tertiaryLabel
         titleLabel.textAlignment = .center
 
@@ -158,18 +165,18 @@ final class EmptyCardCell: UICollectionViewCell {
         hintLabel.textAlignment = .center
 
         let stack = UIStackView(arrangedSubviews: [icon, titleLabel, hintLabel])
-        stack.axis = .vertical
-        stack.spacing = 6
+        stack.axis      = .vertical
+        stack.spacing   = 6
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
-        card.glass.contentView.addSubview(stack)
+        blur.contentView.addSubview(stack)
 
         NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: card.glass.contentView.centerXAnchor),
-            stack.topAnchor.constraint(equalTo: card.glass.contentView.topAnchor, constant: 28),
-            stack.bottomAnchor.constraint(equalTo: card.glass.contentView.bottomAnchor, constant: -28),
-            icon.widthAnchor.constraint(equalToConstant: 36),
-            icon.heightAnchor.constraint(equalToConstant: 36)
+            stack.centerXAnchor.constraint(equalTo: blur.contentView.centerXAnchor),
+            stack.topAnchor.constraint(equalTo: blur.contentView.topAnchor, constant: 28),
+            stack.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor, constant: -28),
+            icon.widthAnchor.constraint(equalToConstant: 34),
+            icon.heightAnchor.constraint(equalToConstant: 34)
         ])
     }
 }

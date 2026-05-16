@@ -7,6 +7,13 @@ final class FolderListViewController: UIViewController {
     private var folders: [Folder] = []
     private var itemCount: Int { folders.count + 1 }
 
+    // MARK: - Header
+
+    private let headerContainer = UIView()
+    private let titleLabel      = UILabel()
+
+    // MARK: - Collection
+
     private lazy var collectionView: UICollectionView = {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
         cv.backgroundColor = .clear
@@ -23,14 +30,14 @@ final class FolderListViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Папки"
         view.backgroundColor = DayPinDesign.background
 
         addStandardBackground()
+        buildHeader()
 
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            collectionView.topAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: 4),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -48,7 +55,37 @@ final class FolderListViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
         reload()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
+    // MARK: - Header builder
+
+    private func buildHeader() {
+        headerContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(headerContainer)
+        NSLayoutConstraint.activate([
+            headerContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 4),
+            headerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            headerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+        ])
+
+        titleLabel.text      = L10n.isRussian ? "Папки" : "Folders"
+        titleLabel.font      = DayPinDesign.fontScreenTitle
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        headerContainer.addSubview(titleLabel)
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 8),
+            titleLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -8)
+        ])
     }
 
     @objc private func onSchemeChanged() {

@@ -40,6 +40,12 @@ final class TodayViewController: UIViewController {
 
     private let weekStrip    = WeekCalendarView()
     private let filterChips  = FilterChipsView()
+    private let stripSeparator: UIView = {
+        let v = UIView()
+        v.backgroundColor = UIColor.separator.withAlphaComponent(0.35)
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
 
     // MARK: - Multi-select bar
 
@@ -293,6 +299,7 @@ final class TodayViewController: UIViewController {
 
         view.addSubview(headerContainer)
         view.addSubview(weekStrip)
+        view.addSubview(stripSeparator)
         view.addSubview(filterChips)
         view.addSubview(collectionView)
         view.addSubview(addButton)
@@ -308,7 +315,13 @@ final class TodayViewController: UIViewController {
             weekStrip.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             weekStrip.heightAnchor.constraint(equalToConstant: 106),
 
-            filterChips.topAnchor.constraint(equalTo: weekStrip.bottomAnchor, constant: 2),
+            // Separator between week strip and filter chips
+            stripSeparator.topAnchor.constraint(equalTo: weekStrip.bottomAnchor),
+            stripSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            stripSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            stripSeparator.heightAnchor.constraint(equalToConstant: 0.5),
+
+            filterChips.topAnchor.constraint(equalTo: stripSeparator.bottomAnchor, constant: 2),
             filterChips.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             filterChips.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             filterChips.heightAnchor.constraint(equalToConstant: 42),
@@ -772,17 +785,17 @@ final class TodayViewController: UIViewController {
 
     @objc private func addTapped() {
         let hasCamera = UIImagePickerController.isSourceTypeAvailable(.camera)
-        var actions: [GlassAction] = [
-            GlassAction(L10n.cardText,  icon: "text.alignleft")        { [weak self] in self?.presentTextEditor(card: nil) },
-            GlassAction(L10n.cardPhoto, icon: "photo.on.rectangle")     { [weak self] in self?.presentImagePicker() }
+        var actions: [AddNoteAction] = [
+            AddNoteAction(title: L10n.cardText,  icon: "text.alignleft",     badgeColor: DayPinDesign.textCardTint)  { [weak self] in self?.presentTextEditor(card: nil) },
+            AddNoteAction(title: L10n.cardPhoto, icon: "photo.on.rectangle", badgeColor: DayPinDesign.imageCardTint) { [weak self] in self?.presentImagePicker() }
         ]
         if hasCamera {
-            actions.append(GlassAction(L10n.cardCamera, icon: "camera") { [weak self] in self?.presentCamera() })
+            actions.append(AddNoteAction(title: L10n.cardCamera, icon: "camera", badgeColor: DayPinDesign.imageCardTint) { [weak self] in self?.presentCamera() })
         }
-        actions.append(GlassAction(L10n.cardLink, icon: "link") { [weak self] in self?.presentLinkEditor(card: nil) })
-        actions.append(GlassAction(L10n.cancel, style: .cancel))
-        GlassActionSheet.show(actions: actions, from: self, sourceView: addButton)
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        actions.append(AddNoteAction(title: L10n.cardLink, icon: "link", badgeColor: DayPinDesign.linkCardTint) { [weak self] in self?.presentLinkEditor(card: nil) })
+
+        let title = L10n.isRussian ? "Добавить заметку" : "Add note"
+        AddNoteMenuSheet.show(title: title, actions: actions, from: self, sourceView: addButton)
     }
 
     // MARK: - Editors

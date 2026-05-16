@@ -396,7 +396,7 @@ extension TasksViewController: UICollectionViewDelegate {
         case .text:
             navigationController?.pushViewController(CardDetailViewController(card: card as! TextCard), animated: true)
         case .image:
-            navigationController?.pushViewController(ImageCardDetailViewController(card: card as! ImageCard), animated: true)
+            navigationController?.pushViewController(ImageCardOverviewViewController(card: card as! ImageCard), animated: true)
         case .link:
             navigationController?.pushViewController(LinkCardDetailViewController(card: card as! LinkCard), animated: true)
         }

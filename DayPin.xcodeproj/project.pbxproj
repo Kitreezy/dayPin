@@ -13,8 +13,10 @@
 		0C0F02A57126691A485CFF89 /* CardDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A59E64560B7346557245FFA /* CardDetailViewController.swift */; };
 		0CF1639C195D572E2199D113 /* ThemePickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDAC5C9200B15A2043E1D00 /* ThemePickerViewController.swift */; };
 		0D8AB2A38FD61C26A47F7853 /* TagsInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66E6C3BF68BFC7A5F44687D3 /* TagsInputView.swift */; };
+		17E47A91401E960DFF7DCE9B /* DebugOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D64539BBE471B05377D8C336 /* DebugOverlayManager.swift */; };
 		19F7A5A39DC838597A38E2C4 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F473D4568577B2585DC4B38 /* SceneDelegate.swift */; };
 		19FC0DE6C76347A29F15A803 /* PinCalloutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 374A9BDC9E9CC25C8610CE2E /* PinCalloutView.swift */; };
+		1BF2F81BA6F322A94CF8999B /* ImageCardOverviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34A5C8F273063AC8AE0C9405 /* ImageCardOverviewViewController.swift */; };
 		1E295C1068A00192086AD7B3 /* UIViewController+Background.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77016B53BE93414539B50F7 /* UIViewController+Background.swift */; };
 		2CCC71FF999FF37DCAA1FAFD /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAB6DB7F4618AD0280A997B /* AppGroup.swift */; };
 		2FC7C9766BF5CACF7682A585 /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A0B2C80FF4EE654B63DEC539 /* CoreData.framework */; };
@@ -125,6 +127,7 @@
 		30A914DA461A375356AC698E /* FolderEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderEditorViewController.swift; sourceTree = "<group>"; };
 		31827B5D29FEBFD2617CF68B /* LinkWebBottomSheetViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkWebBottomSheetViewController.swift; sourceTree = "<group>"; };
 		33D225EB970A2AB18F0C8927 /* FolderListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderListViewController.swift; sourceTree = "<group>"; };
+		34A5C8F273063AC8AE0C9405 /* ImageCardOverviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardOverviewViewController.swift; sourceTree = "<group>"; };
 		374A9BDC9E9CC25C8610CE2E /* PinCalloutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCalloutView.swift; sourceTree = "<group>"; };
 		3811B493D58F8359A3B89668 /* WaveBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveBackgroundView.swift; sourceTree = "<group>"; };
 		3847EB514F49124182B1EF07 /* CopyToDayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyToDayViewController.swift; sourceTree = "<group>"; };
@@ -175,6 +178,7 @@
 		CB27345B79A1478C6625C834 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CBFA918314AD44DBBBA6F663 /* DayPin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DayPin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3F87653F31E1F676C6BC02F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		D64539BBE471B05377D8C336 /* DebugOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugOverlayManager.swift; sourceTree = "<group>"; };
 		D718FFF5FF6335D37905A1B7 /* ImageCardEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardEditorViewController.swift; sourceTree = "<group>"; };
 		D780AC9E6C938E931CDA2630 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
 		D8DFC0A641E91EA923710BEA /* DayPinDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinDesign.swift; sourceTree = "<group>"; };
@@ -333,6 +337,7 @@
 				C476DF2E0FAF4AC680C2160D /* FullScreenImageViewController.swift */,
 				47E4BD0248AB8E3A0BACB09C /* GlobalSearchViewController.swift */,
 				77DAC93E6FD3A6C2583C46F0 /* ImageCardDetailViewController.swift */,
+				34A5C8F273063AC8AE0C9405 /* ImageCardOverviewViewController.swift */,
 				27A5F1E6ABECBB2FF81EAA83 /* LinkCardDetailViewController.swift */,
 				31827B5D29FEBFD2617CF68B /* LinkWebBottomSheetViewController.swift */,
 				B5BB7279FAD69E786324076A /* PinListViewController.swift */,
@@ -464,6 +469,7 @@
 			children = (
 				71B8970D420311817204CD37 /* AppDelegate.swift */,
 				96922C6D1A0F8B077435CF3B /* BackgroundManager.swift */,
+				D64539BBE471B05377D8C336 /* DebugOverlayManager.swift */,
 				E002B3223FA9BF36D228C41B /* Extensions.swift */,
 				5B65E4AA4B0A333783B6B900 /* L10n.swift */,
 				2F473D4568577B2585DC4B38 /* SceneDelegate.swift */,
@@ -600,6 +606,7 @@
 				622B5809485F24CF32153CE9 /* DayDetailViewController.swift in Sources */,
 				CC373B9A83339D3F19750266 /* DayPinDesign.swift in Sources */,
 				CBF583F9E49A78C93D7AC6F1 /* DayPinFont.swift in Sources */,
+				17E47A91401E960DFF7DCE9B /* DebugOverlayManager.swift in Sources */,
 				48B993E645C6B1E97107B5CD /* Extensions.swift in Sources */,
 				B9811ECF500C51A5DB93B810 /* FilterChipsView.swift in Sources */,
 				34FDB62001AFEE19DDBD9F93 /* FolderDetailViewController.swift in Sources */,
@@ -615,6 +622,7 @@
 				A406F0465B94FDFA7430E16B /* ImageCardCell.swift in Sources */,
 				091D0EC24963764C8D143664 /* ImageCardDetailViewController.swift in Sources */,
 				AA4FEC496D4EA9FE35E1F88F /* ImageCardEditorViewController.swift in Sources */,
+				1BF2F81BA6F322A94CF8999B /* ImageCardOverviewViewController.swift in Sources */,
 				FD36EA16A0144EDA394BB7F8 /* L10n.swift in Sources */,
 				5FF8EC089219B0CCA4946409 /* LinkCardCell.swift in Sources */,
 				9F1EBAFF3D91A5E71CB648CE /* LinkCardDetailViewController.swift in Sources */,

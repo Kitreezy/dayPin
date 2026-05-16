@@ -11,7 +11,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
-        let window = UIWindow(windowScene: windowScene)
+        let window = DayPinWindow(windowScene: windowScene)
         let rootVC = MainContainerViewController()
         window.rootViewController = rootVC
         window.makeKeyAndVisible()
@@ -96,7 +96,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         case .text:
             detailVC = CardDetailViewController(card: card as! TextCard)
         case .image:
-            detailVC = ImageCardDetailViewController(card: card as! ImageCard)
+            detailVC = ImageCardOverviewViewController(card: card as! ImageCard)
         case .link:
             detailVC = LinkCardDetailViewController(card: card as! LinkCard)
         }

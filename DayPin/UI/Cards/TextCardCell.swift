@@ -130,21 +130,52 @@ final class EmptyCardCell: UICollectionViewCell {
     private func setup() {
         backgroundColor = .clear
 
-        // Very light frosted glass — stays transparent over any background
-        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
-        blur.translatesAutoresizingMaskIntoConstraints = false
-        blur.layer.cornerRadius  = 16
-        blur.layer.masksToBounds = true
-        blur.layer.borderWidth   = 0.5
-        blur.layer.borderColor   = UIColor.separator.withAlphaComponent(0.35).cgColor
-        // Hairline white sheen inside the blur to give it a frosted-glass feel without adding weight
-        blur.contentView.backgroundColor = UIColor.white.withAlphaComponent(0.06)
-        contentView.addSubview(blur)
+        // Shadow outer wrapper — no clip so shadow renders outside rounded rect
+        let outer = UIView()
+        outer.layer.cornerRadius  = 16
+        outer.layer.shadowColor   = UIColor.black.cgColor
+        outer.layer.shadowOpacity = 0.10
+        outer.layer.shadowRadius  = 14
+        outer.layer.shadowOffset  = CGSize(width: 0, height: 3)
+        outer.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(outer)
         NSLayoutConstraint.activate([
-            blur.topAnchor.constraint(equalTo: contentView.topAnchor),
-            blur.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            blur.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            blur.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            outer.topAnchor.constraint(equalTo: contentView.topAnchor),
+            outer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            outer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            outer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+        ])
+
+        // Frosted glass — same material & border as PillTabBar
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+        blur.layer.cornerRadius = 16
+        blur.clipsToBounds      = true
+        blur.layer.borderWidth  = 0.5
+        blur.layer.borderColor  = UIColor.white.withAlphaComponent(0.18).cgColor
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        outer.addSubview(blur)
+        NSLayoutConstraint.activate([
+            blur.topAnchor.constraint(equalTo: outer.topAnchor),
+            blur.leadingAnchor.constraint(equalTo: outer.leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: outer.trailingAnchor),
+            blur.bottomAnchor.constraint(equalTo: outer.bottomAnchor)
+        ])
+
+        // Tint overlay — NEVER set contentView.backgroundColor directly (breaks blur on iOS 17+)
+        // 0.13 white in dark mode is the sweet spot: visible as "lighter card" without looking opaque
+        let tint = UIView()
+        tint.translatesAutoresizingMaskIntoConstraints = false
+        tint.backgroundColor = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(white: 1.0, alpha: 0.13)
+                : UIColor(white: 1.0, alpha: 0.60)
+        }
+        blur.contentView.addSubview(tint)
+        NSLayoutConstraint.activate([
+            tint.topAnchor.constraint(equalTo: blur.contentView.topAnchor),
+            tint.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor),
+            tint.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor),
+            tint.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
         ])
 
         let icon = UIImageView(image: UIImage(systemName: "note.text"))

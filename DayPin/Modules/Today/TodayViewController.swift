@@ -116,12 +116,7 @@ final class TodayViewController: UIViewController {
         return cv
     }()
 
-    private lazy var addButton: GlassFABView = {
-        let fab = GlassFABView()
-        fab.translatesAutoresizingMaskIntoConstraints = false
-        fab.action = { [weak self] in self?.addTapped() }
-        return fab
-    }()
+    // addButton removed — add actions now come from the global grid in MainContainerViewController
 
     // MARK: - Lifecycle
 
@@ -154,6 +149,11 @@ final class TodayViewController: UIViewController {
             name: .dayPinLanguageChanged,
             object: nil
         )
+        // Typed add-note notifications from the global action grid
+        NotificationCenter.default.addObserver(self, selector: #selector(onAddText),   name: .dayPinAddText,   object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onAddPhoto),  name: .dayPinAddPhoto,  object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onAddCamera), name: .dayPinAddCamera, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onAddLink),   name: .dayPinAddLink,   object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -192,7 +192,6 @@ final class TodayViewController: UIViewController {
         view.backgroundColor = DayPinDesign.background
         refreshButtonColors()
         collectionView.reloadData()
-        addButton.refresh()
         rebuildMoreMenu()
     }
 
@@ -302,7 +301,6 @@ final class TodayViewController: UIViewController {
         view.addSubview(stripSeparator)
         view.addSubview(filterChips)
         view.addSubview(collectionView)
-        view.addSubview(addButton)
         view.addSubview(selectionBar)
 
         NSLayoutConstraint.activate([
@@ -330,11 +328,6 @@ final class TodayViewController: UIViewController {
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-            addButton.widthAnchor.constraint(equalToConstant: 52),
-            addButton.heightAnchor.constraint(equalToConstant: 52),
 
             selectionBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             selectionBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -625,7 +618,6 @@ final class TodayViewController: UIViewController {
             UIBarButtonItem(title: "Готово", style: .done, target: self, action: #selector(exitSelectModeTapped))
         ]
 
-        addButton.isHidden = true
         selectionBar.isHidden = false
 
         UIView.animate(withDuration: 0.2) { self.selectionBar.alpha = 1 }
@@ -643,7 +635,6 @@ final class TodayViewController: UIViewController {
         navigationItem.leftBarButtonItem  = nil
         navigationItem.rightBarButtonItems = []
 
-        addButton.isHidden    = false
         selectionBar.isHidden = true
 
         collectionView.reloadData()
@@ -781,22 +772,17 @@ final class TodayViewController: UIViewController {
         present(sheet, animated: true)
     }
 
-    // MARK: - Add action
+    // MARK: - Add action (used by widget deep-link via "daypin.triggerAdd" notification)
 
     @objc private func addTapped() {
-        let hasCamera = UIImagePickerController.isSourceTypeAvailable(.camera)
-        var actions: [AddNoteAction] = [
-            AddNoteAction(title: L10n.cardText,  icon: "text.alignleft",     badgeColor: DayPinDesign.textCardTint)  { [weak self] in self?.presentTextEditor(card: nil) },
-            AddNoteAction(title: L10n.cardPhoto, icon: "photo.on.rectangle", badgeColor: DayPinDesign.imageCardTint) { [weak self] in self?.presentImagePicker() }
-        ]
-        if hasCamera {
-            actions.append(AddNoteAction(title: L10n.cardCamera, icon: "camera", badgeColor: DayPinDesign.imageCardTint) { [weak self] in self?.presentCamera() })
-        }
-        actions.append(AddNoteAction(title: L10n.cardLink, icon: "link", badgeColor: DayPinDesign.linkCardTint) { [weak self] in self?.presentLinkEditor(card: nil) })
-
-        let title = L10n.isRussian ? "Добавить заметку" : "Add note"
-        AddNoteMenuSheet.show(title: title, actions: actions, from: self, sourceView: addButton)
+        presentTextEditor(card: nil)
     }
+
+    // Typed add handlers — triggered by the global action grid in MainContainerViewController
+    @objc private func onAddText()   { presentTextEditor(card: nil) }
+    @objc private func onAddPhoto()  { presentImagePicker() }
+    @objc private func onAddCamera() { presentCamera() }
+    @objc private func onAddLink()   { presentLinkEditor(card: nil) }
 
     // MARK: - Editors
 

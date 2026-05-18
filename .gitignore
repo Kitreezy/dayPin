@@ -62,3 +62,7 @@ secrets.json
 
 # ─── project.yml (XcodeGen) ──────────────────────────────
 # Keep project.yml tracked, ignore generated xcodeproj internals above
+
+# ─── Claude Code ─────────────────────────────────────────
+CLAUDE.md
+.claude/

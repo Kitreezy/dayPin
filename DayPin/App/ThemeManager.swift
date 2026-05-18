@@ -5,6 +5,11 @@ import WidgetKit
 
 extension Notification.Name {
     static let dayPinColorSchemeChanged = Notification.Name("dayPinColorSchemeChanged")
+    // Add-note typed triggers (posted by the global "+" grid, consumed by active VC)
+    static let dayPinAddText   = Notification.Name("daypin.addText")
+    static let dayPinAddPhoto  = Notification.Name("daypin.addPhoto")
+    static let dayPinAddCamera = Notification.Name("daypin.addCamera")
+    static let dayPinAddLink   = Notification.Name("daypin.addLink")
 }
 
 // MARK: - AppTheme (brightness)

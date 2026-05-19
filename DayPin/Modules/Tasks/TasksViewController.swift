@@ -115,7 +115,7 @@ final class TasksViewController: UIViewController {
         headerContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(headerContainer)
 
-        titleLabel.text      = L10n.isRussian ? "Все" : "All"
+        titleLabel.text      = L10n.tabAll
         titleLabel.font      = .inter(ofSize: 34, weight: .bold)
         titleLabel.textColor = .label
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -299,7 +299,7 @@ final class TasksViewController: UIViewController {
 
     @objc private func onSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
-        titleLabel.text = L10n.isRussian ? "Все" : "All"
+        titleLabel.text = L10n.tabAll
         refreshButtonColors()
         collectionView.reloadData()
     }
@@ -364,23 +364,28 @@ extension TasksViewController: UICollectionViewDataSource {
         let card = sections[indexPath.section].cards[indexPath.item]
         switch card.type {
         case .text:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as! TextCardCell
-            cell.configure(with: card as! TextCard); return cell
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as? TextCardCell,
+                  let text = card as? TextCard else { return UICollectionViewCell() }
+            cell.configure(with: text); return cell
         case .image:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as! ImageCardCell
-            cell.configure(with: card as! ImageCard); return cell
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as? ImageCardCell,
+                  let image = card as? ImageCard else { return UICollectionViewCell() }
+            cell.configure(with: image); return cell
         case .link:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as! LinkCardCell
-            cell.configure(with: card as! LinkCard); return cell
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as? LinkCardCell,
+                  let link = card as? LinkCard else { return UICollectionViewCell() }
+            cell.configure(with: link); return cell
         }
     }
 
     func collectionView(_ collectionView: UICollectionView,
                         viewForSupplementaryElementOfKind kind: String,
                         at indexPath: IndexPath) -> UICollectionReusableView {
-        let header = collectionView.dequeueReusableSupplementaryView(
+        guard let header = collectionView.dequeueReusableSupplementaryView(
             ofKind: kind, withReuseIdentifier: TasksSectionHeader.reuseID, for: indexPath
-        ) as! TasksSectionHeader
+        ) as? TasksSectionHeader else {
+            return UICollectionReusableView()
+        }
         header.configure(date: sections[indexPath.section].date)
         return header
     }
@@ -394,11 +399,14 @@ extension TasksViewController: UICollectionViewDelegate {
         let card = sections[indexPath.section].cards[indexPath.item]
         switch card.type {
         case .text:
-            navigationController?.pushViewController(CardDetailViewController(card: card as! TextCard), animated: true)
+            guard let text = card as? TextCard else { return }
+            navigationController?.pushViewController(CardDetailViewController(card: text), animated: true)
         case .image:
-            navigationController?.pushViewController(ImageCardOverviewViewController(card: card as! ImageCard), animated: true)
+            guard let image = card as? ImageCard else { return }
+            navigationController?.pushViewController(ImageCardOverviewViewController(card: image), animated: true)
         case .link:
-            navigationController?.pushViewController(LinkCardDetailViewController(card: card as! LinkCard), animated: true)
+            guard let link = card as? LinkCard else { return }
+            navigationController?.pushViewController(LinkCardDetailViewController(card: link), animated: true)
         }
     }
 

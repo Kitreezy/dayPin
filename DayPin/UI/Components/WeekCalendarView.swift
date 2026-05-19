@@ -140,11 +140,11 @@ final class WeekCalendarView: UIView {
         monthFmt.dateFormat = "MMM"
 
         if startMon == endMon {
-            weekRangeLabel.text = "\(startDay)–\(endDay) \(monthFmt.string(from: weekEnd).uppercased())"
+            weekRangeLabel.text = "\(startDay)-\(endDay) \(monthFmt.string(from: weekEnd).uppercased())"
         } else {
             let s = "\(startDay) \(monthFmt.string(from: weekStart).uppercased())"
             let e = "\(endDay) \(monthFmt.string(from: weekEnd).uppercased())"
-            weekRangeLabel.text = "\(s) – \(e)"
+            weekRangeLabel.text = "\(s) - \(e)"
         }
     }
 
@@ -328,9 +328,9 @@ private final class DayButton: UIButton {
         if selected {
             selectionRect.backgroundColor   = DayPinDesign.accent
             selectionRect.layer.borderWidth = 0
-            numLabel.textColor  = .white
+            numLabel.textColor  = UIColor(dynamicProvider: { _ in UIColor.white })
             numLabel.font       = .inter(ofSize: 15, weight: .bold)
-            noteDot.backgroundColor = UIColor.white.withAlphaComponent(0.8)
+            noteDot.backgroundColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.8)
         } else {
             selectionRect.backgroundColor   = .clear
             selectionRect.layer.borderWidth = isToday ? 1.5 : 0

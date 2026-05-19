@@ -33,6 +33,30 @@ final class PinListViewController: UIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = L10n.pinList
+        tableView.reloadData()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
     }
 }
 

@@ -28,6 +28,10 @@ final class FolderDetailViewController: UIViewController {
     }
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -36,6 +40,7 @@ final class FolderDetailViewController: UIViewController {
         view.backgroundColor = DayPinDesign.background
         setupNav()
         setupUI()
+        observeNotifications()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -43,6 +48,24 @@ final class FolderDetailViewController: UIViewController {
         navigationController?.interactivePopGestureRecognizer?.delegate = nil
         navigationController?.interactivePopGestureRecognizer?.isEnabled = true
         loadCards()
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        collectionView.reloadData()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        collectionView.reloadData()
     }
 
     // MARK: - Setup
@@ -107,8 +130,8 @@ final class FolderDetailViewController: UIViewController {
 
     @objc private func addNote() {
         let today = Calendar.current.startOfDay(for: Date())
-        let sheet = UIAlertController(title: "Новая заметка", message: nil, preferredStyle: .actionSheet)
-        sheet.addAction(UIAlertAction(title: "Текст", style: .default) { [weak self] (_: UIAlertAction) in
+        let sheet = UIAlertController(title: L10n.newNote, message: nil, preferredStyle: .actionSheet)
+        sheet.addAction(UIAlertAction(title: L10n.cardText, style: .default) { [weak self] (_: UIAlertAction) in
             guard let self else { return }
             let vc = TextCardEditorViewController(card: nil, dayDate: today)
             vc.onSave = { [weak self] saved in
@@ -119,7 +142,7 @@ final class FolderDetailViewController: UIViewController {
             }
             self.presentEditorSheet(vc)
         })
-        sheet.addAction(UIAlertAction(title: "Изображение", style: .default) { [weak self] (_: UIAlertAction) in
+        sheet.addAction(UIAlertAction(title: L10n.imageLabel, style: .default) { [weak self] (_: UIAlertAction) in
             guard let self else { return }
             let vc = ImageCardEditorViewController(imageData: nil, dayDate: today, existingCard: nil)
             vc.onSave = { [weak self] saved in
@@ -130,7 +153,7 @@ final class FolderDetailViewController: UIViewController {
             }
             self.present(UINavigationController(rootViewController: vc), animated: true)
         })
-        sheet.addAction(UIAlertAction(title: "Добавить существующие", style: .default) { [weak self] (_: UIAlertAction) in
+        sheet.addAction(UIAlertAction(title: L10n.addExisting, style: .default) { [weak self] (_: UIAlertAction) in
             guard let self else { return }
             let vc = NotePickerViewController(folderID: self.folder.id)
             vc.onAdd = { [weak self] notes in
@@ -144,7 +167,7 @@ final class FolderDetailViewController: UIViewController {
             }
             self.present(UINavigationController(rootViewController: vc), animated: true)
         })
-        sheet.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
         present(sheet, animated: true)
     }
 
@@ -161,11 +184,14 @@ final class FolderDetailViewController: UIViewController {
     private func openCard(_ card: NoteCard) {
         switch card.type {
         case .text:
-            navigationController?.pushViewController(CardDetailViewController(card: card as! TextCard), animated: true)
+            guard let textCard = card as? TextCard else { return }
+            navigationController?.pushViewController(CardDetailViewController(card: textCard), animated: true)
         case .image:
-            navigationController?.pushViewController(ImageCardOverviewViewController(card: card as! ImageCard), animated: true)
+            guard let imageCard = card as? ImageCard else { return }
+            navigationController?.pushViewController(ImageCardOverviewViewController(card: imageCard), animated: true)
         case .link:
-            navigationController?.pushViewController(LinkCardDetailViewController(card: card as! LinkCard), animated: true)
+            guard let linkCard = card as? LinkCard else { return }
+            navigationController?.pushViewController(LinkCardDetailViewController(card: linkCard), animated: true)
         }
     }
 }
@@ -180,19 +206,25 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if cards.isEmpty {
-            return collectionView.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath) as! EmptyCardCell
+            guard let empty = collectionView.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath) as? EmptyCardCell else {
+                return UICollectionViewCell()
+            }
+            return empty
         }
         let card = cards[indexPath.item]
         switch card.type {
         case .text:
-            let c = collectionView.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as! TextCardCell
-            c.configure(with: card as! TextCard); return c
+            guard let c = collectionView.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as? TextCardCell,
+                  let textCard = card as? TextCard else { return UICollectionViewCell() }
+            c.configure(with: textCard); return c
         case .image:
-            let c = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as! ImageCardCell
-            c.configure(with: card as! ImageCard); return c
+            guard let c = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as? ImageCardCell,
+                  let imageCard = card as? ImageCard else { return UICollectionViewCell() }
+            c.configure(with: imageCard); return c
         case .link:
-            let c = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as! LinkCardCell
-            c.configure(with: card as! LinkCard); return c
+            guard let c = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as? LinkCardCell,
+                  let linkCard = card as? LinkCard else { return UICollectionViewCell() }
+            c.configure(with: linkCard); return c
         }
     }
 
@@ -209,7 +241,7 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
 
-            let share = UIAction(title: "Поделиться",
+            let share = UIAction(title: L10n.share,
                                  image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
                 guard let self else { return }
                 var items: [Any] = [card.title]
@@ -218,7 +250,7 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
                 self.present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
             }
 
-            let copy = UIAction(title: "Скопировать в день",
+            let copy = UIAction(title: L10n.copyToDay,
                                 image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
                 guard let self else { return }
                 let vc = CopyToDayViewController()
@@ -229,7 +261,7 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
                 self.present(UINavigationController(rootViewController: vc), animated: true)
             }
 
-            let remove = UIAction(title: "Убрать из папки",
+            let remove = UIAction(title: L10n.removeFromFolder,
                                   image: UIImage(systemName: "folder.badge.minus"),
                                   attributes: .destructive) { [weak self] _ in
                 card.folderID = nil

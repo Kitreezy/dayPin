@@ -20,6 +20,8 @@ final class RecentPhotosPickerViewController: UIViewController {
     private let imageManager = PHCachingImageManager()
     private var collectionView: UICollectionView!
     private let thumbSize = CGSize(width: 240, height: 240)
+    private let headerLabel = UILabel()
+    private weak var showAllButton: UIButton?
 
     // MARK: - Lifecycle
 
@@ -30,6 +32,30 @@ final class RecentPhotosPickerViewController: UIViewController {
         setupCollection()
         setupAllPhotosButton()
         loadAssets()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        headerLabel.text = L10n.recentPhotos
+        showAllButton?.setTitle(L10n.showAllPhotos, for: .normal)
+    }
+
+    @objc private func onColorSchemeChanged() {
+        showAllButton?.tintColor = DayPinDesign.accent
+        showAllButton?.setTitleColor(DayPinDesign.accent, for: .normal)
     }
 
     // MARK: - Sheet appearance
@@ -37,8 +63,8 @@ final class RecentPhotosPickerViewController: UIViewController {
     private func setupSheet() {
         view.backgroundColor = UIColor { t in
             t.userInterfaceStyle == .dark
-                ? UIColor(hex: "#111111")!
-                : UIColor(hex: "#F7F7F7")!
+                ? UIColor(hex: "#111111") ?? .black
+                : UIColor(hex: "#F7F7F7") ?? .systemBackground
         }
         view.layer.cornerRadius = 24
         view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
@@ -55,16 +81,15 @@ final class RecentPhotosPickerViewController: UIViewController {
     // MARK: - Header
 
     private func setupHeader() {
-        let label = UILabel()
-        label.text = "Последние фото"
-        label.font = .inter(ofSize: 17, weight: .semibold)
-        label.textColor = .label
-        label.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(label)
+        headerLabel.text = L10n.recentPhotos
+        headerLabel.font = .inter(ofSize: 17, weight: .semibold)
+        headerLabel.textColor = .label
+        headerLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(headerLabel)
 
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: view.topAnchor, constant: 28),
-            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20)
+            headerLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 28),
+            headerLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20)
         ])
     }
 
@@ -104,8 +129,8 @@ final class RecentPhotosPickerViewController: UIViewController {
         let container = UIView()
         container.backgroundColor = UIColor { t in
             t.userInterfaceStyle == .dark
-                ? UIColor(hex: "#1C1C1E")!
-                : .white
+                ? UIColor(hex: "#1C1C1E") ?? .secondarySystemBackground
+                : .systemBackground
         }
         container.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(container)
@@ -113,13 +138,14 @@ final class RecentPhotosPickerViewController: UIViewController {
         let btn = UIButton(type: .system)
         let cfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
         btn.setImage(UIImage(systemName: "photo.stack", withConfiguration: cfg), for: .normal)
-        btn.setTitle("  Показать все фото", for: .normal)
+        btn.setTitle(L10n.showAllPhotos, for: .normal)
         btn.titleLabel?.font = .inter(ofSize: 16, weight: .semibold)
         btn.tintColor = DayPinDesign.accent
         btn.setTitleColor(DayPinDesign.accent, for: .normal)
         btn.addTarget(self, action: #selector(showAllTapped), for: .touchUpInside)
         btn.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(btn)
+        showAllButton = btn
 
         NSLayoutConstraint.activate([
             container.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -217,7 +243,9 @@ extension RecentPhotosPickerViewController: UICollectionViewDataSource {
     func collectionView(_ cv: UICollectionView, numberOfItemsInSection s: Int) -> Int { assets.count }
 
     func collectionView(_ cv: UICollectionView, cellForItemAt ip: IndexPath) -> UICollectionViewCell {
-        let cell = cv.dequeueReusableCell(withReuseIdentifier: RecentPhotoCell.reuseID, for: ip) as! RecentPhotoCell
+        guard let cell = cv.dequeueReusableCell(withReuseIdentifier: RecentPhotoCell.reuseID, for: ip) as? RecentPhotoCell else {
+            return UICollectionViewCell()
+        }
         let asset = assets[ip.item]
         cell.representedID = asset.localIdentifier
         let opts = PHImageRequestOptions()
@@ -251,7 +279,11 @@ private final class RecentPhotoCell: UICollectionViewCell {
         super.init(frame: frame)
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.backgroundColor = UIColor(white: 0.18, alpha: 1)
+        imageView.backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor(white: 0.18, alpha: 1)
+                : UIColor(white: 0.88, alpha: 1)
+        }
         imageView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(imageView)
         NSLayoutConstraint.activate([

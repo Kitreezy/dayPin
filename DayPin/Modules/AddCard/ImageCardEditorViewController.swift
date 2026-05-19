@@ -14,7 +14,11 @@ private final class PhotoThumbCell: UICollectionViewCell {
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 8
-        imageView.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        imageView.backgroundColor = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.08)
+                : UIColor.white.withAlphaComponent(0.08)
+        }
         imageView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(imageView)
         NSLayoutConstraint.activate([
@@ -48,8 +52,8 @@ final class ImageCardEditorViewController: UIViewController {
     private var annotations: [ImageAnnotation] = []
 
     private var recentAssets: [PHAsset] = []
-    private var stripCollection: UICollectionView!
-    private var stripContainer: UIView!
+    private var stripCollection: UICollectionView?
+    private var stripContainer: UIView?
     private let imageManager = PHCachingImageManager()
 
     init(imageData: Data?, dayDate: Date, existingCard: ImageCard?) {
@@ -68,21 +72,27 @@ final class ImageCardEditorViewController: UIViewController {
         // Extend view behind nav bar so photo fills edge-to-edge
         edgesForExtendedLayout = .all
         extendedLayoutIncludesOpaqueBars = true
-        view.backgroundColor = .black
+        view.backgroundColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .black : .black }
         setupNav()
         setupUI()
         fillIfEditing()
-        stripContainer.isHidden = false
+        stripContainer?.isHidden = false
         loadRecentPhotosIfAuthorized()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Nav
 
     private func setupNav() {
-        // Transparent nav bar for this screen
+        // Transparent nav bar for this screen (image overlay - white always readable on photo)
+        let navColor = UIColor { t in t.userInterfaceStyle == .dark ? .white : .white }
         let appearance = UINavigationBarAppearance()
         appearance.configureWithTransparentBackground()
-        appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
+        appearance.titleTextAttributes = [.foregroundColor: navColor]
         navigationItem.standardAppearance   = appearance
         navigationItem.scrollEdgeAppearance = appearance
         navigationItem.compactAppearance    = appearance
@@ -91,12 +101,29 @@ final class ImageCardEditorViewController: UIViewController {
             image: UIImage(systemName: "xmark"),
             style: .plain, target: self, action: #selector(cancel)
         )
-        navigationItem.leftBarButtonItem?.tintColor = .white
+        navigationItem.leftBarButtonItem?.tintColor = navColor
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             title: L10n.save, style: .done, target: self, action: #selector(save)
         )
         navigationItem.rightBarButtonItem?.tintColor = DayPinDesign.accentLight
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        setupNav()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        setupNav()
     }
 
     // MARK: - UI
@@ -144,10 +171,14 @@ final class ImageCardEditorViewController: UIViewController {
 
         titleField.attributedPlaceholder = NSAttributedString(
             string: L10n.photoName,
-            attributes: [.foregroundColor: UIColor.white.withAlphaComponent(0.4)]
+            attributes: [.foregroundColor: UIColor { trait in
+                trait.userInterfaceStyle == .dark
+                    ? UIColor.white.withAlphaComponent(0.4)
+                    : UIColor.white.withAlphaComponent(0.4)
+            }]
         )
         titleField.font        = .inter(ofSize: 15, weight: .medium)
-        titleField.textColor   = .white
+        titleField.textColor   = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         titleField.borderStyle = .none
         titleField.translatesAutoresizingMaskIntoConstraints = false
         titleBlur.contentView.addSubview(titleField)
@@ -155,7 +186,11 @@ final class ImageCardEditorViewController: UIViewController {
         let changeBtn = UIButton(type: .system)
         let btnCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
         changeBtn.setImage(UIImage(systemName: "photo.badge.arrow.down", withConfiguration: btnCfg), for: .normal)
-        changeBtn.tintColor = UIColor.white.withAlphaComponent(0.75)
+        changeBtn.tintColor = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.75)
+                : UIColor.white.withAlphaComponent(0.75)
+        }
         changeBtn.addTarget(self, action: #selector(imageActionsTapped), for: .touchUpInside)
         changeBtn.translatesAutoresizingMaskIntoConstraints = false
         titleBlur.contentView.addSubview(changeBtn)
@@ -199,7 +234,7 @@ final class ImageCardEditorViewController: UIViewController {
 
         // Top separator line
         let sep = UIView()
-        sep.backgroundColor = UIColor.white.withAlphaComponent(0.10)
+        sep.backgroundColor = UIColor { trait in UIColor.white.withAlphaComponent(0.10) }
         sep.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(sep)
 
@@ -207,7 +242,7 @@ final class ImageCardEditorViewController: UIViewController {
         let hintLabel = UILabel()
         hintLabel.text      = L10n.annotationHint
         hintLabel.font      = .inter(ofSize: 11, weight: .regular)
-        hintLabel.textColor = UIColor.white.withAlphaComponent(0.50)
+        hintLabel.textColor = UIColor { trait in UIColor.white.withAlphaComponent(0.50) }
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(hintLabel)
 
@@ -215,14 +250,14 @@ final class ImageCardEditorViewController: UIViewController {
         let allPhotosBtn = UIButton(type: .system)
         let allCfg = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
         allPhotosBtn.setImage(UIImage(systemName: "photo.stack", withConfiguration: allCfg), for: .normal)
-        allPhotosBtn.tintColor = UIColor.white.withAlphaComponent(0.65)
+        allPhotosBtn.tintColor = UIColor { trait in UIColor.white.withAlphaComponent(0.65) }
         allPhotosBtn.addTarget(self, action: #selector(presentImagePicker), for: .touchUpInside)
         allPhotosBtn.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(allPhotosBtn)
 
         // Strip divider (vertical, between strip and "Все фото" button)
         let vSep = UIView()
-        vSep.backgroundColor = UIColor.white.withAlphaComponent(0.10)
+        vSep.backgroundColor = UIColor { trait in UIColor.white.withAlphaComponent(0.10) }
         vSep.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(vSep)
 
@@ -233,14 +268,15 @@ final class ImageCardEditorViewController: UIViewController {
         layout.minimumLineSpacing = 5
         layout.sectionInset = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 8)
 
-        stripCollection = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        stripCollection.backgroundColor = .clear
-        stripCollection.showsHorizontalScrollIndicator = false
-        stripCollection.register(PhotoThumbCell.self, forCellWithReuseIdentifier: PhotoThumbCell.reuseID)
-        stripCollection.dataSource = self
-        stripCollection.delegate   = self
-        stripCollection.translatesAutoresizingMaskIntoConstraints = false
-        bottomPanel.contentView.addSubview(stripCollection)
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.backgroundColor = .clear
+        collectionView.showsHorizontalScrollIndicator = false
+        collectionView.register(PhotoThumbCell.self, forCellWithReuseIdentifier: PhotoThumbCell.reuseID)
+        collectionView.dataSource = self
+        collectionView.delegate   = self
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        bottomPanel.contentView.addSubview(collectionView)
+        stripCollection = collectionView
 
         NSLayoutConstraint.activate([
             // Tags row — just above bottom panel
@@ -277,11 +313,11 @@ final class ImageCardEditorViewController: UIViewController {
             vSep.widthAnchor.constraint(equalToConstant: 0.5),
 
             // Strip collection
-            stripCollection.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 6),
-            stripCollection.leadingAnchor.constraint(equalTo: bottomPanel.contentView.leadingAnchor),
-            stripCollection.trailingAnchor.constraint(equalTo: vSep.leadingAnchor),
-            stripCollection.heightAnchor.constraint(equalToConstant: 66),
-            stripCollection.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8)
+            collectionView.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 6),
+            collectionView.leadingAnchor.constraint(equalTo: bottomPanel.contentView.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: vSep.leadingAnchor),
+            collectionView.heightAnchor.constraint(equalToConstant: 66),
+            collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8)
         ])
     }
 
@@ -314,7 +350,7 @@ final class ImageCardEditorViewController: UIViewController {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.recentAssets = assets
-                self.stripCollection.reloadData()
+                self.stripCollection?.reloadData()
             }
         }
     }
@@ -391,7 +427,9 @@ extension ImageCardEditorViewController: UICollectionViewDataSource {
     func collectionView(_ cv: UICollectionView, numberOfItemsInSection s: Int) -> Int { recentAssets.count }
 
     func collectionView(_ cv: UICollectionView, cellForItemAt ip: IndexPath) -> UICollectionViewCell {
-        let cell = cv.dequeueReusableCell(withReuseIdentifier: PhotoThumbCell.reuseID, for: ip) as! PhotoThumbCell
+        guard let cell = cv.dequeueReusableCell(withReuseIdentifier: PhotoThumbCell.reuseID, for: ip) as? PhotoThumbCell else {
+            return UICollectionViewCell()
+        }
         let asset = recentAssets[ip.item]
         cell.representedID = asset.localIdentifier
         let opts = PHImageRequestOptions()

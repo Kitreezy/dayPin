@@ -94,6 +94,7 @@ final class ImageCardOverviewViewController: UIViewController {
         buildFixedAddPinButton()
         loadAnnotations()
         observeKeyboard()
+        observeNotifications()
 
         // Tap anywhere on the scroll content → dismiss keyboard
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
@@ -185,6 +186,31 @@ final class ImageCardOverviewViewController: UIViewController {
         view.endEditing(true)
     }
 
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        let displayTitle = card.title.isEmpty ? L10n.cardTypePhoto : card.title
+        navTitleLabel.text = displayTitle
+        backButton.setTitle(" \(L10n.back)", for: .normal)
+        addPinButton.setTitle(L10n.addPinButton, for: .normal)
+        loadAnnotations()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        backButton.tintColor = DayPinDesign.accent
+        backButton.setTitleColor(DayPinDesign.accent, for: .normal)
+        addPinButton.setTitleColor(DayPinDesign.accent, for: .normal)
+        refreshBell()
+    }
+
     // MARK: - Custom nav bar (above photo, standard colors)
 
     private func buildCustomNavBar() {
@@ -200,7 +226,7 @@ final class ImageCardOverviewViewController: UIViewController {
         // Back button
         let chevronCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
         backButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: chevronCfg), for: .normal)
-        backButton.setTitle(L10n.isRussian ? " Назад" : " Back", for: .normal)
+        backButton.setTitle(" \(L10n.back)", for: .normal)
         backButton.tintColor = DayPinDesign.accent
         backButton.setTitleColor(DayPinDesign.accent, for: .normal)
         backButton.titleLabel?.font = .inter(ofSize: 16, weight: .regular)
@@ -208,7 +234,7 @@ final class ImageCardOverviewViewController: UIViewController {
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
 
         // Title
-        let displayTitle = card.title.isEmpty ? (L10n.isRussian ? "Фото" : "Photo") : card.title
+        let displayTitle = card.title.isEmpty ? L10n.cardTypePhoto : card.title
         navTitleLabel.text          = displayTitle
         navTitleLabel.font          = .inter(ofSize: 17, weight: .semibold)
         navTitleLabel.textColor     = .label
@@ -278,7 +304,7 @@ final class ImageCardOverviewViewController: UIViewController {
 
     private func buildPhotoZone() {
         // Fix 1: black background prevents white flash while image loads
-        photoContainer.backgroundColor = .black
+        photoContainer.backgroundColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .black : .black }
         photoContainer.clipsToBounds   = true
         photoContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(photoContainer)
@@ -286,7 +312,7 @@ final class ImageCardOverviewViewController: UIViewController {
         photoImageView.contentMode   = .scaleAspectFill
         photoImageView.clipsToBounds = true
         // Fix 1: set placeholder color
-        photoImageView.backgroundColor = .black
+        photoImageView.backgroundColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .black : .black }
         photoImageView.image = card.imageData.flatMap { UIImage(data: $0) }
         // Low compression resistance so container constraints always win
         photoImageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
@@ -313,7 +339,7 @@ final class ImageCardOverviewViewController: UIViewController {
 
         // Bottom gradient — blends photo into scroll content
         let grad = CAGradientLayer()
-        grad.colors     = [UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.55).cgColor]
+        grad.colors     = [UIColor.clear.cgColor, UIColor { trait in UIColor.black.withAlphaComponent(0.55) }.cgColor]
         grad.startPoint = CGPoint(x: 0.5, y: 0.45)
         grad.endPoint   = CGPoint(x: 0.5, y: 1.0)
         photoContainer.layer.addSublayer(grad)
@@ -321,7 +347,7 @@ final class ImageCardOverviewViewController: UIViewController {
 
         buildPinCountBadge()
 
-        placeBadge(tapHintBadge, text: L10n.isRussian ? "Нажмите — полный просмотр" : "Tap for full view")
+        placeBadge(tapHintBadge, text: L10n.tapForFullView)
         tapHintBadge.isUserInteractionEnabled = false
 
         placeBadge(placingHintBadge, text: L10n.annotationHint)
@@ -360,7 +386,7 @@ final class ImageCardOverviewViewController: UIViewController {
 
         let dot = makeDot(size: 8, color: DayPinDesign.accent)
         pinCountLabel.font      = .inter(ofSize: 12, weight: .semibold)
-        pinCountLabel.textColor = .white
+        pinCountLabel.textColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         pinCountLabel.translatesAutoresizingMaskIntoConstraints = false
 
         let row = UIStackView(arrangedSubviews: [dot, pinCountLabel])
@@ -386,7 +412,11 @@ final class ImageCardOverviewViewController: UIViewController {
         blur.translatesAutoresizingMaskIntoConstraints = false
         let lbl = UILabel()
         lbl.text = text; lbl.font = .inter(ofSize: 12)
-        lbl.textColor = UIColor.white.withAlphaComponent(0.88)
+        lbl.textColor = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.88)
+                : UIColor.white.withAlphaComponent(0.88)
+        }
         lbl.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(lbl)
         NSLayoutConstraint.activate([
@@ -413,19 +443,19 @@ final class ImageCardOverviewViewController: UIViewController {
         photoContainer.addSubview(placingCursor)
 
         let ring = UIView()
-        ring.layer.borderColor  = UIColor.white.withAlphaComponent(0.9).cgColor
+        ring.layer.borderColor  = UIColor { trait in UIColor.white.withAlphaComponent(0.9) }.cgColor
         ring.layer.borderWidth  = 1.5
         ring.layer.cornerRadius = 25
         ring.frame = placingCursor.bounds
         ring.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         placingCursor.addSubview(ring)
 
-        let hLine = UIView(); hLine.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        let hLine = UIView(); hLine.backgroundColor = UIColor { trait in UIColor.white.withAlphaComponent(0.9) }
         hLine.frame = CGRect(x: 11, y: 24.5, width: 28, height: 1)
         hLine.autoresizingMask = [.flexibleTopMargin, .flexibleBottomMargin, .flexibleWidth]
         placingCursor.addSubview(hLine)
 
-        let vLine = UIView(); vLine.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        let vLine = UIView(); vLine.backgroundColor = UIColor { trait in UIColor.white.withAlphaComponent(0.9) }
         vLine.frame = CGRect(x: 24.5, y: 11, width: 1, height: 28)
         vLine.autoresizingMask = [.flexibleLeftMargin, .flexibleRightMargin, .flexibleHeight]
         placingCursor.addSubview(vLine)
@@ -483,7 +513,7 @@ final class ImageCardOverviewViewController: UIViewController {
     private func showPinPlacedIndicator(at pt: CGPoint) {
         let sz: CGFloat = 18
         let flash = UIView()
-        flash.backgroundColor    = UIColor.white.withAlphaComponent(0.6)
+        flash.backgroundColor    = UIColor { trait in UIColor.white.withAlphaComponent(0.6) }
         flash.layer.cornerRadius = sz / 2
         flash.frame = CGRect(x: pt.x - sz/2, y: pt.y - sz/2, width: sz, height: sz)
         photoContainer.addSubview(flash)
@@ -622,17 +652,9 @@ final class ImageCardOverviewViewController: UIViewController {
 
     private func updatePinCountBadge() {
         let n = annotations.count
-        pinCountLabel.text     = L10n.isRussian ? "\(n) \(pinWord(n))" : "\(n) pin\(n == 1 ? "" : "s")"
+        pinCountLabel.text     = L10n.annotationCount(n)
         pinCountBadge.isHidden = (n == 0)
         pinsCountLabel.text    = "\(n)"
-    }
-
-    private func pinWord(_ n: Int) -> String {
-        let m10 = n % 10, m100 = n % 100
-        if (11...14).contains(m100) { return "пинов" }
-        if m10 == 1  { return "пин" }
-        if (2...4).contains(m10) { return "пина" }
-        return "пинов"
     }
 
     // MARK: - Active pin sync
@@ -731,7 +753,7 @@ final class ImageCardOverviewViewController: UIViewController {
         ])
 
         // ── Button inside glass ──────────────────────────────────────────
-        addPinButton.setTitle(L10n.isRussian ? "+ Добавить пин" : "+ Add pin", for: .normal)
+        addPinButton.setTitle(L10n.addPinButton, for: .normal)
         addPinButton.titleLabel?.font = .inter(ofSize: 15, weight: .semibold)
         addPinButton.setTitleColor(DayPinDesign.accent, for: .normal)
         addPinButton.backgroundColor = .clear
@@ -810,11 +832,11 @@ final class ImageCardOverviewViewController: UIViewController {
             noteNormalContainer.bottomAnchor.constraint(equalTo: cv.bottomAnchor)
         ])
 
-        let sectionLbl = makeCaptionLabel(L10n.isRussian ? "ЗАМЕТКА" : "NOTE")
+        let sectionLbl = makeCaptionLabel(L10n.noteSection)
 
         let isEmpty = card.comment.isEmpty
         noteCommentLabel.text          = isEmpty
-            ? (L10n.isRussian ? "Нажмите ✎, чтобы добавить заметку..." : "Tap ✎ to add a note...")
+            ? L10n.tapToAddNote
             : card.comment
         noteCommentLabel.font          = .inter(ofSize: 14)
         noteCommentLabel.textColor     = isEmpty ? .tertiaryLabel : .secondaryLabel
@@ -858,7 +880,7 @@ final class ImageCardOverviewViewController: UIViewController {
             noteEditContainer.bottomAnchor.constraint(equalTo: cv.bottomAnchor)
         ])
 
-        let editCaption = makeCaptionLabel(L10n.isRussian ? "ЗАМЕТКА" : "NOTE")
+        let editCaption = makeCaptionLabel(L10n.noteSection)
 
         noteTextView.text               = card.comment
         noteTextView.font               = .inter(ofSize: 14)
@@ -871,16 +893,16 @@ final class ImageCardOverviewViewController: UIViewController {
         let sep = makeSeparator()
 
         let saveBtn = UIButton(type: .system)
-        saveBtn.setTitle(L10n.isRussian ? "Сохранить" : "Save", for: .normal)
+        saveBtn.setTitle(L10n.save, for: .normal)
         saveBtn.titleLabel?.font  = .inter(ofSize: 13, weight: .semibold)
         saveBtn.backgroundColor   = DayPinDesign.accent
-        saveBtn.setTitleColor(.white, for: .normal)
+        saveBtn.setTitleColor(UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }, for: .normal)
         saveBtn.layer.cornerRadius = 8
         saveBtn.translatesAutoresizingMaskIntoConstraints = false
         saveBtn.addTarget(self, action: #selector(saveNoteTapped), for: .touchUpInside)
 
         let cancelBtn = UIButton(type: .system)
-        cancelBtn.setTitle(L10n.isRussian ? "Отмена" : "Cancel", for: .normal)
+        cancelBtn.setTitle(L10n.cancel, for: .normal)
         cancelBtn.titleLabel?.font = .inter(ofSize: 13)
         cancelBtn.setTitleColor(.secondaryLabel, for: .normal)
         cancelBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -939,7 +961,7 @@ final class ImageCardOverviewViewController: UIViewController {
         CardStore.shared.save(card: card)
         let isEmpty = newText.isEmpty
         noteCommentLabel.text      = isEmpty
-            ? (L10n.isRussian ? "Нажмите ✎, чтобы добавить заметку..." : "Tap ✎ to add a note...")
+            ? L10n.tapToAddNote
             : newText
         noteCommentLabel.textColor = isEmpty ? .tertiaryLabel : .secondaryLabel
         UIView.transition(with: noteCardGlass.glass.contentView, duration: 0.2,
@@ -967,7 +989,7 @@ final class ImageCardOverviewViewController: UIViewController {
         let accentDot    = makeDot(size: 10, color: DayPinDesign.accent)
         let pinsTitleLbl = UILabel()
         pinsTitleLbl.attributedText = NSAttributedString(
-            string: L10n.isRussian ? "ПИНЫ" : "PINS",
+            string: L10n.pinsSection,
             attributes: [.font: UIFont.inter(ofSize: 11, weight: .semibold),
                          .foregroundColor: UIColor.secondaryLabel, .kern: 0.5])
 
@@ -977,7 +999,7 @@ final class ImageCardOverviewViewController: UIViewController {
         countBg.translatesAutoresizingMaskIntoConstraints = false
 
         pinsCountLabel.font = .inter(ofSize: 11, weight: .semibold)
-        pinsCountLabel.textColor = .white
+        pinsCountLabel.textColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         pinsCountLabel.translatesAutoresizingMaskIntoConstraints = false
         countBg.addSubview(pinsCountLabel)
         NSLayoutConstraint.activate([
@@ -1203,7 +1225,7 @@ private final class OverviewPinDotView: UIView {
             let titleLbl = UILabel()
             titleLbl.text      = annotation.title
             titleLbl.font      = .inter(ofSize: 12, weight: .semibold)
-            titleLbl.textColor = .white
+            titleLbl.textColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
             titleLbl.translatesAutoresizingMaskIntoConstraints = false
             pillBg.contentView.addSubview(titleLbl)
             NSLayoutConstraint.activate([
@@ -1354,7 +1376,7 @@ private final class PinCardView: UIView {
         colorDot.layer.cornerRadius  = 5
         colorDot.translatesAutoresizingMaskIntoConstraints = false
 
-        titleLbl.text = annotation.title.isEmpty ? "—" : annotation.title
+        titleLbl.text = annotation.title.isEmpty ? "-" : annotation.title
         titleLbl.font = .inter(ofSize: 13, weight: .semibold)
         titleLbl.textColor = .label; titleLbl.numberOfLines = 1
         titleLbl.translatesAutoresizingMaskIntoConstraints = false
@@ -1413,7 +1435,7 @@ private final class PinCardView: UIView {
             editContainer.trailingAnchor.constraint(equalTo: cv.trailingAnchor)
         ])
 
-        titleField.text = annotation.title; titleField.placeholder = L10n.isRussian ? "Название" : "Title"
+        titleField.text = annotation.title; titleField.placeholder = L10n.pinTitlePlaceholder
         titleField.font = .inter(ofSize: 13, weight: .semibold); titleField.textColor = .label
         titleField.borderStyle = .none; titleField.returnKeyType = .next
         titleField.translatesAutoresizingMaskIntoConstraints = false
@@ -1428,14 +1450,14 @@ private final class PinCardView: UIView {
 
         let sep2 = makeSep()
 
-        saveBtn.setTitle(L10n.isRussian ? "Сохранить" : "Save", for: .normal)
+        saveBtn.setTitle(L10n.save, for: .normal)
         saveBtn.titleLabel?.font = .inter(ofSize: 13, weight: .semibold)
-        saveBtn.backgroundColor = DayPinDesign.accent; saveBtn.setTitleColor(.white, for: .normal)
+        saveBtn.backgroundColor = DayPinDesign.accent; saveBtn.setTitleColor(UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }, for: .normal)
         saveBtn.layer.cornerRadius = 8
         saveBtn.translatesAutoresizingMaskIntoConstraints = false
         saveBtn.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
 
-        cancelBtn.setTitle(L10n.isRussian ? "Отмена" : "Cancel", for: .normal)
+        cancelBtn.setTitle(L10n.cancel, for: .normal)
         cancelBtn.titleLabel?.font = .inter(ofSize: 13)
         cancelBtn.setTitleColor(.secondaryLabel, for: .normal)
         cancelBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -1445,7 +1467,7 @@ private final class PinCardView: UIView {
         btnRow.axis = .horizontal; btnRow.spacing = 8; btnRow.distribution = .fillEqually
         btnRow.translatesAutoresizingMaskIntoConstraints = false
 
-        deleteBtn.setTitle(L10n.isRussian ? "Удалить пин" : "Delete pin", for: .normal)
+        deleteBtn.setTitle(L10n.deletePin, for: .normal)
         deleteBtn.titleLabel?.font = .inter(ofSize: 12)
         deleteBtn.setTitleColor(.systemRed, for: .normal)
         deleteBtn.translatesAutoresizingMaskIntoConstraints = false

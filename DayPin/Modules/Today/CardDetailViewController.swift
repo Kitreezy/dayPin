@@ -20,6 +20,30 @@ final class CardDetailViewController: UIViewController {
         title = card.title
         setupNav()
         setupUI()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        // Rebuild nav buttons so menu action titles update through L10n
+        setupNav()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        refreshBellButton()
     }
 
     // MARK: - Nav
@@ -43,8 +67,8 @@ final class CardDetailViewController: UIViewController {
             ? DayPinDesign.accent : nil
         bellButton = bell
 
-        let shareAction  = UIAction(title: "Поделиться", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.share() }
-        let folderAction = UIAction(title: "В папку",    image: UIImage(systemName: "folder.badge.plus"))   { [weak self] _ in self?.addToFolder() }
+        let shareAction  = UIAction(title: L10n.share,    image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.share() }
+        let folderAction = UIAction(title: L10n.inFolder, image: UIImage(systemName: "folder.badge.plus"))  { [weak self] _ in self?.addToFolder() }
         let menu = UIMenu(children: [shareAction, folderAction])
         let moreBtn = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"),
                                       menu: menu)
@@ -198,7 +222,7 @@ final class CardDetailViewController: UIViewController {
 
     @objc private func addToFolder() {
         let folders = FolderStore.shared.all()
-        let sheet = UIAlertController(title: "Добавить в папку", message: nil, preferredStyle: .actionSheet)
+        let sheet = UIAlertController(title: L10n.addToFolder, message: nil, preferredStyle: .actionSheet)
         for folder in folders {
             let isCurrent = card.folderID == folder.id
             let title = isCurrent ? "✓ \(folder.name)" : folder.name
@@ -209,9 +233,9 @@ final class CardDetailViewController: UIViewController {
             })
         }
         if folders.isEmpty {
-            sheet.addAction(UIAlertAction(title: "Нет папок — создайте во вкладке «Папки»", style: .default, handler: nil))
+            sheet.addAction(UIAlertAction(title: L10n.noFoldersHint, style: .default, handler: nil))
         }
-        sheet.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
         present(sheet, animated: true)
     }
 }

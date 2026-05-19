@@ -29,7 +29,6 @@ private final class PillTabBar: UIView {
 
         blur.layer.cornerRadius  = 26
         blur.layer.borderWidth   = 0.5
-        blur.layer.borderColor   = UIColor.white.withAlphaComponent(0.18).cgColor
         blur.clipsToBounds = true
         blur.translatesAutoresizingMaskIntoConstraints = false
         addSubview(blur)
@@ -92,13 +91,23 @@ private final class PillTabBar: UIView {
             btn.tintColor = isOn ? accent : .secondaryLabel
         }
 
-        let isDark = traitCollection.userInterfaceStyle == .dark
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
         accent.getRed(&r, green: &g, blue: &b, alpha: nil)
-        let base: UIColor = isDark
-            ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
-            : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
-        tintOverlay.backgroundColor = base.withAlphaComponent(isDark ? 0.33 : 0.24)
+        tintOverlay.backgroundColor = UIColor { trait in
+            let dark = trait.userInterfaceStyle == .dark
+            let base: UIColor = dark
+                ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
+                : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
+            return base.withAlphaComponent(dark ? 0.33 : 0.24)
+        }
+        refreshBorderColor()
+    }
+
+    private func refreshBorderColor() {
+        let dark = traitCollection.userInterfaceStyle == .dark
+        blur.layer.borderColor = dark
+            ? UIColor.white.withAlphaComponent(0.18).cgColor
+            : UIColor.black.withAlphaComponent(0.12).cgColor
     }
 
     override func layoutSubviews() {
@@ -133,6 +142,7 @@ private final class AddActionGridView: UIView {
     private let shadowWrapper = UIView()
     // systemThinMaterial is more visible than UltraThin on plain dark backgrounds
     private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
+    private let tintView = UIView()
     private var stackView: UIStackView?
     private var items: [Item] = []
 
@@ -146,6 +156,35 @@ private final class AddActionGridView: UIView {
         self.items = items
         stackView?.removeFromSuperview()
         buildGrid()
+    }
+
+    /// Call when the accent colour scheme changes so the tint overlay updates immediately.
+    func refreshAccent() {
+        let accent = DayPinDesign.accent
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+        accent.getRed(&r, green: &g, blue: &b, alpha: nil)
+        tintView.backgroundColor = UIColor { trait in
+            let dark = trait.userInterfaceStyle == .dark
+            let base: UIColor = dark
+                ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
+                : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
+            return base.withAlphaComponent(dark ? 0.33 : 0.24)
+        }
+        refreshBorderColor()
+    }
+
+    private func refreshBorderColor() {
+        let dark = traitCollection.userInterfaceStyle == .dark
+        blur.layer.borderColor = dark
+            ? UIColor.white.withAlphaComponent(0.18).cgColor
+            : UIColor.black.withAlphaComponent(0.12).cgColor
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            refreshAccent()
+        }
     }
 
     // MARK: Shell (shadow + blur wrapper)
@@ -170,7 +209,6 @@ private final class AddActionGridView: UIView {
         // Same border/clip style as PillTabBar
         blur.layer.cornerRadius = 20
         blur.layer.borderWidth  = 0.5
-        blur.layer.borderColor  = UIColor.white.withAlphaComponent(0.18).cgColor
         blur.clipsToBounds      = true
         blur.translatesAutoresizingMaskIntoConstraints = false
         shadowWrapper.addSubview(blur)
@@ -181,27 +219,17 @@ private final class AddActionGridView: UIView {
             blur.bottomAnchor.constraint(equalTo: shadowWrapper.bottomAnchor)
         ])
 
-        // Tint overlay — UIColor(dynamicProvider:) updates automatically on light/dark switch.
-        // Uses IDENTICAL accent-tinted formula as PillTabBar so colours always match.
-        let tint = UIView()
-        tint.backgroundColor = UIColor { _ in
-            let isDark = UITraitCollection.current.userInterfaceStyle == .dark
-            let accent = DayPinDesign.accent
-            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
-            accent.getRed(&r, green: &g, blue: &b, alpha: nil)
-            let base: UIColor = isDark
-                ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
-                : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
-            return base.withAlphaComponent(isDark ? 0.38 : 0.28)
-        }
-        tint.translatesAutoresizingMaskIntoConstraints = false
-        blur.contentView.addSubview(tint)
+        // Tint overlay — same accent-tinted formula as PillTabBar.
+        // tintView stored as property so refreshAccent() can update it on scheme change.
+        tintView.translatesAutoresizingMaskIntoConstraints = false
+        blur.contentView.addSubview(tintView)
         NSLayoutConstraint.activate([
-            tint.topAnchor.constraint(equalTo: blur.contentView.topAnchor),
-            tint.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor),
-            tint.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor),
-            tint.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
+            tintView.topAnchor.constraint(equalTo: blur.contentView.topAnchor),
+            tintView.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor),
+            tintView.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor),
+            tintView.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
         ])
+        refreshAccent()
     }
 
     // MARK: Grid layout — single row, all items side by side
@@ -235,17 +263,21 @@ private final class AddActionGridView: UIView {
         cell.isUserInteractionEnabled = true
         cell.tag = tag
 
-        // Dark rounded square (icon only, no text inside)
+        // Rounded square — adapts to light/dark so icons remain visible
         let bgView = UIView()
-        bgView.backgroundColor    = UIColor.white.withAlphaComponent(0.07)
+        bgView.backgroundColor = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.10)
+                : UIColor.black.withAlphaComponent(0.07)
+        }
         bgView.layer.cornerRadius = 16
         bgView.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(bgView)
 
-        // Icon centered inside square
+        // Icon centered inside square — semantic .label is readable on both backgrounds
         let iconCfg  = UIImage.SymbolConfiguration(pointSize: 24, weight: .regular)
         let iconView = UIImageView(image: UIImage(systemName: item.icon, withConfiguration: iconCfg))
-        iconView.tintColor   = .white
+        iconView.tintColor   = .label
         iconView.contentMode = .scaleAspectFit
         iconView.translatesAutoresizingMaskIntoConstraints = false
         bgView.addSubview(iconView)
@@ -254,7 +286,7 @@ private final class AddActionGridView: UIView {
         let label = UILabel()
         label.text                      = item.title
         label.font                      = .systemFont(ofSize: 12, weight: .regular)
-        label.textColor                 = UIColor.white.withAlphaComponent(0.82)
+        label.textColor                 = .secondaryLabel
         label.textAlignment             = .center
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor        = 0.75
@@ -305,8 +337,10 @@ final class MainContainerViewController: UITabBarController {
 
     // MARK: Views
     private var pillBar:         PillTabBar!
-    private var addCircleView:   UIView!       // shadow wrapper for the "+" button
-    private var addCircleInner:  UIButton!     // actual tappable button inside
+    private var addCircleView:   UIView!                  // shadow wrapper for the "+" button
+    private var addCircleBlur:   UIVisualEffectView!      // blur layer - border refreshed on trait change
+    private var addCircleInner:  UIButton!                // actual tappable button inside
+    private var addCircleTint:   UIView!                  // tint overlay inside FAB - refreshed on scheme change
     private var actionGrid:      AddActionGridView!
 
     // MARK: Constraints
@@ -326,10 +360,15 @@ final class MainContainerViewController: UITabBarController {
         // Extra inset = pill (56) + gap below (14) = 70
         additionalSafeAreaInsets = UIEdgeInsets(top: 0, left: 0, bottom: 70, right: 0)
         ThemeManager.shared.apply()
+        refreshFABTint(accent: DayPinDesign.accent)
         delegate = self
         NotificationCenter.default.addObserver(
             self, selector: #selector(onSchemeChanged),
             name: .dayPinColorSchemeChanged, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil
         )
     }
 
@@ -338,7 +377,7 @@ final class MainContainerViewController: UITabBarController {
     private func setupTabs() {
         let today    = makeNav(root: TodayViewController(),      title: L10n.tabToday)
         let calendar = makeNav(root: CalendarViewController(),   title: L10n.tabCalendar)
-        let folders  = makeNav(root: FolderListViewController(), title: "Папки")
+        let folders  = makeNav(root: FolderListViewController(), title: L10n.tabFolders)
         let all      = makeNav(root: TasksViewController(),      title: L10n.tabAll)
         viewControllers = [today, calendar, folders, all]
     }
@@ -426,14 +465,14 @@ final class MainContainerViewController: UITabBarController {
         wrapper.layer.shadowRadius  = 20
         wrapper.layer.shadowOffset  = CGSize(width: 0, height: 4)
 
-        // Frosted glass inner — matches pill appearance
+        // Frosted glass inner — matches pill appearance; stored as addCircleBlur for border refresh
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
         blur.layer.cornerRadius = 28
         blur.layer.borderWidth  = 0.5
-        blur.layer.borderColor  = UIColor.white.withAlphaComponent(0.18).cgColor
         blur.clipsToBounds      = true
         blur.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(blur)
+        addCircleBlur = blur
         NSLayoutConstraint.activate([
             blur.topAnchor.constraint(equalTo: wrapper.topAnchor),
             blur.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
@@ -441,26 +480,16 @@ final class MainContainerViewController: UITabBarController {
             blur.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor)
         ])
 
-        // Tint overlay — dynamic color, identical accent formula as PillTabBar
-        // UIColor(dynamicProvider:) re-evaluates on every light/dark switch automatically
-        let tint = UIView()
-        tint.backgroundColor = UIColor { _ in
-            let isDark = UITraitCollection.current.userInterfaceStyle == .dark
-            let accent = DayPinDesign.accent
-            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
-            accent.getRed(&r, green: &g, blue: &b, alpha: nil)
-            let base: UIColor = isDark
-                ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
-                : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
-            return base.withAlphaComponent(isDark ? 0.33 : 0.24)
-        }
-        tint.translatesAutoresizingMaskIntoConstraints = false
-        blur.contentView.addSubview(tint)
+        // Tint overlay — stored as addCircleTint so onSchemeChanged() can refresh it
+        // when the user changes the accent scheme (UIColor dynamicProvider only fires on dark/light toggle)
+        addCircleTint = UIView()
+        addCircleTint.translatesAutoresizingMaskIntoConstraints = false
+        blur.contentView.addSubview(addCircleTint)
         NSLayoutConstraint.activate([
-            tint.topAnchor.constraint(equalTo: blur.contentView.topAnchor),
-            tint.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor),
-            tint.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor),
-            tint.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
+            addCircleTint.topAnchor.constraint(equalTo: blur.contentView.topAnchor),
+            addCircleTint.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor),
+            addCircleTint.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor),
+            addCircleTint.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
         ])
 
         // Button (fills contentView, hit area = full circle)
@@ -480,6 +509,7 @@ final class MainContainerViewController: UITabBarController {
 
         addCircleView  = wrapper
         addCircleInner = btn
+        refreshFABBorderColor()
     }
 
     // MARK: - Grid content
@@ -487,10 +517,10 @@ final class MainContainerViewController: UITabBarController {
     private func refreshGrid() {
         let hasCamera = UIImagePickerController.isSourceTypeAvailable(.camera)
         // Short display names for the compact grid
-        let titleText   = L10n.isRussian ? "Текст"    : "Text"
-        let titlePhoto  = L10n.isRussian ? "Фотопин"  : "Photo Pin"
-        let titleCamera = L10n.isRussian ? "Камера"   : "Camera"
-        let titleLink   = L10n.isRussian ? "Ссылка"   : "Link"
+        let titleText   = L10n.filterText
+        let titlePhoto  = L10n.cardPhotoPin
+        let titleCamera = L10n.cardCameraShort
+        let titleLink   = L10n.cardTypeLink
         var rawItems: [(title: String, icon: String, color: UIColor, notif: Notification.Name)] = [
             (titleText,  "text.alignleft",     DayPinDesign.textCardTint,  .dayPinAddText),
             (titlePhoto, "photo.on.rectangle", DayPinDesign.imageCardTint, .dayPinAddPhoto)
@@ -588,6 +618,8 @@ final class MainContainerViewController: UITabBarController {
     @objc private func onSchemeChanged() {
         let accent = DayPinDesign.accent
         pillBar.refresh(accent: accent)
+        refreshFABTint(accent: accent)
+        actionGrid.refreshAccent()
         refreshGrid()
 
         let navApp = DayPinDesign.makeNavBarAppearance()
@@ -598,6 +630,41 @@ final class MainContainerViewController: UITabBarController {
             nav.navigationBar.tintColor            = accent
             nav.navigationBar.setNeedsLayout()
             nav.navigationBar.layoutIfNeeded()
+        }
+    }
+
+    @objc private func onLanguageChanged() {
+        refreshGrid()
+    }
+
+    /// Rebuilds FAB tint overlay colour — must be called explicitly on scheme change
+    /// because UIColor(dynamicProvider:) only fires on dark/light trait collection changes.
+    private func refreshFABTint(accent: UIColor) {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+        accent.getRed(&r, green: &g, blue: &b, alpha: nil)
+        addCircleTint.backgroundColor = UIColor { trait in
+            let dark = trait.userInterfaceStyle == .dark
+            let base: UIColor = dark
+                ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
+                : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
+            return base.withAlphaComponent(dark ? 0.33 : 0.24)
+        }
+        refreshFABBorderColor()
+    }
+
+    private func refreshFABBorderColor() {
+        let dark = traitCollection.userInterfaceStyle == .dark
+        addCircleBlur.layer.borderColor = dark
+            ? UIColor.white.withAlphaComponent(0.18).cgColor
+            : UIColor.black.withAlphaComponent(0.12).cgColor
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            refreshFABTint(accent: DayPinDesign.accent)
+            pillBar.refresh(accent: DayPinDesign.accent)
+            actionGrid.refreshAccent()
         }
     }
 }

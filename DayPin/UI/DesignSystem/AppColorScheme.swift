@@ -76,85 +76,85 @@ struct AppColorScheme {
 
     static let violet = AppColorScheme(
         id: .violet, name: "Violet",
-        accent:      UIColor(hex: "#9276FF")!,
-        accentDeep:  UIColor(hex: "#7A5AF8")!,
-        accentLight: UIColor(hex: "#B692FF")!,
-        textTint:    UIColor(hex: "#9276FF")!,
-        imageTint:   UIColor(hex: "#F2A7BB")!,
-        linkTint:    UIColor(hex: "#FFB347")!
+        accent:      UIColor(hex: "#9276FF") ?? .systemPurple,
+        accentDeep:  UIColor(hex: "#7A5AF8") ?? .systemPurple,
+        accentLight: UIColor(hex: "#B692FF") ?? .systemPurple,
+        textTint:    UIColor(hex: "#9276FF") ?? .systemPurple,
+        imageTint:   UIColor(hex: "#F2A7BB") ?? .systemPink,
+        linkTint:    UIColor(hex: "#FFB347") ?? .systemOrange
     )
 
     static let ocean = AppColorScheme(
         id: .ocean, name: "Ocean",
-        accent:      UIColor(hex: "#2196F3")!,
-        accentDeep:  UIColor(hex: "#1565C0")!,
-        accentLight: UIColor(hex: "#64B5F6")!,
-        textTint:    UIColor(hex: "#2196F3")!,
-        imageTint:   UIColor(hex: "#26C6DA")!,
-        linkTint:    UIColor(hex: "#EF5350")!
+        accent:      UIColor(hex: "#2196F3") ?? .systemBlue,
+        accentDeep:  UIColor(hex: "#1565C0") ?? .systemBlue,
+        accentLight: UIColor(hex: "#64B5F6") ?? .systemBlue,
+        textTint:    UIColor(hex: "#2196F3") ?? .systemBlue,
+        imageTint:   UIColor(hex: "#26C6DA") ?? .systemTeal,
+        linkTint:    UIColor(hex: "#EF5350") ?? .systemRed
     )
 
     static let nature = AppColorScheme(
         id: .nature, name: "Nature",
-        accent:      UIColor(hex: "#2886D4")!,
-        accentDeep:  UIColor(hex: "#1A6BB5")!,
-        accentLight: UIColor(hex: "#7BB732")!,
-        textTint:    UIColor(hex: "#2886D4")!,
-        imageTint:   UIColor(hex: "#7BB732")!,
-        linkTint:    UIColor(hex: "#E6A817")!
+        accent:      UIColor(hex: "#2886D4") ?? .systemBlue,
+        accentDeep:  UIColor(hex: "#1A6BB5") ?? .systemBlue,
+        accentLight: UIColor(hex: "#7BB732") ?? .systemGreen,
+        textTint:    UIColor(hex: "#2886D4") ?? .systemBlue,
+        imageTint:   UIColor(hex: "#7BB732") ?? .systemGreen,
+        linkTint:    UIColor(hex: "#E6A817") ?? .systemYellow
     )
 
     static let healing = AppColorScheme(
         id: .healing, name: "Healing",
-        accent:      UIColor(hex: "#7986CB")!,
-        accentDeep:  UIColor(hex: "#5C6BC0")!,
-        accentLight: UIColor(hex: "#ADB5D5")!,
-        textTint:    UIColor(hex: "#7986CB")!,
-        imageTint:   UIColor(hex: "#C4A05A")!,
-        linkTint:    UIColor(hex: "#B5879A")!
+        accent:      UIColor(hex: "#7986CB") ?? .systemIndigo,
+        accentDeep:  UIColor(hex: "#5C6BC0") ?? .systemIndigo,
+        accentLight: UIColor(hex: "#ADB5D5") ?? .systemIndigo,
+        textTint:    UIColor(hex: "#7986CB") ?? .systemIndigo,
+        imageTint:   UIColor(hex: "#C4A05A") ?? .systemBrown,
+        linkTint:    UIColor(hex: "#B5879A") ?? .systemPink
     )
 
     static let retro = AppColorScheme(
         id: .retro, name: "Retro",
-        accent:      UIColor(hex: "#4B607F")!,
-        accentDeep:  UIColor(hex: "#344A64")!,
-        accentLight: UIColor(hex: "#7A90A8")!,
-        textTint:    UIColor(hex: "#4B607F")!,
-        imageTint:   UIColor(hex: "#F3701E")!,
-        linkTint:    UIColor(hex: "#C7917A")!
+        accent:      UIColor(hex: "#4B607F") ?? .systemGray,
+        accentDeep:  UIColor(hex: "#344A64") ?? .systemGray,
+        accentLight: UIColor(hex: "#7A90A8") ?? .systemGray,
+        textTint:    UIColor(hex: "#4B607F") ?? .systemGray,
+        imageTint:   UIColor(hex: "#F3701E") ?? .systemOrange,
+        linkTint:    UIColor(hex: "#C7917A") ?? .systemBrown
     )
 
-    // Palette 04 — перивинкль + весенний зелёный + тёмный navy
+    // Palette 04 - перивинкль + весенний зелёный + тёмный navy
     static let spring = AppColorScheme(
         id: .spring, name: "Spring",
-        accent:      UIColor(hex: "#95B1EE")!,
-        accentDeep:  UIColor(hex: "#364C84")!,
-        accentLight: UIColor(hex: "#B8CCEF")!,
-        textTint:    UIColor(hex: "#95B1EE")!,
-        imageTint:   UIColor(hex: "#A8C46A")!,   // насыщеннее, чем #E7F1A8
-        linkTint:    UIColor(hex: "#364C84")!
+        accent:      UIColor(hex: "#95B1EE") ?? .systemBlue,
+        accentDeep:  UIColor(hex: "#364C84") ?? .systemBlue,
+        accentLight: UIColor(hex: "#B8CCEF") ?? .systemBlue,
+        textTint:    UIColor(hex: "#95B1EE") ?? .systemBlue,
+        imageTint:   UIColor(hex: "#A8C46A") ?? .systemGreen,
+        linkTint:    UIColor(hex: "#364C84") ?? .systemBlue
     )
 
-    // Palette 01 — вишня + кастард + голубика
+    // Palette 01 - вишня + кастард + голубика
     static let vintage = AppColorScheme(
         id: .vintage, name: "Vintage",
-        accent:      UIColor(hex: "#861519")!,
-        accentDeep:  UIColor(hex: "#620F12")!,
-        accentLight: UIColor(hex: "#FAE38E")!,
-        textTint:    UIColor(hex: "#861519")!,
-        imageTint:   UIColor(hex: "#FAE38E")!,
-        linkTint:    UIColor(hex: "#7AAAD6")!    // blueberry pie, чуть насыщеннее
+        accent:      UIColor(hex: "#861519") ?? .systemRed,
+        accentDeep:  UIColor(hex: "#620F12") ?? .systemRed,
+        accentLight: UIColor(hex: "#FAE38E") ?? .systemYellow,
+        textTint:    UIColor(hex: "#861519") ?? .systemRed,
+        imageTint:   UIColor(hex: "#FAE38E") ?? .systemYellow,
+        linkTint:    UIColor(hex: "#7AAAD6") ?? .systemBlue
     )
 
-    // Graphic Garden — лайм + мягкий фиолетовый
+    // Graphic Garden - лайм + мягкий фиолетовый
     static let garden = AppColorScheme(
         id: .garden, name: "Garden",
-        accent:      UIColor(hex: "#A184E5")!,
-        accentDeep:  UIColor(hex: "#7B5EC7")!,
-        accentLight: UIColor(hex: "#C2D039")!,
-        textTint:    UIColor(hex: "#A184E5")!,
-        imageTint:   UIColor(hex: "#C2D039")!,
-        linkTint:    UIColor(hex: "#7B5EC7")!
+        accent:      UIColor(hex: "#A184E5") ?? .systemPurple,
+        accentDeep:  UIColor(hex: "#7B5EC7") ?? .systemPurple,
+        accentLight: UIColor(hex: "#C2D039") ?? .systemGreen,
+        textTint:    UIColor(hex: "#A184E5") ?? .systemPurple,
+        imageTint:   UIColor(hex: "#C2D039") ?? .systemGreen,
+        linkTint:    UIColor(hex: "#7B5EC7") ?? .systemPurple
     )
 
     static let all: [AppColorScheme] = [

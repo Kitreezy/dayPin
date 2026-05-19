@@ -19,10 +19,17 @@ final class ImageCardDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
+        view.backgroundColor = UIColor { trait in
+            trait.userInterfaceStyle == .dark ? .black : .black
+        }
         setupUI()
         setupFloatingControls()
         setupHint()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -43,6 +50,24 @@ final class ImageCardDetailViewController: UIViewController {
     }
 
     override var prefersStatusBarHidden: Bool { true }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        // No persistent nav title or labels to refresh on this screen;
+        // menu action titles are built on-demand in moreTapped().
+    }
+
+    @objc private func onColorSchemeChanged() {
+        refreshBellIcon()
+    }
 
     // MARK: - Core UI
 
@@ -89,7 +114,7 @@ final class ImageCardDetailViewController: UIViewController {
         let backBlur = makeBlurPill()
         let backIcon = UIImageView(image: UIImage(systemName: "chevron.left",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
-        backIcon.tintColor = .white
+        backIcon.tintColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         backIcon.translatesAutoresizingMaskIntoConstraints = false
         backBlur.contentView.addSubview(backIcon)
         NSLayoutConstraint.activate([
@@ -141,7 +166,7 @@ final class ImageCardDetailViewController: UIViewController {
         let symbolName = hasReminder ? "bell.fill" : "bell"
         let cfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
         let img = UIImageView(image: UIImage(systemName: symbolName, withConfiguration: cfg))
-        img.tintColor = hasReminder ? DayPinDesign.accent : .white
+        img.tintColor = hasReminder ? DayPinDesign.accent : UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         img.contentMode = .scaleAspectFit
         return img
     }
@@ -151,7 +176,7 @@ final class ImageCardDetailViewController: UIViewController {
         let symbolName = hasReminder ? "bell.fill" : "bell"
         let cfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
         bellImageView?.image = UIImage(systemName: symbolName, withConfiguration: cfg)
-        bellImageView?.tintColor = hasReminder ? DayPinDesign.accent : .white
+        bellImageView?.tintColor = hasReminder ? DayPinDesign.accent : UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
     }
 
     @objc private func bellTapped() {
@@ -198,7 +223,7 @@ final class ImageCardDetailViewController: UIViewController {
         let blur = makeBlurPill()
         let img = UIImageView(image: UIImage(systemName: icon,
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
-        img.tintColor = .white
+        img.tintColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         img.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(img)
         NSLayoutConstraint.activate([
@@ -222,7 +247,11 @@ final class ImageCardDetailViewController: UIViewController {
         let hintLabel = UILabel()
         hintLabel.text = L10n.annotationHint
         hintLabel.font = .inter(ofSize: 12)
-        hintLabel.textColor = UIColor.white.withAlphaComponent(0.8)
+        hintLabel.textColor = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.8)
+                : UIColor.white.withAlphaComponent(0.8)
+        }
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         hintBlur.contentView.addSubview(hintLabel)
         view.addSubview(hintBlur)
@@ -272,9 +301,9 @@ final class ImageCardDetailViewController: UIViewController {
     }
 
     @objc private func moreTapped() {
-        let shareAction  = UIAction(title: "Поделиться",        image: UIImage(systemName: "square.and.arrow.up"))   { [weak self] _ in self?.share() }
-        let copyAction   = UIAction(title: "Скопировать в день", image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in self?.copyToDay() }
-        let folderAction = UIAction(title: "В папку",            image: UIImage(systemName: "folder.badge.plus"))   { [weak self] _ in self?.addToFolder() }
+        let shareAction  = UIAction(title: L10n.share,     image: UIImage(systemName: "square.and.arrow.up"))  { [weak self] _ in self?.share() }
+        let copyAction   = UIAction(title: L10n.copyToDay, image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in self?.copyToDay() }
+        let folderAction = UIAction(title: L10n.inFolder,  image: UIImage(systemName: "folder.badge.plus"))   { [weak self] _ in self?.addToFolder() }
         let menu = UIMenu(children: [shareAction, copyAction, folderAction])
         let config = UIButton.Configuration.plain()
         let btn = UIButton(configuration: config)
@@ -283,10 +312,10 @@ final class ImageCardDetailViewController: UIViewController {
         btn.sendActions(for: .menuActionTriggered)
         // Show as action sheet on iOS 14+
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "Поделиться", style: .default) { [weak self] _ in self?.share() })
-        alert.addAction(UIAlertAction(title: "Скопировать в день", style: .default) { [weak self] _ in self?.copyToDay() })
-        alert.addAction(UIAlertAction(title: "В папку", style: .default) { [weak self] _ in self?.addToFolder() })
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.share,     style: .default) { [weak self] _ in self?.share() })
+        alert.addAction(UIAlertAction(title: L10n.copyToDay, style: .default) { [weak self] _ in self?.copyToDay() })
+        alert.addAction(UIAlertAction(title: L10n.inFolder,  style: .default) { [weak self] _ in self?.addToFolder() })
+        alert.addAction(UIAlertAction(title: L10n.cancel,    style: .cancel))
         present(alert, animated: true)
     }
 
@@ -310,7 +339,7 @@ final class ImageCardDetailViewController: UIViewController {
 
     private func addToFolder() {
         let folders = FolderStore.shared.all()
-        let sheet = UIAlertController(title: "Добавить в папку", message: nil, preferredStyle: .actionSheet)
+        let sheet = UIAlertController(title: L10n.addToFolder, message: nil, preferredStyle: .actionSheet)
         for folder in folders {
             let isCurrent = card.folderID == folder.id
             let title = isCurrent ? "✓ \(folder.name)" : folder.name
@@ -321,9 +350,9 @@ final class ImageCardDetailViewController: UIViewController {
             })
         }
         if folders.isEmpty {
-            sheet.addAction(UIAlertAction(title: "Нет папок — создайте во вкладке «Папки»", style: .default, handler: nil))
+            sheet.addAction(UIAlertAction(title: L10n.noFoldersHint, style: .default, handler: nil))
         }
-        sheet.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
         present(sheet, animated: true)
     }
 

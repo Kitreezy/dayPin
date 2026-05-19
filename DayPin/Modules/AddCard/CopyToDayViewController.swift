@@ -15,7 +15,7 @@ final class CopyToDayViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Скопировать в день"
+        title = L10n.copyToDay
         view.backgroundColor = DayPinDesign.background
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -25,6 +25,29 @@ final class CopyToDayViewController: UIViewController {
 
         setupPicker()
         setupCopyButton()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = L10n.copyToDay
+        copyButton.setTitle(L10n.copyAction, for: .normal)
+    }
+
+    @objc private func onColorSchemeChanged() {
+        picker.tintColor = DayPinDesign.accent
     }
 
     // MARK: - UI
@@ -48,8 +71,8 @@ final class CopyToDayViewController: UIViewController {
     private func setupCopyButton() {
         let gradient = CAGradientLayer()
         gradient.colors = [
-            UIColor(red: 0.56, green: 0.35, blue: 1.0, alpha: 1).cgColor,
-            UIColor(red: 0.40, green: 0.20, blue: 0.90, alpha: 1).cgColor
+            UIColor { trait in UIColor(red: 0.56, green: 0.35, blue: 1.0, alpha: 1) }.cgColor,
+            UIColor { trait in UIColor(red: 0.40, green: 0.20, blue: 0.90, alpha: 1) }.cgColor
         ]
         gradient.startPoint   = CGPoint(x: 0, y: 0)
         gradient.endPoint     = CGPoint(x: 1, y: 1)
@@ -58,8 +81,8 @@ final class CopyToDayViewController: UIViewController {
         copyButton.layer.cornerRadius = 14
         copyButton.clipsToBounds = true
 
-        copyButton.setTitle("Скопировать", for: .normal)
-        copyButton.setTitleColor(.white, for: .normal)
+        copyButton.setTitle(L10n.copyAction, for: .normal)
+        copyButton.setTitleColor(UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }, for: .normal)
         copyButton.titleLabel?.font = .inter(ofSize: 16, weight: .semibold)
         copyButton.addTarget(self, action: #selector(copyTapped), for: .touchUpInside)
         copyButton.translatesAutoresizingMaskIntoConstraints = false
@@ -102,19 +125,19 @@ extension NoteCard {
     func duplicated(to date: Date) -> NoteCard {
         switch type {
         case .text:
-            let src = self as! TextCard
+            guard let src = self as? TextCard else { return TextCard(title: title, comment: comment, dayDate: date) }
             let c   = TextCard(title: src.title, comment: src.comment, dayDate: date)
             c.rtfData  = src.rtfData
             c.folderID = src.folderID
             return c
         case .image:
-            let src = self as! ImageCard
+            guard let src = self as? ImageCard else { return ImageCard(title: title, comment: comment, dayDate: date, imageData: nil, annotations: []) }
             let c   = ImageCard(title: src.title, comment: src.comment, dayDate: date,
                                 imageData: src.imageData, annotations: src.annotations)
             c.folderID = src.folderID
             return c
         case .link:
-            let src = self as! LinkCard
+            guard let src = self as? LinkCard else { return LinkCard(title: title, comment: comment, dayDate: date, url: URL(fileURLWithPath: ""), extraURLs: []) }
             let c   = LinkCard(title: src.title, comment: src.comment, dayDate: date,
                                url: src.url, extraURLs: src.extraURLs)
             c.previewTitle       = src.previewTitle

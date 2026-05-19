@@ -23,7 +23,7 @@ final class NotePickerViewController: UIViewController {
     }()
 
     private lazy var addBtn = UIBarButtonItem(
-        title: "Добавить",
+        title: L10n.add,
         style: .done,
         target: self,
         action: #selector(confirmTapped)
@@ -37,15 +37,19 @@ final class NotePickerViewController: UIViewController {
     }
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Добавить заметки"
+        title = L10n.addNotes
         view.backgroundColor = DayPinDesign.background
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
-            title: "Отмена", style: .plain, target: self, action: #selector(cancel)
+            title: L10n.cancel, style: .plain, target: self, action: #selector(cancel)
         )
         addBtn.isEnabled = false
         addBtn.tintColor = DayPinDesign.accent
@@ -60,6 +64,25 @@ final class NotePickerViewController: UIViewController {
         ])
 
         loadNotes()
+        observeNotifications()
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = L10n.addNotes
+        updateAddButton()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        addBtn.tintColor = DayPinDesign.accent
     }
 
     // MARK: - Data
@@ -84,7 +107,7 @@ final class NotePickerViewController: UIViewController {
     private func updateAddButton() {
         let n = selectedIDs.count
         addBtn.isEnabled = n > 0
-        addBtn.title = n > 0 ? "Добавить (\(n))" : "Добавить"
+        addBtn.title = n > 0 ? "\(L10n.add) (\(n))" : L10n.add
     }
 }
 
@@ -99,14 +122,16 @@ extension NotePickerViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tv: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if available.isEmpty {
             let cell = UITableViewCell()
-            cell.textLabel?.text      = "Все заметки уже в этой папке"
+            cell.textLabel?.text      = L10n.allNotesInFolder
             cell.textLabel?.textColor = .secondaryLabel
             cell.textLabel?.textAlignment = .center
             cell.backgroundColor = .clear
             cell.isUserInteractionEnabled = false
             return cell
         }
-        let cell = tv.dequeueReusableCell(withIdentifier: NotePickerCell.reuseID, for: indexPath) as! NotePickerCell
+        guard let cell = tv.dequeueReusableCell(withIdentifier: NotePickerCell.reuseID, for: indexPath) as? NotePickerCell else {
+            return UITableViewCell()
+        }
         let card = available[indexPath.row]
         cell.configure(card: card, isSelected: selectedIDs.contains(card.id))
         return cell
@@ -184,7 +209,7 @@ private final class NotePickerCell: UITableViewCell {
 
         let checkCfg = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
         checkMark.image       = UIImage(systemName: "checkmark", withConfiguration: checkCfg)
-        checkMark.tintColor   = .white
+        checkMark.tintColor   = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         checkMark.contentMode = .scaleAspectFit
         checkMark.translatesAutoresizingMaskIntoConstraints = false
         checkMark.isHidden = true
@@ -227,7 +252,7 @@ private final class NotePickerCell: UITableViewCell {
     }
 
     func configure(card: NoteCard, isSelected: Bool) {
-        titleLbl.text = card.title.isEmpty ? "(без названия)" : card.title
+        titleLbl.text = card.title.isEmpty ? L10n.untitledNote : card.title
 
         let df = DateFormatter()
         df.dateFormat = "d MMM, HH:mm"

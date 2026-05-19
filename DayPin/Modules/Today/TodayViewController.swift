@@ -382,23 +382,23 @@ final class TodayViewController: UIViewController {
 
     private func rebuildMoreMenu() {
         let menu = UIMenu(options: .displayInline, children: [
-            UIAction(title: "Выбрать заметки",
+            UIAction(title: L10n.selectNotes,
                      image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
                 self?.selectTapped()
             },
-            UIAction(title: "Недавно удалённые",
+            UIAction(title: L10n.recentlyDeleted,
                      image: UIImage(systemName: "clock.arrow.circlepath")) { [weak self] _ in
                 self?.trashTapped()
             },
-            UIAction(title: "Резервная копия",
+            UIAction(title: L10n.backup,
                      image: UIImage(systemName: "externaldrive")) { [weak self] _ in
                 self?.backupTapped()
             },
-            UIAction(title: L10n.isRussian ? "Оформление" : "Appearance",
+            UIAction(title: L10n.appearance,
                      image: UIImage(systemName: "paintbrush")) { [weak self] _ in
                 self?.openThemePicker()
             },
-            UIAction(title: L10n.isRussian ? "Фон" : "Background",
+            UIAction(title: L10n.background,
                      image: UIImage(systemName: "rectangle.fill")) { [weak self] _ in
                 self?.openBackgroundPicker()
             },
@@ -612,10 +612,10 @@ final class TodayViewController: UIViewController {
         // Hide custom header buttons, show done/cancel in nav area via nav bar
         navigationController?.setNavigationBarHidden(false, animated: false)
         navigationItem.leftBarButtonItem = UIBarButtonItem(
-            title: "Отмена", style: .plain, target: self, action: #selector(exitSelectModeTapped)
+            title: L10n.cancel, style: .plain, target: self, action: #selector(exitSelectModeTapped)
         )
         navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(title: "Готово", style: .done, target: self, action: #selector(exitSelectModeTapped))
+            UIBarButtonItem(title: L10n.done, style: .done, target: self, action: #selector(exitSelectModeTapped))
         ]
 
         selectionBar.isHidden = false
@@ -652,19 +652,19 @@ final class TodayViewController: UIViewController {
 
     private func updateSelectionBarLabel() {
         let n = selectedIDs.count
-        selectionCountLabel.text = n == 0 ? "Выберите заметки" : "Выбрано: \(n)"
+        selectionCountLabel.text = n == 0 ? L10n.selectNotesPrompt : L10n.selectedCount(n)
     }
 
     @objc private func deleteSelectedTapped() {
         guard !selectedIDs.isEmpty else { return }
         let count = selectedIDs.count
         let alert = UIAlertController(
-            title: "Удалить \(count) заметок?",
+            title: L10n.deleteNotesTitle(count),
             message: nil,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
             guard let self else { return }
             let toDelete = self.flatCards.filter { self.selectedIDs.contains($0.id) }
             toDelete.forEach { CardStore.shared.delete(card: $0) }
@@ -680,14 +680,14 @@ final class TodayViewController: UIViewController {
         guard !selectedIDs.isEmpty else { return }
         let folders = FolderStore.shared.all()
         guard !folders.isEmpty else {
-            let alert = UIAlertController(title: "Нет папок",
-                                          message: "Создайте папку в разделе «Папки»",
+            let alert = UIAlertController(title: L10n.noFolders,
+                                          message: L10n.noFoldersMessage,
                                           preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
             return
         }
-        let sheet = UIAlertController(title: "Выберите папку", message: nil, preferredStyle: .actionSheet)
+        let sheet = UIAlertController(title: L10n.chooseFolderTitle, message: nil, preferredStyle: .actionSheet)
         for folder in folders {
             sheet.addAction(UIAlertAction(title: folder.name, style: .default) { [weak self] _ in
                 guard let self else { return }
@@ -700,7 +700,7 @@ final class TodayViewController: UIViewController {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
             })
         }
-        sheet.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
         present(sheet, animated: true)
     }
 
@@ -916,20 +916,26 @@ extension TodayViewController: UICollectionViewDataSource {
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if flatCards.isEmpty {
-            return collectionView.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath) as! EmptyCardCell
+            guard let empty = collectionView.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath) as? EmptyCardCell else {
+                return UICollectionViewCell()
+            }
+            return empty
         }
         let card = flatCards[indexPath.item]
         let cell: UICollectionViewCell
         switch card.type {
         case .text:
-            let c = collectionView.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as! TextCardCell
-            c.configure(with: card as! TextCard); cell = c
+            guard let c = collectionView.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as? TextCardCell,
+                  let textCard = card as? TextCard else { return UICollectionViewCell() }
+            c.configure(with: textCard); cell = c
         case .image:
-            let c = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as! ImageCardCell
-            c.configure(with: card as! ImageCard); cell = c
+            guard let c = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as? ImageCardCell,
+                  let imageCard = card as? ImageCard else { return UICollectionViewCell() }
+            c.configure(with: imageCard); cell = c
         case .link:
-            let c = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as! LinkCardCell
-            c.configure(with: card as! LinkCard); cell = c
+            guard let c = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as? LinkCardCell,
+                  let linkCard = card as? LinkCard else { return UICollectionViewCell() }
+            c.configure(with: linkCard); cell = c
         }
         cell.applySelectionOverlay(isSelecting: isSelectMode,
                                    isSelected: selectedIDs.contains(card.id))
@@ -954,11 +960,14 @@ extension TodayViewController: UICollectionViewDelegate {
     func openCard(_ card: NoteCard) {
         switch card.type {
         case .text:
-            navigationController?.pushViewController(CardDetailViewController(card: card as! TextCard), animated: true)
+            guard let textCard = card as? TextCard else { return }
+            navigationController?.pushViewController(CardDetailViewController(card: textCard), animated: true)
         case .image:
-            navigationController?.pushViewController(ImageCardOverviewViewController(card: card as! ImageCard), animated: true)
+            guard let imageCard = card as? ImageCard else { return }
+            navigationController?.pushViewController(ImageCardOverviewViewController(card: imageCard), animated: true)
         case .link:
-            navigationController?.pushViewController(LinkCardDetailViewController(card: card as! LinkCard), animated: true)
+            guard let linkCard = card as? LinkCard else { return }
+            navigationController?.pushViewController(LinkCardDetailViewController(card: linkCard), animated: true)
         }
     }
 
@@ -969,7 +978,7 @@ extension TodayViewController: UICollectionViewDelegate {
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
             guard let self else { return nil }
 
-            let select = UIAction(title: "Выбрать", image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
+            let select = UIAction(title: L10n.selectNote, image: UIImage(systemName: "checkmark.circle")) { [weak self] _ in
                 guard let self else { return }
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 self.enterSelectMode(initialCard: card)
@@ -977,7 +986,7 @@ extension TodayViewController: UICollectionViewDelegate {
             let share = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
                 self?.shareCard(card)
             }
-            let copyToDay = UIAction(title: "Скопировать в день", image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
+            let copyToDay = UIAction(title: L10n.copyToDay, image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
                 guard let self else { return }
                 let vc = CopyToDayViewController()
                 vc.onCopy = { date in
@@ -1005,10 +1014,10 @@ extension TodayViewController: UICollectionViewDelegate {
                 }
             }
             let folderMenu = UIMenu(
-                title: "В папку",
+                title: L10n.inFolder,
                 image: UIImage(systemName: "folder.badge.plus"),
                 children: folderActions.isEmpty
-                    ? [UIAction(title: "Нет папок", attributes: .disabled) { _ in }]
+                    ? [UIAction(title: L10n.noFolders, attributes: .disabled) { _ in }]
                     : folderActions
             )
             let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in

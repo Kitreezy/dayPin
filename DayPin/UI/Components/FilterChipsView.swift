@@ -30,8 +30,16 @@ final class FilterChipsView: UIView {
             self, selector: #selector(onSchemeChanged),
             name: .dayPinColorSchemeChanged, object: nil
         )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil
+        )
     }
     required init?(coder: NSCoder) { fatalError() }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
 
     // MARK: - Setup
 
@@ -170,6 +178,11 @@ final class FilterChipsView: UIView {
     @objc private func onSchemeChanged() {
         indicator.backgroundColor = DayPinDesign.accent
         refreshAllButtons()
+    }
+
+    @objc private func onLanguageChanged() {
+        refreshAllButtons()
+        setNeedsLayout()
     }
 
     // MARK: - Public API

@@ -32,8 +32,34 @@ final class TextCardEditorViewController: UIViewController {
         fillIfEditing()
         addKeyboardDismissGesture()
         observeKeyboard()
+        observeNotifications()
 
         formattingBar.onAction = { [weak self] action in self?.applyFormat(action) }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = card == nil ? L10n.newNote : L10n.edit
+        navigationItem.leftBarButtonItem?.title  = L10n.cancel
+        navigationItem.rightBarButtonItem?.title = L10n.save
+        titleField.placeholder       = L10n.titleOptionalPlaceholder
+        commentPlaceholder.text      = L10n.commentPlaceholder
+    }
+
+    @objc private func onColorSchemeChanged() {
+        navigationItem.rightBarButtonItem?.tintColor = DayPinDesign.accent
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -55,7 +81,7 @@ final class TextCardEditorViewController: UIViewController {
         formCard.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(formCard)
 
-        titleField.placeholder = "Заголовок (необязательно)"
+        titleField.placeholder = L10n.titleOptionalPlaceholder
         titleField.font = .inter(ofSize: 15, weight: .regular)
         titleField.borderStyle = .none
         titleField.returnKeyType = .next
@@ -289,7 +315,7 @@ final class TextCardEditorViewController: UIViewController {
             let firstLine = bodyText
                 .components(separatedBy: .newlines)
                 .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }?
-                .trimmingCharacters(in: .whitespaces) ?? "Заметка"
+                .trimmingCharacters(in: .whitespaces) ?? L10n.untitledNote
             titleText = firstLine.count > 60 ? String(firstLine.prefix(57)) + "…" : firstLine
         }
 
@@ -532,7 +558,7 @@ final class FormattingToolbar: UIInputView {
         fontSizeLabel.text = "15"
         fontSizeLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         fontSizeLabel.textAlignment = .center
-        fontSizeLabel.textColor = UIColor { t in t.userInterfaceStyle == .dark ? .white : .black }
+        fontSizeLabel.textColor = .label
         fontSizeLabel.widthAnchor.constraint(equalToConstant: 26).isActive = true
         stack.addArrangedSubview(fontSizeLabel)
 
@@ -569,15 +595,15 @@ final class FormattingToolbar: UIInputView {
         let btn = UIButton(type: .system)
         let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
         btn.setImage(UIImage(systemName: "list.bullet", withConfiguration: cfg), for: .normal)
-        btn.tintColor = UIColor { t in t.userInterfaceStyle == .dark ? .white : .black }
+        btn.tintColor = .label
         btn.layer.cornerRadius = 7
         btn.widthAnchor.constraint(equalToConstant: 40).isActive = true
         btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
         btn.showsMenuAsPrimaryAction = true
 
-        let bulletAction = UIAction(title: "Маркер (•)",  image: UIImage(systemName: "list.bullet"))  { [weak self] _ in self?.onAction?(.listBullet) }
-        let numberedAction = UIAction(title: "Нумерация (1.)", image: UIImage(systemName: "list.number")) { [weak self] _ in self?.onAction?(.listNumbered) }
-        let dashAction = UIAction(title: "Тире (–)",       image: UIImage(systemName: "list.dash"))   { [weak self] _ in self?.onAction?(.listDash) }
+        let bulletAction = UIAction(title: L10n.listBullet,   image: UIImage(systemName: "list.bullet"))  { [weak self] _ in self?.onAction?(.listBullet) }
+        let numberedAction = UIAction(title: L10n.listNumbered, image: UIImage(systemName: "list.number")) { [weak self] _ in self?.onAction?(.listNumbered) }
+        let dashAction = UIAction(title: L10n.listDash,      image: UIImage(systemName: "list.dash"))   { [weak self] _ in self?.onAction?(.listDash) }
         btn.menu = UIMenu(children: [bulletAction, numberedAction, dashAction])
         return btn
     }
@@ -588,7 +614,7 @@ final class FormattingToolbar: UIInputView {
         let btn = UIButton(type: .system)
         let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
         btn.setImage(UIImage(systemName: systemName, withConfiguration: cfg), for: .normal)
-        btn.tintColor = UIColor { t in t.userInterfaceStyle == .dark ? .white : .black }
+        btn.tintColor = .label
         btn.layer.cornerRadius = 7
         btn.widthAnchor.constraint(equalToConstant: 40).isActive = true
         btn.heightAnchor.constraint(equalToConstant: 36).isActive = true

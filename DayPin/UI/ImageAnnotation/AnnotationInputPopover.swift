@@ -147,7 +147,7 @@ final class AnnotationInputPopover: UIView {
         content.addSubview(textView)
 
         // Placeholder
-        placeholder.text = "Комментарий (необязательно)"
+        placeholder.text = L10n.commentOptionalPlaceholder
         placeholder.font = .inter(ofSize: 16)
         placeholder.textColor = .placeholderText
         placeholder.isHidden = !(existingText?.isEmpty ?? true)

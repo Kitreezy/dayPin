@@ -35,7 +35,7 @@ final class BackgroundPickerViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = L10n.isRussian ? "Фон" : "Background"
+        title = L10n.background
         view.backgroundColor = DayPinDesign.cardSurface
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .close, target: self, action: #selector(closeTapped))
@@ -43,6 +43,33 @@ final class BackgroundPickerViewController: UIViewController {
         loadCurrentValues()
         buildUI()
         syncUI(animated: false)
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = L10n.background
+        segmentCtrl.setTitle(L10n.bgStandard, forSegmentAt: 0)
+        segmentCtrl.setTitle(L10n.bgColor,    forSegmentAt: 1)
+        segmentCtrl.setTitle(L10n.bgGradient, forSegmentAt: 2)
+        applyBtn.setTitle(L10n.apply, for: .normal)
+    }
+
+    @objc private func onColorSchemeChanged() {
+        applyBtn.backgroundColor = DayPinDesign.accent
+        angleSlider.tintColor = DayPinDesign.accent
     }
 
     // MARK: - Load current values
@@ -70,11 +97,9 @@ final class BackgroundPickerViewController: UIViewController {
 
     private func buildUI() {
         // Segment
-        if L10n.isRussian {
-            segmentCtrl.setTitle("Стандарт", forSegmentAt: 0)
-            segmentCtrl.setTitle("Цвет",      forSegmentAt: 1)
-            segmentCtrl.setTitle("Градиент",  forSegmentAt: 2)
-        }
+        segmentCtrl.setTitle(L10n.bgStandard, forSegmentAt: 0)
+        segmentCtrl.setTitle(L10n.bgColor,    forSegmentAt: 1)
+        segmentCtrl.setTitle(L10n.bgGradient, forSegmentAt: 2)
         segmentCtrl.addTarget(self, action: #selector(segmentChanged), for: .valueChanged)
         segmentCtrl.translatesAutoresizingMaskIntoConstraints = false
 
@@ -88,10 +113,10 @@ final class BackgroundPickerViewController: UIViewController {
         previewView.pinToEdges(of: previewCard)
 
         // Apply button
-        applyBtn.setTitle(L10n.isRussian ? "Применить" : "Apply", for: .normal)
+        applyBtn.setTitle(L10n.apply, for: .normal)
         applyBtn.titleLabel?.font    = .inter(ofSize: 17, weight: .semibold)
         applyBtn.backgroundColor     = DayPinDesign.accent
-        applyBtn.setTitleColor(.white, for: .normal)
+        applyBtn.setTitleColor(UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }, for: .normal)
         applyBtn.layer.cornerRadius  = 14
         applyBtn.translatesAutoresizingMaskIntoConstraints = false
         applyBtn.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
@@ -168,7 +193,7 @@ final class BackgroundPickerViewController: UIViewController {
     private func buildSolidSection() {
         solidSection.translatesAutoresizingMaskIntoConstraints = false
 
-        let label = makeLabel(L10n.isRussian ? "Цвет фона" : "Background color")
+        let label = makeLabel(L10n.bgColorLabel)
         colorSwatch.backgroundColor    = solidColor
         colorSwatch.layer.cornerRadius = 12
         colorSwatch.layer.borderWidth  = 1
@@ -196,7 +221,7 @@ final class BackgroundPickerViewController: UIViewController {
     private func buildGradientSection() {
         gradSection.translatesAutoresizingMaskIntoConstraints = false
 
-        let startLabel = makeLabel(L10n.isRussian ? "Начальный цвет" : "Start color")
+        let startLabel = makeLabel(L10n.bgStartColor)
         startSwatch.backgroundColor    = gradStartColor
         startSwatch.layer.cornerRadius = 12
         startSwatch.layer.borderWidth  = 1
@@ -204,7 +229,7 @@ final class BackgroundPickerViewController: UIViewController {
         startSwatch.addTarget(self, action: #selector(pickStartColor), for: .touchUpInside)
         startSwatch.translatesAutoresizingMaskIntoConstraints = false
 
-        let endLabel = makeLabel(L10n.isRussian ? "Конечный цвет" : "End color")
+        let endLabel = makeLabel(L10n.bgEndColor)
         endSwatch.backgroundColor    = gradEndColor
         endSwatch.layer.cornerRadius = 12
         endSwatch.layer.borderWidth  = 1
@@ -212,7 +237,7 @@ final class BackgroundPickerViewController: UIViewController {
         endSwatch.addTarget(self, action: #selector(pickEndColor), for: .touchUpInside)
         endSwatch.translatesAutoresizingMaskIntoConstraints = false
 
-        let angleTitle = makeLabel(L10n.isRussian ? "Угол" : "Angle")
+        let angleTitle = makeLabel(L10n.bgAngle)
         angleLabel.font      = .inter(ofSize: 13)
         angleLabel.textColor = .secondaryLabel
         angleLabel.text      = "\(Int(gradAngle))°"
@@ -324,8 +349,8 @@ final class BackgroundPickerViewController: UIViewController {
         BackgroundManager.shared.current = currentBg
 
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        let done = L10n.isRussian ? "✓ Применено" : "✓ Applied"
-        let orig = L10n.isRussian ? "Применить"   : "Apply"
+        let done = L10n.bgApplied
+        let orig = L10n.apply
         applyBtn.setTitle(done, for: .normal)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             self?.applyBtn.setTitle(orig, for: .normal)

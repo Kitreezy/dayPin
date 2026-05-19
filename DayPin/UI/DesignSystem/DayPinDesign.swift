@@ -18,13 +18,13 @@ enum DayPinDesign {
 
     // MARK: - Static colors (not scheme-dependent)
 
-    static let paleGold = UIColor(hex: "#FFF4D9")!
+    static let paleGold = UIColor(hex: "#FFF4D9") ?? UIColor(red: 1.0, green: 0.957, blue: 0.851, alpha: 1)
 
     /// Neutral base tinted ~3-4% with the current accent — adapts to light/dark and scheme.
     static var background: UIColor {
         UIColor { t in
             let isDark = t.userInterfaceStyle == .dark
-            let base   = isDark ? UIColor(hex: "#0D0D0D")! : UIColor(hex: "#F5F3EF")!
+            let base   = isDark ? UIColor(hex: "#0D0D0D") ?? .black : UIColor(hex: "#F5F3EF") ?? .systemBackground
             let tint   = ThemeManager.shared.colorScheme.accent
             return base.blendedWith(tint, fraction: isDark ? 0.05 : 0.07)
         }
@@ -32,8 +32,8 @@ enum DayPinDesign {
 
     static let cardSurface = UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor(hex: "#161616")!
-            : UIColor(hex: "#FDFCFA")!
+            ? UIColor(hex: "#161616") ?? .black
+            : UIColor(hex: "#FDFCFA") ?? .systemBackground
     }
 
     static let cardBorderColor = UIColor { t in
@@ -103,7 +103,7 @@ enum DayPinDesign {
         a.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         a.backgroundColor = UIColor { t in
             let isDark = t.userInterfaceStyle == .dark
-            let base   = isDark ? UIColor(hex: "#0D0D0D")! : UIColor(hex: "#F5F5F5")!
+            let base   = isDark ? UIColor(hex: "#0D0D0D") ?? .black : UIColor(hex: "#F5F5F5") ?? .systemBackground
             let tinted = base.blendedWith(ThemeManager.shared.colorScheme.accent, fraction: isDark ? 0.09 : 0.07)
             return tinted.withAlphaComponent(isDark ? 0.86 : 0.90)
         }
@@ -260,11 +260,13 @@ final class GlassFABView: UIView {
         let accent = DayPinDesign.accent
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
         accent.getRed(&r, green: &g, blue: &b, alpha: nil)
-        let isDark = traitCollection.userInterfaceStyle == .dark
-        let base: UIColor = isDark
-            ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
-            : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
-        overlay.backgroundColor = base.withAlphaComponent(isDark ? 0.38 : 0.28)
+        overlay.backgroundColor = UIColor { trait in
+            let dark = trait.userInterfaceStyle == .dark
+            let base: UIColor = dark
+                ? UIColor(red: 0.05 + r * 0.10, green: 0.05 + g * 0.10, blue: 0.05 + b * 0.10, alpha: 1)
+                : UIColor(red: 0.96 + r * 0.04, green: 0.96 + g * 0.04, blue: 0.96 + b * 0.04, alpha: 1)
+            return base.withAlphaComponent(dark ? 0.38 : 0.28)
+        }
         iconButton.tintColor = accent
     }
 

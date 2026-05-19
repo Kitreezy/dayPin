@@ -23,7 +23,7 @@ extension UICollectionViewCell {
 
             let cfg   = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
             let check = UIImageView(image: UIImage(systemName: "checkmark", withConfiguration: cfg))
-            check.tintColor   = .white
+            check.tintColor   = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
             check.contentMode = .scaleAspectFit
             check.translatesAutoresizingMaskIntoConstraints = false
             circle.addSubview(check)
@@ -34,9 +34,9 @@ extension UICollectionViewCell {
                 check.heightAnchor.constraint(equalToConstant: 11)
             ])
         } else {
-            circle.backgroundColor   = UIColor.black.withAlphaComponent(0.30)
+            circle.backgroundColor   = UIColor { trait in UIColor.black.withAlphaComponent(0.30) }
             circle.layer.borderWidth = 1.5
-            circle.layer.borderColor = UIColor.white.withAlphaComponent(0.8).cgColor
+            circle.layer.borderColor = UIColor { trait in UIColor.white.withAlphaComponent(0.8) }.cgColor
         }
 
         contentView.addSubview(circle)

@@ -64,12 +64,43 @@ final class LinkCardEditorViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = card == nil ? "Новая ссылка" : L10n.edit
+        title = card == nil ? L10n.newLink : L10n.edit
         view.backgroundColor = DayPinDesign.background
         setupNav()
         setupUI()
         addKeyboardDismissGesture()
         if let card { fillForEditing(card) }
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = card == nil ? L10n.newLink : L10n.edit
+        navigationItem.leftBarButtonItem?.title  = L10n.cancel
+        navigationItem.rightBarButtonItem?.title = L10n.save
+        urlField.placeholder         = L10n.urlPastePlaceholder
+        titleField.placeholder       = L10n.linkNameLabel
+        commentPlaceholder.text      = L10n.commentPlaceholder
+        coverPlaceholderLabel.text   = L10n.addCover
+    }
+
+    @objc private func onColorSchemeChanged() {
+        navigationItem.rightBarButtonItem?.tintColor = DayPinDesign.accent
+        clipboardBtn.setTitleColor(DayPinDesign.accent, for: .normal)
+        (urlCard.stackView.arrangedSubviews.first as? UIStackView)?
+            .arrangedSubviews.compactMap { $0 as? UIImageView }.first?.tintColor = DayPinDesign.accent
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -140,7 +171,7 @@ final class LinkCardEditorViewController: UIViewController {
         linkIcon.tintColor = DayPinDesign.accent
         linkIcon.setContentHuggingPriority(.required, for: .horizontal)
 
-        urlField.placeholder            = "Вставьте ссылку…"
+        urlField.placeholder            = L10n.urlPastePlaceholder
         urlField.font                   = .inter(ofSize: 15)
         urlField.borderStyle            = .none
         urlField.keyboardType           = .URL
@@ -186,7 +217,7 @@ final class LinkCardEditorViewController: UIViewController {
     }
 
     private func buildDetailsCard() {
-        titleField.placeholder = "Название"
+        titleField.placeholder = L10n.linkNameLabel
         titleField.font        = .inter(ofSize: 15)
         titleField.borderStyle = .none
         titleField.heightAnchor.constraint(equalToConstant: 44).isActive = true
@@ -201,7 +232,7 @@ final class LinkCardEditorViewController: UIViewController {
         commentTextView.delegate        = self
         commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
 
-        commentPlaceholder.text      = "Комментарий…"
+        commentPlaceholder.text      = L10n.commentPlaceholder
         commentPlaceholder.font      = .inter(ofSize: 15)
         commentPlaceholder.textColor = .placeholderText
         commentPlaceholder.translatesAutoresizingMaskIntoConstraints = false
@@ -245,7 +276,7 @@ final class LinkCardEditorViewController: UIViewController {
         coverPlaceholderIcon.translatesAutoresizingMaskIntoConstraints = false
         coverPlaceholderIcon.heightAnchor.constraint(equalToConstant: 28).isActive = true
 
-        coverPlaceholderLabel.text = "Добавить обложку"
+        coverPlaceholderLabel.text = L10n.addCover
         coverPlaceholderLabel.font = .inter(ofSize: 13)
         coverPlaceholderLabel.textColor = .secondaryLabel
         coverPlaceholderLabel.textAlignment = .center
@@ -256,7 +287,7 @@ final class LinkCardEditorViewController: UIViewController {
         placeholder.alignment = .center
 
         let headerLabel = UILabel()
-        headerLabel.text = "Обложка"
+        headerLabel.text = L10n.cover
         headerLabel.font = .inter(ofSize: 13, weight: .medium)
         headerLabel.textColor = .secondaryLabel
 

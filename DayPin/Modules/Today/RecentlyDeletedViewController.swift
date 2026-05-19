@@ -21,7 +21,7 @@ final class RecentlyDeletedViewController: UIViewController {
 
     private lazy var emptyLabel: UILabel = {
         let lbl = UILabel()
-        lbl.text          = "Нет удалённых заметок"
+        lbl.text          = L10n.noDeletedNotes
         lbl.font          = .inter(ofSize: 16, weight: .medium)
         lbl.textColor     = .secondaryLabel
         lbl.textAlignment = .center
@@ -34,14 +34,14 @@ final class RecentlyDeletedViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Недавно удалённые"
+        title = L10n.recentlyDeleted
         view.backgroundColor = DayPinDesign.background
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
-            title: "Закрыть", style: .plain, target: self, action: #selector(close)
+            title: L10n.close, style: .plain, target: self, action: #selector(close)
         )
         let clearBtn = UIBarButtonItem(
-            title: "Очистить всё", style: .plain, target: self, action: #selector(emptyTrashTapped)
+            title: L10n.clearAll, style: .plain, target: self, action: #selector(emptyTrashTapped)
         )
         clearBtn.tintColor = .systemRed
         navigationItem.rightBarButtonItem = clearBtn
@@ -60,6 +60,32 @@ final class RecentlyDeletedViewController: UIViewController {
         ])
 
         loadItems()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = L10n.recentlyDeleted
+        navigationItem.leftBarButtonItem?.title = L10n.close
+        navigationItem.rightBarButtonItem?.title = L10n.clearAll
+        emptyLabel.text = L10n.noDeletedNotes
+        tableView.reloadData()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
     }
 
     // MARK: - Data
@@ -82,12 +108,12 @@ final class RecentlyDeletedViewController: UIViewController {
 
     @objc private func emptyTrashTapped() {
         let alert = UIAlertController(
-            title: "Очистить всю корзину?",
-            message: "Все заметки будут удалены навсегда. Это действие нельзя отменить.",
+            title: L10n.emptyTrashTitle,
+            message: L10n.emptyTrashMessage,
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Очистить", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.emptyTrashConfirm, style: .destructive) { [weak self] _ in
             CardStore.shared.emptyTrash()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             self?.loadItems()
@@ -130,7 +156,9 @@ extension RecentlyDeletedViewController: UITableViewDataSource, UITableViewDeleg
     }
 
     func tableView(_ tv: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tv.dequeueReusableCell(withIdentifier: RecentlyDeletedCell.reuseID, for: indexPath) as! RecentlyDeletedCell
+        guard let cell = tv.dequeueReusableCell(withIdentifier: RecentlyDeletedCell.reuseID, for: indexPath) as? RecentlyDeletedCell else {
+            return UITableViewCell()
+        }
         let item = items[indexPath.row]
         cell.configure(card: item.card, deletedAt: item.deletedAt)
         return cell
@@ -139,14 +167,14 @@ extension RecentlyDeletedViewController: UITableViewDataSource, UITableViewDeleg
     func tableView(_ tv: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat { 72 }
 
     func tableView(_ tv: UITableView, titleForHeaderInSection section: Int) -> String? {
-        items.isEmpty ? nil : "Заметки удаляются автоматически через 30 дней"
+        items.isEmpty ? nil : L10n.autoDeleteNote
     }
 
     // Swipe actions
     func tableView(_ tv: UITableView,
                    trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         let card = items[indexPath.row].card
-        let delete = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, done in
+        let delete = UIContextualAction(style: .destructive, title: L10n.delete) { [weak self] _, _, done in
             self?.permanentlyDelete(card, at: indexPath)
             done(true)
         }
@@ -157,7 +185,7 @@ extension RecentlyDeletedViewController: UITableViewDataSource, UITableViewDeleg
     func tableView(_ tv: UITableView,
                    leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         let card = items[indexPath.row].card
-        let restore = UIContextualAction(style: .normal, title: "Восстановить") { [weak self] _, _, done in
+        let restore = UIContextualAction(style: .normal, title: L10n.backupRestore) { [weak self] _, _, done in
             self?.restore(card, at: indexPath)
             done(true)
         }
@@ -172,11 +200,11 @@ extension RecentlyDeletedViewController: UITableViewDataSource, UITableViewDeleg
         let item = items[indexPath.row]
         let card = item.card
         return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
-            let restore = UIAction(title: "Восстановить",
+            let restore = UIAction(title: L10n.backupRestore,
                                    image: UIImage(systemName: "arrow.uturn.backward")) { [weak self] _ in
                 self?.restore(card, at: indexPath)
             }
-            let delete = UIAction(title: "Удалить навсегда",
+            let delete = UIAction(title: L10n.deleteForever,
                                   image: UIImage(systemName: "trash"),
                                   attributes: .destructive) { [weak self] _ in
                 self?.permanentlyDelete(card, at: indexPath)
@@ -262,22 +290,22 @@ private final class RecentlyDeletedCell: UITableViewCell {
     }
 
     func configure(card: NoteCard, deletedAt: Date) {
-        titleLbl.text = card.title.isEmpty ? "(без названия)" : card.title
+        titleLbl.text = card.title.isEmpty ? L10n.untitledNote : card.title
 
         let df = DateFormatter()
         df.dateFormat = "d MMM, HH:mm"
         df.locale = L10n.activeLocale
-        dateLbl.text = "Удалена: \(df.string(from: deletedAt))"
+        dateLbl.text = L10n.deletedNotePrefix(df.string(from: deletedAt))
 
         // Days remaining
         let expiry  = deletedAt.addingTimeInterval(30 * 24 * 3600)
         let seconds = expiry.timeIntervalSinceNow
         let days    = max(0, Int(ceil(seconds / 86400)))
         if days <= 3 {
-            daysLbl.text      = days == 0 ? "Сегодня" : "ещё \(days) д."
+            daysLbl.text      = days == 0 ? L10n.deletedToday : L10n.daysRemaining(days)
             daysLbl.textColor = .systemRed
         } else {
-            daysLbl.text      = "ещё \(days) д."
+            daysLbl.text      = L10n.daysRemaining(days)
             daysLbl.textColor = .tertiaryLabel
         }
 

@@ -93,6 +93,7 @@ final class TextCardCell: UICollectionViewCell {
 
         let df = DateFormatter()
         df.dateFormat = "HH:mm"
+        df.locale = L10n.activeLocale
         dateLabel.text = df.string(from: card.createdAt)
 
         let tint = card.colorHex.flatMap { UIColor(hex: $0) } ?? DayPinDesign.textCardTint

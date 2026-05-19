@@ -32,6 +32,28 @@ final class FullScreenImageViewController: UIViewController {
         setupScrollView()
         setupCloseButton()
         setupGestures()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        // No user-visible L10n strings on this screen
+    }
+
+    @objc private func onColorSchemeChanged() {
+        // Background is always dark (photo viewer) — no accent-dependent colors
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -44,7 +66,7 @@ final class FullScreenImageViewController: UIViewController {
     // MARK: - Setup
 
     private func setupBackground() {
-        backgroundView.backgroundColor = .black
+        backgroundView.backgroundColor = UIColor(dynamicProvider: { _ in UIColor.black })
         backgroundView.alpha = 0
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(backgroundView)
@@ -96,7 +118,7 @@ final class FullScreenImageViewController: UIViewController {
 
         let icon = UIImageView(image: UIImage(systemName: "xmark",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)))
-        icon.tintColor = UIColor.white.withAlphaComponent(0.9)
+        icon.tintColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.9)
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(icon)

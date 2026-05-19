@@ -94,11 +94,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let detailVC: UIViewController
         switch card.type {
         case .text:
-            detailVC = CardDetailViewController(card: card as! TextCard)
+            guard let text = card as? TextCard else { return }
+            detailVC = CardDetailViewController(card: text)
         case .image:
-            detailVC = ImageCardOverviewViewController(card: card as! ImageCard)
+            guard let image = card as? ImageCard else { return }
+            detailVC = ImageCardOverviewViewController(card: image)
         case .link:
-            detailVC = LinkCardDetailViewController(card: card as! LinkCard)
+            guard let link = card as? LinkCard else { return }
+            detailVC = LinkCardDetailViewController(card: link)
         }
         navVC.pushViewController(detailVC, animated: true)
     }

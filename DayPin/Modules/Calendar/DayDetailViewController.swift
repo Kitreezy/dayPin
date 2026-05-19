@@ -14,10 +14,7 @@ final class DayDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let df = DateFormatter()
-        df.dateFormat = "d MMMM"
-        df.locale = L10n.activeLocale
-        title = df.string(from: date)
+        refreshTitle()
         view.backgroundColor = DayPinDesign.background
 
         let vc = DayCardsViewController(date: date)
@@ -32,6 +29,36 @@ final class DayDetailViewController: UIViewController {
             vc.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             vc.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        refreshTitle()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+    }
+
+    private func refreshTitle() {
+        let df = DateFormatter()
+        df.dateFormat = "d MMMM"
+        df.locale = L10n.activeLocale
+        title = df.string(from: date)
     }
 }
 
@@ -88,20 +115,6 @@ final class DayCardsViewController: UIViewController {
         return cv
     }()
 
-    private lazy var addButton: GradientButton = {
-        let btn = GradientButton()
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        btn.tintColor = .white
-        btn.layer.cornerRadius = 22
-        btn.layer.shadowColor   = DayPinDesign.accent.cgColor
-        btn.layer.shadowOpacity = 0.40
-        btn.layer.shadowRadius  = 12
-        btn.layer.shadowOffset  = CGSize(width: 0, height: 4)
-        let cfg = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
-        btn.setImage(UIImage(systemName: "plus", withConfiguration: cfg), for: .normal)
-        btn.addTarget(self, action: #selector(addTapped), for: .touchUpInside)
-        return btn
-    }()
 
     // MARK: - Init
 
@@ -127,7 +140,6 @@ final class DayCardsViewController: UIViewController {
         collectionView.keyboardDismissMode = .onDrag
         view.addSubview(filterChips)
         view.addSubview(collectionView)
-        view.addSubview(addButton)
 
         NSLayoutConstraint.activate([
             filterChips.topAnchor.constraint(equalTo: view.topAnchor, constant: 4),
@@ -138,13 +150,14 @@ final class DayCardsViewController: UIViewController {
             collectionView.topAnchor.constraint(equalTo: filterChips.bottomAnchor, constant: 4),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-            addButton.widthAnchor.constraint(equalToConstant: 44),
-            addButton.heightAnchor.constraint(equalToConstant: 44)
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+
+        let nc = NotificationCenter.default
+        nc.addObserver(self, selector: #selector(onAddText),   name: .dayPinAddText,   object: nil)
+        nc.addObserver(self, selector: #selector(onAddPhoto),  name: .dayPinAddPhoto,  object: nil)
+        nc.addObserver(self, selector: #selector(onAddCamera), name: .dayPinAddCamera, object: nil)
+        nc.addObserver(self, selector: #selector(onAddLink),   name: .dayPinAddLink,   object: nil)
         collectionView.dataSource = self
         collectionView.delegate   = self
         loadCards()
@@ -216,22 +229,12 @@ final class DayCardsViewController: UIViewController {
         }
     }
 
-    // MARK: - Add
+    // MARK: - Add (via global "+" notifications)
 
-    @objc private func addTapped() {
-        let hasCamera = UIImagePickerController.isSourceTypeAvailable(.camera)
-        var actions: [GlassAction] = [
-            GlassAction(L10n.cardText,  icon: "text.alignleft")       { [weak self] in self?.presentTextEditor() },
-            GlassAction(L10n.cardPhoto, icon: "photo.on.rectangle")    { [weak self] in self?.presentImagePicker() }
-        ]
-        if hasCamera {
-            actions.append(GlassAction(L10n.cardCamera, icon: "camera") { [weak self] in self?.presentCamera() })
-        }
-        actions.append(GlassAction(L10n.cardLink, icon: "link") { [weak self] in self?.presentLinkEditor() })
-        actions.append(GlassAction(L10n.cancel, style: .cancel))
-        GlassActionSheet.show(actions: actions, from: self, sourceView: addButton)
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-    }
+    @objc private func onAddText()   { presentTextEditor() }
+    @objc private func onAddPhoto()  { presentImagePicker() }
+    @objc private func onAddCamera() { presentCamera() }
+    @objc private func onAddLink()   { presentLinkEditor() }
 
     private func presentTextEditor() {
         let vc = TextCardEditorViewController(card: nil, dayDate: date)
@@ -315,25 +318,39 @@ extension DayCardsViewController: UICollectionViewDataSource {
     }
     func collectionView(_ cv: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if activeSections.isEmpty {
-            return cv.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath) as! EmptyCardCell
+            guard let cell = cv.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath) as? EmptyCardCell else {
+                return cv.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath)
+            }
+            return cell
         }
         let card = activeSections[indexPath.section].cards[indexPath.item]
         switch card.type {
         case .text:
-            let cell = cv.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as! TextCardCell
-            cell.configure(with: card as! TextCard); return cell
+            guard let cell = cv.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as? TextCardCell else {
+                return cv.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath)
+            }
+            if let textCard = card as? TextCard { cell.configure(with: textCard) }
+            return cell
         case .image:
-            let cell = cv.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as! ImageCardCell
-            cell.configure(with: card as! ImageCard); return cell
+            guard let cell = cv.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as? ImageCardCell else {
+                return cv.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath)
+            }
+            if let imageCard = card as? ImageCard { cell.configure(with: imageCard) }
+            return cell
         case .link:
-            let cell = cv.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as! LinkCardCell
-            cell.configure(with: card as! LinkCard); return cell
+            guard let cell = cv.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as? LinkCardCell else {
+                return cv.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath)
+            }
+            if let linkCard = card as? LinkCard { cell.configure(with: linkCard) }
+            return cell
         }
     }
     func collectionView(_ cv: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        let header = cv.dequeueReusableSupplementaryView(
+        guard let header = cv.dequeueReusableSupplementaryView(
             ofKind: kind, withReuseIdentifier: CardTypeSectionHeader.reuseID, for: indexPath
-        ) as! CardTypeSectionHeader
+        ) as? CardTypeSectionHeader else {
+            return cv.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: CardTypeSectionHeader.reuseID, for: indexPath)
+        }
         if !activeSections.isEmpty {
             header.configure(title: activeSections[indexPath.section].header,
                              color: activeSections[indexPath.section].accentColor)
@@ -350,11 +367,14 @@ extension DayCardsViewController: UICollectionViewDelegate {
         let card = activeSections[indexPath.section].cards[indexPath.item]
         switch card.type {
         case .text:
-            navigationController?.pushViewController(CardDetailViewController(card: card as! TextCard), animated: true)
+            guard let textCard = card as? TextCard else { return }
+            navigationController?.pushViewController(CardDetailViewController(card: textCard), animated: true)
         case .image:
-            navigationController?.pushViewController(ImageCardOverviewViewController(card: card as! ImageCard), animated: true)
+            guard let imageCard = card as? ImageCard else { return }
+            navigationController?.pushViewController(ImageCardOverviewViewController(card: imageCard), animated: true)
         case .link:
-            navigationController?.pushViewController(LinkCardDetailViewController(card: card as! LinkCard), animated: true)
+            guard let linkCard = card as? LinkCard else { return }
+            navigationController?.pushViewController(LinkCardDetailViewController(card: linkCard), animated: true)
         }
     }
 
@@ -369,7 +389,7 @@ extension DayCardsViewController: UICollectionViewDelegate {
                 if let link = card as? LinkCard { items.append(link.url) }
                 self.present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
             }
-            let copyToDay = UIAction(title: "Скопировать в день", image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
+            let copyToDay = UIAction(title: L10n.copyToDay, image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
                 guard let self else { return }
                 let vc = CopyToDayViewController()
                 vc.onCopy = { date in

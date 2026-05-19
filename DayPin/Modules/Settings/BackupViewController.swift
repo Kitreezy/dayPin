@@ -22,12 +22,35 @@ final class BackupViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Резервная копия"
+        title = L10n.backup
         view.backgroundColor = DayPinDesign.background
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .close, target: self, action: #selector(close)
         )
         setupTable()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = L10n.backup
+        tableView.reloadData()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        // No accent-colored elements in this screen
     }
 
     // MARK: - Setup
@@ -65,7 +88,7 @@ final class BackupViewController: UIViewController {
             picker.delegate = self
             present(picker, animated: true)
         } catch {
-            showAlert(title: "Ошибка экспорта", message: error.localizedDescription)
+            showAlert(title: L10n.exportError, message: error.localizedDescription)
         }
     }
 
@@ -82,7 +105,7 @@ final class BackupViewController: UIViewController {
 
     private func processImport(url: URL) {
         // Show spinner — file can be 10-30MB (images encoded as base64)
-        let spinner = showSpinner(message: "Читаем файл…")
+        let spinner = showSpinner(message: L10n.readingFile)
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
@@ -99,8 +122,8 @@ final class BackupViewController: UIViewController {
                 DispatchQueue.main.async {
                     spinner.dismiss(animated: false) {
                         self?.showAlert(
-                            title: "Ошибка файла",
-                            message: "Файл повреждён или имеет неверный формат.\n\n\(error.localizedDescription)"
+                            title: L10n.fileError,
+                            message: "\(L10n.fileCorrupted)\n\n\(error.localizedDescription)"
                         )
                     }
                 }
@@ -112,32 +135,26 @@ final class BackupViewController: UIViewController {
         let df = DateFormatter()
         df.dateStyle = .medium
         df.timeStyle = .short
+        df.locale = L10n.activeLocale
         let dateStr  = df.string(from: preview.exportDate)
         let cards    = preview.cards.count
         let folders  = preview.folders.count
         let imgCards = preview.cards.filter { $0.imageData != nil }.count
 
         let alert = UIAlertController(
-            title: "Восстановить данные?",
-            message: """
-            Файл создан: \(dateStr)
-
-            Заметок: \(cards) (\(imgCards) с фото)
-            Папок: \(folders)
-
-            ⚠️ Текущие данные будут полностью заменены.
-            """,
+            title: L10n.restoreDataTitle,
+            message: L10n.restoreConfirmMessage(date: dateStr, cards: cards, imgCards: imgCards, folders: folders),
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "Восстановить", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.backupRestore, style: .destructive) { [weak self] _ in
             self?.performRestore(data: data)
         })
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
         present(alert, animated: true)
     }
 
     private func performRestore(data: Data) {
-        let spinner = showSpinner(message: "Восстанавливаем…")
+        let spinner = showSpinner(message: L10n.restoring)
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
@@ -145,8 +162,8 @@ final class BackupViewController: UIViewController {
                 DispatchQueue.main.async {
                     spinner.dismiss(animated: false) {
                         let alert = UIAlertController(
-                            title: "Готово ✓",
-                            message: "Восстановлено:\nЗаметок: \(result.cards)\nПапок: \(result.folders)",
+                            title: L10n.restoreDone,
+                            message: L10n.restoreSuccess(cards: result.cards, folders: result.folders),
                             preferredStyle: .alert
                         )
                         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
@@ -159,7 +176,7 @@ final class BackupViewController: UIViewController {
             } catch {
                 DispatchQueue.main.async {
                     spinner.dismiss(animated: false) {
-                        self?.showAlert(title: "Ошибка восстановления", message: error.localizedDescription)
+                        self?.showAlert(title: L10n.restoreError, message: error.localizedDescription)
                     }
                 }
             }
@@ -200,19 +217,19 @@ extension BackupViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { 1 }
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        switch Section(rawValue: section)! {
-        case .export:  return "Сохранить копию"
-        case .restore: return "Восстановить"
-        case .info:    return "Статистика"
+        guard let s = Section(rawValue: section) else { return nil }
+        switch s {
+        case .export:  return L10n.backupSave
+        case .restore: return L10n.backupRestore
+        case .info:    return L10n.backupStats
         }
     }
 
     func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
-        switch Section(rawValue: section)! {
-        case .export:
-            return "Включает ВСЕ заметки за все дни, изображения и папки. Сохраняется как .json — откройте в Files, сохраните в iCloud Drive или отправьте на другое устройство."
-        case .restore:
-            return "Текущие данные будут полностью заменены. Выберите файл .json, созданный этим приложением."
+        guard let s = Section(rawValue: section) else { return nil }
+        switch s {
+        case .export:  return L10n.backupDescription
+        case .restore: return L10n.restoreDescription
         case .info:
             return nil
         }
@@ -221,16 +238,17 @@ extension BackupViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView,
                    cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        guard let section = Section(rawValue: indexPath.section) else { return cell }
 
-        switch Section(rawValue: indexPath.section)! {
+        switch section {
         case .export:
             var cfg = cell.defaultContentConfiguration()
-            cfg.text = "Создать резервную копию"
+            cfg.text = L10n.backupCreate
             let allCards  = CardStore.shared.allDTOs().count
             let allDays   = Set(CardStore.shared.allDTOs().map {
                 Calendar.current.startOfDay(for: $0.dayDate)
             }).count
-            cfg.secondaryText = "\(allCards) заметок за \(allDays) \(dayWord(allDays))"
+            cfg.secondaryText = L10n.notesDayCount(notes: allCards, days: allDays)
             cfg.image = UIImage(systemName: "arrow.up.doc.fill")
             cfg.imageProperties.tintColor = .systemBlue
             cell.contentConfiguration = cfg
@@ -238,8 +256,8 @@ extension BackupViewController: UITableViewDataSource, UITableViewDelegate {
 
         case .restore:
             var cfg = cell.defaultContentConfiguration()
-            cfg.text = "Восстановить из файла"
-            cfg.secondaryText = "Выбрать .json файл резервной копии"
+            cfg.text = L10n.backupRestoreFromFile
+            cfg.secondaryText = L10n.backupChooseFile
             cfg.image = UIImage(systemName: "arrow.down.doc.fill")
             cfg.imageProperties.tintColor = .systemOrange
             cell.contentConfiguration = cfg
@@ -252,12 +270,7 @@ extension BackupViewController: UITableViewDataSource, UITableViewDelegate {
             let imgs    = dtos.filter { $0.imageData != nil }.count
             let folders = FolderStore.shared.all().count
             let days    = Set(dtos.map { Calendar.current.startOfDay(for: $0.dayDate) }).count
-            cfg.text = """
-            Заметок всего: \(cards)
-            Дней с заметками: \(days)
-            С изображениями: \(imgs)
-            Папок: \(folders)
-            """
+            cfg.text = L10n.backupSummary(cards: cards, days: days, imgs: imgs, folders: folders)
             cfg.textProperties.font = .inter(ofSize: 14)
             cfg.textProperties.color = .secondaryLabel
             cfg.textProperties.numberOfLines = 0
@@ -269,25 +282,14 @@ extension BackupViewController: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        switch Section(rawValue: indexPath.section)! {
+        guard let section = Section(rawValue: indexPath.section) else { return }
+        switch section {
         case .export:  exportBackup()
         case .restore: importBackup()
         case .info:    break
         }
     }
 
-    // MARK: Word forms
-
-    private func dayWord(_ n: Int) -> String {
-        let mod10  = n % 10
-        let mod100 = n % 100
-        if mod100 >= 11 && mod100 <= 19 { return "дней" }
-        switch mod10 {
-        case 1:  return "день"
-        case 2, 3, 4: return "дня"
-        default: return "дней"
-        }
-    }
 }
 
 // MARK: - UIDocumentPickerDelegate

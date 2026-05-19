@@ -8,9 +8,15 @@ enum CardRenderer {
 
     static func render(_ card: NoteCard) -> UIImage {
         switch card.type {
-        case .image: return renderImage(card as! ImageCard)
-        case .text:  return renderText(card  as! TextCard)
-        case .link:  return renderLink(card  as! LinkCard)
+        case .image:
+            guard let imageCard = card as? ImageCard else { return renderPlaceholder(title: card.title, accent: .systemBlue) }
+            return renderImage(imageCard)
+        case .text:
+            guard let textCard = card as? TextCard else { return renderPlaceholder(title: card.title, accent: .systemBlue) }
+            return renderText(textCard)
+        case .link:
+            guard let linkCard = card as? LinkCard else { return renderPlaceholder(title: card.title, accent: .systemBlue) }
+            return renderLink(linkCard)
         }
     }
 
@@ -51,7 +57,7 @@ enum CardRenderer {
         UIBezierPath(ovalIn: CGRect(x: center.x - inner, y: center.y - inner,
                                     width: inner * 2, height: inner * 2)).fill()
         // White dot
-        UIColor.white.setFill()
+        UIColor { trait in UIColor.white }.setFill()
         UIBezierPath(ovalIn: CGRect(x: center.x - core, y: center.y - core,
                                     width: core * 2, height: core * 2)).fill()
 
@@ -62,7 +68,7 @@ enum CardRenderer {
         let badgePad: CGFloat = 7
         let fontSize  = max(imageSize.width * 0.022, 12)
         let font      = UIFont.inter(ofSize: fontSize, weight: .semibold)
-        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor { trait in UIColor.white }]
         let ts        = (text as NSString).size(withAttributes: attrs)
         let bw        = ts.width + badgePad * 2
         let bh        = ts.height + badgePad
@@ -87,11 +93,11 @@ enum CardRenderer {
         let titleFont      = UIFont.inter(ofSize: 28, weight: .bold)
         let bodyFont       = UIFont.inter(ofSize: 17)
         let brandFont      = UIFont.inter(ofSize: 12, weight: .medium)
-        let accent         = UIColor(red: 0.56, green: 0.35, blue: 1.0, alpha: 1)
+        let accent         = UIColor { trait in UIColor(red: 0.56, green: 0.35, blue: 1.0, alpha: 1) }
 
-        let titleAttr: [NSAttributedString.Key: Any] = [.font: titleFont, .foregroundColor: UIColor.white]
-        let bodyAttr:  [NSAttributedString.Key: Any] = [.font: bodyFont,  .foregroundColor: UIColor.white.withAlphaComponent(0.75)]
-        let brandAttr: [NSAttributedString.Key: Any] = [.font: brandFont, .foregroundColor: UIColor.white.withAlphaComponent(0.32)]
+        let titleAttr: [NSAttributedString.Key: Any] = [.font: titleFont, .foregroundColor: UIColor { trait in UIColor.white }]
+        let bodyAttr:  [NSAttributedString.Key: Any] = [.font: bodyFont,  .foregroundColor: UIColor { trait in UIColor.white.withAlphaComponent(0.75) }]
+        let brandAttr: [NSAttributedString.Key: Any] = [.font: brandFont, .foregroundColor: UIColor { trait in UIColor.white.withAlphaComponent(0.32) }]
 
         let titleSize = boundingSize(card.title,   attrs: titleAttr, maxWidth: maxW - 16)
         let body      = card.comment
@@ -104,8 +110,8 @@ enum CardRenderer {
         return UIGraphicsImageRenderer(size: size, format: fmt).image { ctx in
             // Gradient background
             let bg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                                colors: [UIColor(red: 0.10, green: 0.07, blue: 0.18, alpha: 1).cgColor,
-                                         UIColor(red: 0.07, green: 0.05, blue: 0.12, alpha: 1).cgColor] as CFArray,
+                                colors: [UIColor { trait in UIColor(red: 0.10, green: 0.07, blue: 0.18, alpha: 1) }.cgColor,
+                                         UIColor { trait in UIColor(red: 0.07, green: 0.05, blue: 0.12, alpha: 1) }.cgColor] as CFArray,
                                 locations: nil)!
             ctx.cgContext.drawLinearGradient(bg, start: .zero,
                                              end: CGPoint(x: 0, y: size.height), options: [])
@@ -140,12 +146,12 @@ enum CardRenderer {
         let urlFont        = UIFont.inter(ofSize: 14)
         let descFont       = UIFont.inter(ofSize: 15)
         let brandFont      = UIFont.inter(ofSize: 12, weight: .medium)
-        let accent         = UIColor(red: 0.56, green: 0.35, blue: 1.0, alpha: 1)
+        let accent         = UIColor { trait in UIColor(red: 0.56, green: 0.35, blue: 1.0, alpha: 1) }
 
-        let titleAttr: [NSAttributedString.Key: Any] = [.font: titleFont, .foregroundColor: UIColor.white]
+        let titleAttr: [NSAttributedString.Key: Any] = [.font: titleFont, .foregroundColor: UIColor { trait in UIColor.white }]
         let urlAttr:   [NSAttributedString.Key: Any] = [.font: urlFont,   .foregroundColor: accent]
-        let descAttr:  [NSAttributedString.Key: Any] = [.font: descFont,  .foregroundColor: UIColor.white.withAlphaComponent(0.65)]
-        let brandAttr: [NSAttributedString.Key: Any] = [.font: brandFont, .foregroundColor: UIColor.white.withAlphaComponent(0.32)]
+        let descAttr:  [NSAttributedString.Key: Any] = [.font: descFont,  .foregroundColor: UIColor { trait in UIColor.white.withAlphaComponent(0.65) }]
+        let brandAttr: [NSAttributedString.Key: Any] = [.font: brandFont, .foregroundColor: UIColor { trait in UIColor.white.withAlphaComponent(0.32) }]
 
         let urlStr    = card.url.host?.replacingOccurrences(of: "www.", with: "") ?? card.url.absoluteString
         let titleSize = boundingSize(card.title, attrs: titleAttr, maxWidth: maxW)
@@ -159,8 +165,8 @@ enum CardRenderer {
         let fmt  = UIGraphicsImageRendererFormat(); fmt.scale = 2
         return UIGraphicsImageRenderer(size: size, format: fmt).image { ctx in
             let bg = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                                colors: [UIColor(red: 0.06, green: 0.10, blue: 0.20, alpha: 1).cgColor,
-                                         UIColor(red: 0.04, green: 0.07, blue: 0.13, alpha: 1).cgColor] as CFArray,
+                                colors: [UIColor { trait in UIColor(red: 0.06, green: 0.10, blue: 0.20, alpha: 1) }.cgColor,
+                                         UIColor { trait in UIColor(red: 0.04, green: 0.07, blue: 0.13, alpha: 1) }.cgColor] as CFArray,
                                 locations: nil)!
             ctx.cgContext.drawLinearGradient(bg, start: .zero,
                                              end: CGPoint(x: 0, y: size.height), options: [])
@@ -205,7 +211,7 @@ enum CardRenderer {
             ctx.fill(CGRect(origin: .zero, size: size))
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: UIFont.inter(ofSize: 26, weight: .bold),
-                .foregroundColor: UIColor.white
+                .foregroundColor: UIColor { trait in UIColor.white }
             ]
             (title as NSString).draw(at: CGPoint(x: 28, y: 28), withAttributes: attrs)
         }

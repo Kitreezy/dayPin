@@ -83,14 +83,14 @@ final class CalendarViewController: UIViewController {
         // Title label
         titleLabel.font          = .inter(ofSize: 34, weight: .bold)
         titleLabel.textColor     = .label
-        titleLabel.text          = L10n.isRussian ? "Календарь" : "Calendar"
+        titleLabel.text          = L10n.calendarTitle
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(titleLabel)
 
         // "Today" jump button — top-right, aligned with title
         let iconCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         todayBtn.setImage(UIImage(systemName: "arrow.clockwise", withConfiguration: iconCfg), for: .normal)
-        todayBtn.setTitle(L10n.isRussian ? "  Сегодня" : "  Today", for: .normal)
+        todayBtn.setTitle(L10n.calendarTodayBtn, for: .normal)
         todayBtn.titleLabel?.font     = .inter(ofSize: 13, weight: .semibold)
         todayBtn.tintColor            = DayPinDesign.accent
         todayBtn.setTitleColor(DayPinDesign.accent, for: .normal)
@@ -194,7 +194,7 @@ final class CalendarViewController: UIViewController {
         // Restrict to month/year navigation by responding to value changes
         picker.date = displayedMonth
 
-        let alert = UIAlertController(title: L10n.isRussian ? "Выбор месяца" : "Select Month",
+        let alert = UIAlertController(title: L10n.calendarSelectMonth,
                                       message: "\n\n\n\n\n\n\n\n\n\n", preferredStyle: .actionSheet)
         alert.view.addSubview(picker)
         picker.translatesAutoresizingMaskIntoConstraints = false
@@ -219,8 +219,8 @@ final class CalendarViewController: UIViewController {
 
     @objc private func onSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
-        titleLabel.text = L10n.isRussian ? "Календарь" : "Calendar"
-        todayBtn.setTitle(L10n.isRussian ? "  Сегодня" : "  Today", for: .normal)
+        titleLabel.text = L10n.calendarTitle
+        todayBtn.setTitle(L10n.calendarTodayBtn, for: .normal)
         todayBtn.tintColor          = DayPinDesign.accent
         todayBtn.setTitleColor(DayPinDesign.accent, for: .normal)
         todayBtn.backgroundColor    = DayPinDesign.accent.withAlphaComponent(0.1)
@@ -346,7 +346,9 @@ extension CalendarViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if indexPath.section == sectionCalendar {
             let cells = calendarCells()
-            let cell  = collectionView.dequeueReusableCell(withReuseIdentifier: CalendarDayCell.reuseID, for: indexPath) as! CalendarDayCell
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CalendarDayCell.reuseID, for: indexPath) as? CalendarDayCell else {
+                return UICollectionViewCell()
+            }
             let data  = cells[indexPath.item]
             let hasCards = data.date.map { !CardStore.shared.cards(for: $0).isEmpty } ?? false
             let isSel    = data.date.map { cal.isDate($0, inSameDayAs: selectedDate) } ?? false
@@ -359,14 +361,17 @@ extension CalendarViewController: UICollectionViewDataSource {
             let card = notesForSelectedDay[indexPath.item]
             switch card.type {
             case .text:
-                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as! TextCardCell
-                cell.configure(with: card as! TextCard); return cell
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextCardCell.reuseID, for: indexPath) as? TextCardCell,
+                      let text = card as? TextCard else { return UICollectionViewCell() }
+                cell.configure(with: text); return cell
             case .image:
-                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as! ImageCardCell
-                cell.configure(with: card as! ImageCard); return cell
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCardCell.reuseID, for: indexPath) as? ImageCardCell,
+                      let image = card as? ImageCard else { return UICollectionViewCell() }
+                cell.configure(with: image); return cell
             case .link:
-                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as! LinkCardCell
-                cell.configure(with: card as! LinkCard); return cell
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as? LinkCardCell,
+                      let link = card as? LinkCard else { return UICollectionViewCell() }
+                cell.configure(with: link); return cell
             }
         }
     }
@@ -375,13 +380,17 @@ extension CalendarViewController: UICollectionViewDataSource {
                         viewForSupplementaryElementOfKind kind: String,
                         at indexPath: IndexPath) -> UICollectionReusableView {
         if indexPath.section == sectionCalendar {
-            let v = collectionView.dequeueReusableSupplementaryView(
-                ofKind: kind, withReuseIdentifier: WeekdayHeaderView.reuseID, for: indexPath) as! WeekdayHeaderView
+            guard let v = collectionView.dequeueReusableSupplementaryView(
+                ofKind: kind, withReuseIdentifier: WeekdayHeaderView.reuseID, for: indexPath) as? WeekdayHeaderView else {
+                return UICollectionReusableView()
+            }
             v.configure()
             return v
         } else {
-            let v = collectionView.dequeueReusableSupplementaryView(
-                ofKind: kind, withReuseIdentifier: NotesSectionHeader.reuseID, for: indexPath) as! NotesSectionHeader
+            guard let v = collectionView.dequeueReusableSupplementaryView(
+                ofKind: kind, withReuseIdentifier: NotesSectionHeader.reuseID, for: indexPath) as? NotesSectionHeader else {
+                return UICollectionReusableView()
+            }
             v.configure(date: selectedDate)
             return v
         }
@@ -403,11 +412,14 @@ extension CalendarViewController: UICollectionViewDelegate {
             let card = notesForSelectedDay[indexPath.item]
             switch card.type {
             case .text:
-                navigationController?.pushViewController(CardDetailViewController(card: card as! TextCard), animated: true)
+                guard let text = card as? TextCard else { return }
+                navigationController?.pushViewController(CardDetailViewController(card: text), animated: true)
             case .image:
-                navigationController?.pushViewController(ImageCardOverviewViewController(card: card as! ImageCard), animated: true)
+                guard let image = card as? ImageCard else { return }
+                navigationController?.pushViewController(ImageCardOverviewViewController(card: image), animated: true)
             case .link:
-                navigationController?.pushViewController(LinkCardDetailViewController(card: card as! LinkCard), animated: true)
+                guard let link = card as? LinkCard else { return }
+                navigationController?.pushViewController(LinkCardDetailViewController(card: link), animated: true)
             }
         }
     }
@@ -575,8 +587,7 @@ final class NotesSectionHeader: UICollectionReusableView {
         df.dateFormat = "MMMM"
         df.locale = L10n.activeLocale
         let month = df.string(from: date).uppercased()
-        let notes = L10n.isRussian ? "ЗАМЕТКИ" : "NOTES"
-        label.text = "\(notes) • \(day) \(month)"
+        label.text = "\(L10n.calendarNotesSection) • \(day) \(month)"
     }
 }
 
@@ -648,8 +659,8 @@ final class CalendarDayCell: UICollectionViewCell {
             selectionRect.backgroundColor   = DayPinDesign.accent
             selectionRect.layer.borderWidth = 0
             dayLabel.font       = .inter(ofSize: 15, weight: .bold)
-            dayLabel.textColor  = .white
-            dotView.backgroundColor = UIColor.white.withAlphaComponent(0.8)
+            dayLabel.textColor  = UIColor(dynamicProvider: { _ in UIColor.white })
+            dotView.backgroundColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.8)
         } else if isToday {
             selectionRect.backgroundColor   = .clear
             selectionRect.layer.borderWidth = 1.5
@@ -693,7 +704,7 @@ final class EmptyNotesCell: UICollectionViewCell {
         let label = UILabel()
         label.font          = .inter(ofSize: 14, weight: .regular)
         label.textColor     = .tertiaryLabel
-        label.text          = L10n.isRussian ? "Нет заметок за этот день" : "No notes for this day"
+        label.text          = L10n.calendarNoNotes
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(label)
@@ -713,7 +724,10 @@ struct MonthData {
 
     init(firstDay: Date, calendar: Calendar) {
         self.firstDay = firstDay
-        let range = calendar.range(of: .day, in: .month, for: firstDay)!
+        guard let range = calendar.range(of: .day, in: .month, for: firstDay) else {
+            self.cells = []
+            return
+        }
         let weekday = calendar.component(.weekday, from: firstDay)
         let offset  = (weekday - 2 + 7) % 7
 

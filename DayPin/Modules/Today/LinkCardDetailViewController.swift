@@ -3,13 +3,17 @@ import SafariServices
 
 final class LinkCardDetailViewController: UIViewController {
 
+    // MARK: - Properties
+
     private var card: LinkCard
     private var bellButton: UIBarButtonItem?
-    private let cardView    = GlassCardView(style: .card)
-    private let titleLabel  = UILabel()
-    private let linksStack  = UIStackView()
-    private let commentLabel = UILabel()
+    private let cardView      = GlassCardView(style: .card)
+    private let titleLabel    = UILabel()
+    private let linksStack    = UIStackView()
+    private let commentLabel  = UILabel()
     private let coverImageView = UIImageView()
+
+    // MARK: - Init
 
     init(card: LinkCard) {
         self.card = card
@@ -18,13 +22,42 @@ final class LinkCardDetailViewController: UIViewController {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = DayPinDesign.background
         title = card.title
         setupNavButtons()
         setupUI()
+        observeNotifications()
     }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        // Re-render to pick up L10n.activeLocale changes in any date-formatted content
+        render()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        refreshBellButton()
+        render()
+    }
+
+    // MARK: - Navigation
 
     private func setupNavButtons() {
         let editBtn = UIBarButtonItem(image: UIImage(systemName: "pencil"),
@@ -45,6 +78,8 @@ final class LinkCardDetailViewController: UIViewController {
         bellButton?.image = UIImage(systemName: hasReminder ? "bell.fill" : "bell")
         bellButton?.tintColor = hasReminder ? DayPinDesign.accent : nil
     }
+
+    // MARK: - Actions
 
     @objc private func bellTapped() {
         let picker = ReminderPickerViewController(existingDate: card.reminderDate)
@@ -77,6 +112,8 @@ final class LinkCardDetailViewController: UIViewController {
         }
         present(picker, animated: true)
     }
+
+    // MARK: - UI Setup
 
     private func setupUI() {
         let scroll = UIScrollView()

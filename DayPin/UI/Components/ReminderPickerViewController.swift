@@ -88,7 +88,7 @@ final class ReminderPickerViewController: UIViewController {
 
         // Set button
         setButton.setTitle(L10n.setReminder, for: .normal)
-        setButton.setTitleColor(.white, for: .normal)
+        setButton.setTitleColor(UIColor(dynamicProvider: { _ in UIColor.white }), for: .normal)
         setButton.titleLabel?.font = .inter(ofSize: 17, weight: .semibold)
         setButton.layer.cornerRadius = 14
         setButton.addTarget(self, action: #selector(confirmTapped), for: .touchUpInside)

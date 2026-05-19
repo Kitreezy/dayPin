@@ -365,15 +365,15 @@ private final class GhostPinView: UIView {
         super.init(frame: frame)
         layer.cornerRadius  = 18
         layer.borderWidth   = 2
-        layer.borderColor   = UIColor.white.cgColor
-        backgroundColor     = UIColor.white.withAlphaComponent(0.25)
+        layer.borderColor   = UIColor(dynamicProvider: { _ in UIColor.white }).cgColor
+        backgroundColor     = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.25)
         layer.shadowColor   = UIColor.black.cgColor
         layer.shadowOpacity = 0.35
         layer.shadowRadius  = 10
         layer.shadowOffset  = .zero
 
         let dot = UIView()
-        dot.backgroundColor  = .white
+        dot.backgroundColor  = UIColor(dynamicProvider: { _ in UIColor.white })
         dot.layer.cornerRadius = 4
         dot.translatesAutoresizingMaskIntoConstraints = false
         addSubview(dot)
@@ -462,7 +462,7 @@ final class AnnotationPinView: UIView {
         addSubview(titleBlur)
 
         titleLabel.font = .inter(ofSize: 10, weight: .bold)
-        titleLabel.textColor = UIColor.white.withAlphaComponent(0.9)
+        titleLabel.textColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.9)
         titleLabel.numberOfLines = 1
         titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false

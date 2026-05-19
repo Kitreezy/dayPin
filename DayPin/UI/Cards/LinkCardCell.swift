@@ -133,19 +133,19 @@ final class LinkCardCell: UICollectionViewCell {
 
         thumbGradient.colors = [
             UIColor.clear.cgColor,
-            UIColor.black.withAlphaComponent(0.55).cgColor,
-            UIColor.black.withAlphaComponent(0.75).cgColor
+            UIColor(dynamicProvider: { _ in UIColor.black }).withAlphaComponent(0.55).cgColor,
+            UIColor(dynamicProvider: { _ in UIColor.black }).withAlphaComponent(0.75).cgColor
         ]
         thumbGradient.locations = [0.3, 0.7, 1.0]
         contentView.layer.addSublayer(thumbGradient)
 
         // Badge
-        thumbBadge.backgroundColor = UIColor.white.withAlphaComponent(0.18)
+        thumbBadge.backgroundColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.18)
         thumbBadge.layer.cornerRadius = 8
         thumbBadge.translatesAutoresizingMaskIntoConstraints = false
 
         thumbBadgeIcon.contentMode = .scaleAspectFit
-        thumbBadgeIcon.tintColor = .white
+        thumbBadgeIcon.tintColor = UIColor(dynamicProvider: { _ in UIColor.white })
         thumbBadgeIcon.translatesAutoresizingMaskIntoConstraints = false
         thumbBadge.addSubview(thumbBadgeIcon)
         NSLayoutConstraint.activate([
@@ -156,16 +156,16 @@ final class LinkCardCell: UICollectionViewCell {
         ])
 
         thumbTitle.font = .inter(ofSize: 13, weight: .semibold)
-        thumbTitle.textColor = .white
+        thumbTitle.textColor = UIColor(dynamicProvider: { _ in UIColor.white })
         thumbTitle.numberOfLines = 2
         thumbTitle.translatesAutoresizingMaskIntoConstraints = false
 
         thumbUrl.font = .inter(ofSize: 11, weight: .regular)
-        thumbUrl.textColor = UIColor.white.withAlphaComponent(0.7)
+        thumbUrl.textColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.7)
         thumbUrl.translatesAutoresizingMaskIntoConstraints = false
 
         thumbTime.font = .inter(ofSize: 10, weight: .regular)
-        thumbTime.textColor = UIColor.white.withAlphaComponent(0.55)
+        thumbTime.textColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.55)
         thumbTime.translatesAutoresizingMaskIntoConstraints = false
 
         let urlRow = UIStackView(arrangedSubviews: [thumbBadge, thumbUrl, UIView(), thumbTime])
@@ -212,6 +212,7 @@ final class LinkCardCell: UICollectionViewCell {
     func configure(with card: LinkCard) {
         let df = DateFormatter()
         df.dateFormat = "HH:mm"
+        df.locale = L10n.activeLocale
         let timeStr = df.string(from: card.createdAt)
 
         let tint = card.colorHex.flatMap { UIColor(hex: $0) } ?? DayPinDesign.linkCardTint

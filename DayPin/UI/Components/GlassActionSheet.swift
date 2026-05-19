@@ -72,7 +72,11 @@ final class GlassActionSheet: UIView {
 
     private func setup() {
         // Dim background
-        dimView.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        dimView.backgroundColor = UIColor(dynamicProvider: { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor.black.withAlphaComponent(0.50)
+                : UIColor.black.withAlphaComponent(0.35)
+        })
         dimView.alpha = 0
         dimView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(dimView)
@@ -330,7 +334,11 @@ final class AddNoteMenuSheet: UIView {
 
     private func setup() {
         // Dim background
-        dimView.backgroundColor = UIColor.black.withAlphaComponent(0.30)
+        dimView.backgroundColor = UIColor(dynamicProvider: { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor.black.withAlphaComponent(0.50)
+                : UIColor.black.withAlphaComponent(0.30)
+        })
         dimView.alpha = 0
         dimView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(dimView)
@@ -427,7 +435,7 @@ final class AddNoteMenuSheet: UIView {
 
         let iconCfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .medium)
         let iconView = UIImageView(image: UIImage(systemName: action.icon, withConfiguration: iconCfg))
-        iconView.tintColor    = .white
+        iconView.tintColor    = UIColor(dynamicProvider: { _ in UIColor.white })
         iconView.contentMode  = .scaleAspectFit
         iconView.isUserInteractionEnabled = false
         iconView.translatesAutoresizingMaskIntoConstraints = false

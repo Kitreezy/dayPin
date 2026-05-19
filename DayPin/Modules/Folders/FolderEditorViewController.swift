@@ -26,16 +26,16 @@ final class FolderEditorViewController: UIViewController {
     private var colorDots: [UIButton] = []
 
     // MARK: - Palette
-    private static let palette: [(name: String, hex: String)] = [
-        ("Синий",    "#007AFF"),
-        ("Красный",  "#FF3B30"),
-        ("Зелёный",  "#34C759"),
-        ("Оранж.",   "#FF9500"),
-        ("Фиолет.",  "#AF52DE"),
-        ("Жёлтый",   "#FFCC00"),
-        ("Бирюза",   "#32ADE6"),
-        ("Роз.",     "#FF2D55")
-    ]
+    private static var palette: [(name: String, hex: String)] {[
+        (L10n.colorBlue,   "#007AFF"),
+        (L10n.colorRed,    "#FF3B30"),
+        (L10n.colorGreen,  "#34C759"),
+        (L10n.colorOrange, "#FF9500"),
+        (L10n.colorPurple, "#AF52DE"),
+        (L10n.colorYellow, "#FFCC00"),
+        (L10n.colorTeal,   "#32ADE6"),
+        (L10n.colorPink,   "#FF2D55")
+    ]}
 
     // MARK: - Init
 
@@ -60,14 +60,19 @@ final class FolderEditorViewController: UIViewController {
 
     // MARK: - Lifecycle
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = isNew ? "Новая папка" : "Изменить папку"
+        title = isNew ? L10n.newFolder : L10n.editFolder
         view.backgroundColor = DayPinDesign.background
         setupNav()
         buildUI()
         updatePreview()
         updateColorDots()
+        observeNotifications()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -75,12 +80,33 @@ final class FolderEditorViewController: UIViewController {
         nameField.becomeFirstResponder()
     }
 
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = isNew ? L10n.newFolder : L10n.editFolder
+        navigationItem.leftBarButtonItem?.title  = L10n.cancel
+        navigationItem.rightBarButtonItem?.title = L10n.save
+        nameField.placeholder = L10n.folderNamePlaceholder
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+        navigationItem.rightBarButtonItem?.tintColor = DayPinDesign.accent
+    }
+
     // MARK: - Nav
 
     private func setupNav() {
-        navigationItem.leftBarButtonItem  = UIBarButtonItem(title: "Отмена", style: .plain,
+        navigationItem.leftBarButtonItem  = UIBarButtonItem(title: L10n.cancel, style: .plain,
                                                             target: self, action: #selector(cancel))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Сохранить", style: .done,
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: L10n.save, style: .done,
                                                             target: self, action: #selector(save))
         navigationItem.rightBarButtonItem?.tintColor = DayPinDesign.accent
     }
@@ -119,7 +145,7 @@ final class FolderEditorViewController: UIViewController {
         // Дефолтная иконка папки
         let cfg = UIImage.SymbolConfiguration(pointSize: 38, weight: .medium)
         previewFolderIcon.image        = UIImage(systemName: "folder.fill", withConfiguration: cfg)
-        previewFolderIcon.tintColor    = .white
+        previewFolderIcon.tintColor    = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         previewFolderIcon.contentMode  = .scaleAspectFit
         previewFolderIcon.translatesAutoresizingMaskIntoConstraints = false
         previewGradient.addSubview(previewFolderIcon)
@@ -140,9 +166,9 @@ final class FolderEditorViewController: UIViewController {
 
         // ── Кнопки выбора иконки ───────────────────────────────────────────
         let iconButtonsRow = UIStackView(arrangedSubviews: [
-            makeIconButton(title: "Эмодзи",    icon: "face.smiling",       action: #selector(pickEmoji)),
-            makeIconButton(title: "Фото",       icon: "photo.on.rectangle", action: #selector(pickPhoto)),
-            makeIconButton(title: "По умолч.",  icon: "arrow.counterclockwise", action: #selector(resetIcon))
+            makeIconButton(title: L10n.emoji,       icon: "face.smiling",           action: #selector(pickEmoji)),
+            makeIconButton(title: L10n.filterImage, icon: "photo.on.rectangle",     action: #selector(pickPhoto)),
+            makeIconButton(title: L10n.defaultIcon, icon: "arrow.counterclockwise", action: #selector(resetIcon))
         ])
         iconButtonsRow.axis         = .horizontal
         iconButtonsRow.spacing      = 10
@@ -161,7 +187,7 @@ final class FolderEditorViewController: UIViewController {
         let formCard = GlassCardView(style: .card)
         formCard.translatesAutoresizingMaskIntoConstraints = false
 
-        nameField.placeholder   = "Название папки"
+        nameField.placeholder   = L10n.folderNamePlaceholder
         nameField.font          = .inter(ofSize: 16, weight: .semibold)
         nameField.borderStyle   = .none
         nameField.returnKeyType = .done
@@ -179,7 +205,7 @@ final class FolderEditorViewController: UIViewController {
 
         // ── Цвет папки ─────────────────────────────────────────────────────
         let colorLabel = UILabel()
-        colorLabel.text      = "ЦВЕТ ПАПКИ"
+        colorLabel.text      = L10n.folderColorLabel
         colorLabel.font      = .inter(ofSize: 11, weight: .semibold)
         colorLabel.textColor = .secondaryLabel
         colorLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -280,7 +306,7 @@ final class FolderEditorViewController: UIViewController {
     // MARK: - Icon Actions
 
     @objc private func pickEmoji() {
-        let alert = UIAlertController(title: "Выберите эмодзи", message: "Введите или вставьте один эмодзи", preferredStyle: .alert)
+        let alert = UIAlertController(title: L10n.chooseEmoji, message: L10n.emojiHint, preferredStyle: .alert)
         alert.addTextField { tf in
             tf.placeholder  = "😊"
             tf.font         = .inter(ofSize: 30)
@@ -289,7 +315,7 @@ final class FolderEditorViewController: UIViewController {
                 tf.keyboardType = .default
             }
         }
-        alert.addAction(UIAlertAction(title: "Выбрать", style: .default) { [weak self, weak alert] _ in
+        alert.addAction(UIAlertAction(title: L10n.selectNote, style: .default) { [weak self, weak alert] _ in
             guard let text = alert?.textFields?.first?.text,
                   let first = text.unicodeScalars.first,
                   first.properties.isEmoji else { return }
@@ -299,7 +325,7 @@ final class FolderEditorViewController: UIViewController {
             self?.selectedImageData = nil
             self?.updatePreview()
         })
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
         present(alert, animated: true)
     }
 

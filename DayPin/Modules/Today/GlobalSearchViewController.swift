@@ -27,6 +27,29 @@ final class GlobalSearchViewController: UIViewController {
         setupTable()
         setupEmpty()
         reload(query: "")
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        emptyLabel.text = L10n.searchNoResults
+        tableView.reloadData()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
     }
 
     // MARK: - Public
@@ -76,7 +99,7 @@ final class GlobalSearchViewController: UIViewController {
     }
 
     private func setupEmpty() {
-        emptyLabel.text = "Ничего не найдено"
+        emptyLabel.text = L10n.searchNoResults
         emptyLabel.font = .inter(ofSize: 16)
         emptyLabel.textColor = .secondaryLabel
         emptyLabel.textAlignment = .center
@@ -114,7 +137,9 @@ extension GlobalSearchViewController: UITableViewDataSource, UITableViewDelegate
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: SearchResultCell.reuseID, for: indexPath) as! SearchResultCell
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: SearchResultCell.reuseID, for: indexPath) as? SearchResultCell else {
+            return UITableViewCell()
+        }
         cell.configure(with: results[indexPath.row])
         return cell
     }
@@ -235,7 +260,7 @@ private final class SearchResultCell: UITableViewCell {
             typeIcon.image = UIImage(systemName: "text.alignleft", withConfiguration: cfg)
             typeIcon.tintColor = DayPinDesign.textCardTint
             (typeIcon.superview as? UIView)?.backgroundColor = DayPinDesign.textCardTint.withAlphaComponent(0.12)
-            pillLabel.text = "Заметка"
+            pillLabel.text = L10n.cardTypeNote
             pill.backgroundColor = DayPinDesign.textCardTint.withAlphaComponent(0.12)
             pillLabel.textColor = DayPinDesign.textCardTint
         case .image:
@@ -243,7 +268,7 @@ private final class SearchResultCell: UITableViewCell {
             typeIcon.image = UIImage(systemName: "photo", withConfiguration: cfg)
             typeIcon.tintColor = DayPinDesign.imageCardTint
             (typeIcon.superview as? UIView)?.backgroundColor = DayPinDesign.imageCardTint.withAlphaComponent(0.12)
-            pillLabel.text = "Фото"
+            pillLabel.text = L10n.cardTypePhoto
             pill.backgroundColor = DayPinDesign.imageCardTint.withAlphaComponent(0.12)
             pillLabel.textColor = DayPinDesign.imageCardTint
         case .link:
@@ -251,7 +276,7 @@ private final class SearchResultCell: UITableViewCell {
             typeIcon.image = UIImage(systemName: "link", withConfiguration: cfg)
             typeIcon.tintColor = DayPinDesign.linkCardTint
             (typeIcon.superview as? UIView)?.backgroundColor = DayPinDesign.linkCardTint.withAlphaComponent(0.12)
-            pillLabel.text = "Ссылка"
+            pillLabel.text = L10n.cardTypeLink
             pill.backgroundColor = DayPinDesign.linkCardTint.withAlphaComponent(0.12)
             pillLabel.textColor = DayPinDesign.linkCardTint
         }

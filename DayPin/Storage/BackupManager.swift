@@ -60,6 +60,7 @@ final class BackupManager {
     func suggestedFilename() -> String {
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd"
+        df.locale = L10n.activeLocale
         return "daypin_backup_\(df.string(from: Date())).json"
     }
 

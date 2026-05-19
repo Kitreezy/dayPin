@@ -20,19 +20,48 @@ final class ThemePickerViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = DayPinDesign.cardSurface
-        title = "Оформление"
+        title = L10n.appearance
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .close,
             target: self,
             action: #selector(closeTapped)
         )
         setupUI()
+        observeNotifications()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    // MARK: - Notifications
+
+    private func observeNotifications() {
+        NotificationCenter.default.addObserver(self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil)
+    }
+
+    @objc private func onLanguageChanged() {
+        title = L10n.appearance
+        titleLabel.text = L10n.brightness
+        schemeLabel.text = L10n.colorScheme
+        for (i, theme) in AppTheme.allCases.enumerated() {
+            brightnessSegment.setTitle(theme.displayName, forSegmentAt: i)
+        }
+        collectionView.reloadData()
+    }
+
+    @objc private func onColorSchemeChanged() {
+        selectedSchemeID = ThemeManager.shared.colorScheme.id
+        collectionView.reloadData()
     }
 
     // MARK: - Setup
 
     private func setupUI() {
-        titleLabel.text = "Яркость"
+        titleLabel.text = L10n.brightness
         titleLabel.font = .inter(ofSize: 13, weight: .medium)
         titleLabel.textColor = .secondaryLabel
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -41,7 +70,7 @@ final class ThemePickerViewController: UIViewController {
         brightnessSegment.addTarget(self, action: #selector(brightnessChanged), for: .valueChanged)
         brightnessSegment.translatesAutoresizingMaskIntoConstraints = false
 
-        schemeLabel.text = "Цветовая схема"
+        schemeLabel.text = L10n.colorScheme
         schemeLabel.font = .inter(ofSize: 13, weight: .medium)
         schemeLabel.textColor = .secondaryLabel
         schemeLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -128,7 +157,9 @@ extension ThemePickerViewController: UICollectionViewDataSource, UICollectionVie
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SchemeCell.reuseID, for: indexPath) as! SchemeCell
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SchemeCell.reuseID, for: indexPath) as? SchemeCell else {
+            return UICollectionViewCell()
+        }
         let scheme = AppColorScheme.all[indexPath.item]
         cell.configure(scheme: scheme, isSelected: scheme.id == selectedSchemeID)
         return cell
@@ -202,7 +233,7 @@ private final class SchemeCell: UICollectionViewCell {
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
 
         checkmark.image = UIImage(systemName: "checkmark.circle.fill")
-        checkmark.tintColor = .white
+        checkmark.tintColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         checkmark.contentMode = .scaleAspectFit
         checkmark.translatesAutoresizingMaskIntoConstraints = false
         checkmark.isHidden = true

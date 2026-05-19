@@ -2,6 +2,8 @@ import UIKit
 
 final class ImageCardCell: UICollectionViewCell {
 
+    // MARK: - Properties
+
     static let reuseID = "ImageCardCell"
 
     private let thumbnailView = UIImageView()
@@ -10,10 +12,13 @@ final class ImageCardCell: UICollectionViewCell {
     private let pinIcon       = UIImageView()
     private let timeLabel     = UILabel()
     private let gradientLayer = CAGradientLayer()
+    private let reminderDot   = UIImageView()
 
-    // Glass panel: plain UIView — semi-transparent so the photo shows through.
+    // Glass panel: plain UIView - semi-transparent so the photo shows through.
     // UIVisualEffectView doesn't blur sibling views in collection cells reliably.
     private let glassPanel = UIView()
+
+    // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -26,9 +31,13 @@ final class ImageCardCell: UICollectionViewCell {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    // MARK: - Notifications
+
     @objc private func onSchemeChanged() {
         refreshTint(DayPinDesign.imageCardTint)
     }
+
+    // MARK: - UI Setup
 
     private func refreshTint(_ tint: UIColor) {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
@@ -45,7 +54,11 @@ final class ImageCardCell: UICollectionViewCell {
 
         // ── Photo ──────────────────────────────────────────────
         thumbnailView.contentMode = .scaleAspectFill
-        thumbnailView.backgroundColor = UIColor(white: 0.12, alpha: 1)
+        thumbnailView.backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor(white: 0.14, alpha: 1)
+                : UIColor(white: 0.88, alpha: 1)
+        }
         thumbnailView.layer.cornerRadius = 18
         thumbnailView.layer.masksToBounds = true
         thumbnailView.translatesAutoresizingMaskIntoConstraints = false
@@ -53,7 +66,7 @@ final class ImageCardCell: UICollectionViewCell {
 
         // ── Vignette gradient ──────────────────────────────────
         gradientLayer.colors = [UIColor.clear.cgColor,
-                                UIColor.black.withAlphaComponent(0.60).cgColor]
+                                UIColor(dynamicProvider: { _ in UIColor.black }).withAlphaComponent(0.60).cgColor]
         gradientLayer.locations = [0.28, 1.0]
         gradientLayer.cornerRadius = 18
         contentView.layer.addSublayer(gradientLayer)
@@ -61,7 +74,7 @@ final class ImageCardCell: UICollectionViewCell {
         // ── Floating glass panel ───────────────────────────────
         glassPanel.layer.cornerRadius = 14
         glassPanel.layer.borderWidth  = 0.5
-        glassPanel.layer.borderColor  = UIColor.white.withAlphaComponent(0.18).cgColor
+        glassPanel.layer.borderColor  = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.18).cgColor
         glassPanel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(glassPanel)
         refreshTint(DayPinDesign.imageCardTint)
@@ -69,17 +82,17 @@ final class ImageCardCell: UICollectionViewCell {
 
         // ── Labels ─────────────────────────────────────────────
         titleLabel.font = .inter(ofSize: 15, weight: .semibold)
-        titleLabel.textColor = .white
+        titleLabel.textColor = UIColor(dynamicProvider: { _ in UIColor.white })
         titleLabel.numberOfLines = 2
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
         pinIcon.image = UIImage(systemName: "mappin.circle.fill")
-        pinIcon.tintColor = UIColor.white.withAlphaComponent(0.75)
+        pinIcon.tintColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.75)
         pinIcon.contentMode = .scaleAspectFit
         pinIcon.translatesAutoresizingMaskIntoConstraints = false
 
         pinCountLabel.font = .inter(ofSize: 12, weight: .medium)
-        pinCountLabel.textColor = UIColor.white.withAlphaComponent(0.90)
+        pinCountLabel.textColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.90)
         pinCountLabel.translatesAutoresizingMaskIntoConstraints = false
 
         let pinRow = UIStackView(arrangedSubviews: [pinIcon, pinCountLabel])
@@ -89,7 +102,7 @@ final class ImageCardCell: UICollectionViewCell {
         pinRow.translatesAutoresizingMaskIntoConstraints = false
 
         timeLabel.font = .inter(ofSize: 11, weight: .regular)
-        timeLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+        timeLabel.textColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.55)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
 
         let bottomRow = UIStackView(arrangedSubviews: [pinRow, UIView(), timeLabel])
@@ -134,12 +147,10 @@ final class ImageCardCell: UICollectionViewCell {
         ])
     }
 
-    private let reminderDot = UIImageView()
-
     private func setupReminderDot() {
         let cfg = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
         reminderDot.image = UIImage(systemName: "bell.fill", withConfiguration: cfg)
-        reminderDot.tintColor = .white
+        reminderDot.tintColor = UIColor(dynamicProvider: { _ in UIColor.white })
         reminderDot.contentMode = .scaleAspectFit
         reminderDot.translatesAutoresizingMaskIntoConstraints = false
         reminderDot.isHidden = true
@@ -152,11 +163,15 @@ final class ImageCardCell: UICollectionViewCell {
         ])
     }
 
+    // MARK: - Layout
+
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = contentView.bounds
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 18).cgPath
     }
+
+    // MARK: - Configuration
 
     func configure(with card: ImageCard) {
         titleLabel.text = card.title
@@ -164,7 +179,7 @@ final class ImageCardCell: UICollectionViewCell {
 
         let count = card.annotations.count
         let tint = card.colorHex.flatMap { UIColor(hex: $0) } ?? DayPinDesign.imageCardTint
-        pinIcon.tintColor = count > 0 ? tint : UIColor.white.withAlphaComponent(0.4)
+        pinIcon.tintColor = count > 0 ? tint : UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.4)
         refreshTint(tint)
 
         if count == 0 {
@@ -183,6 +198,7 @@ final class ImageCardCell: UICollectionViewCell {
 
         let df = DateFormatter()
         df.dateFormat = "HH:mm"
+        df.locale = L10n.activeLocale
         timeLabel.text = df.string(from: card.createdAt)
 
         let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()

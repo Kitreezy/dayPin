@@ -51,6 +51,16 @@ final class FolderListViewController: UIViewController {
             name: .dayPinColorSchemeChanged,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -75,7 +85,7 @@ final class FolderListViewController: UIViewController {
             headerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
         ])
 
-        titleLabel.text      = L10n.isRussian ? "Папки" : "Folders"
+        titleLabel.text      = L10n.tabFolders
         titleLabel.font      = DayPinDesign.fontScreenTitle
         titleLabel.textColor = .label
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -90,6 +100,11 @@ final class FolderListViewController: UIViewController {
 
     @objc private func onSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
+        collectionView.reloadData()
+    }
+
+    @objc private func onLanguageChanged() {
+        titleLabel.text = L10n.tabFolders
         collectionView.reloadData()
     }
 
@@ -135,11 +150,11 @@ final class FolderListViewController: UIViewController {
     }
 
     private func deleteFolder(_ folder: Folder) {
-        let alert = UIAlertController(title: "Удалить папку?",
-                                      message: "Заметки останутся, но будут откреплены от папки.",
+        let alert = UIAlertController(title: L10n.deleteFolderTitle,
+                                      message: L10n.deleteFolderMessage,
                                       preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
             FolderStore.shared.delete(folder)
             self?.reload()
         })
@@ -159,7 +174,9 @@ extension FolderListViewController: UICollectionViewDataSource {
         if indexPath.item == folders.count {
             return cv.dequeueReusableCell(withReuseIdentifier: AddFolderCardCell.reuseID, for: indexPath)
         }
-        let cell   = cv.dequeueReusableCell(withReuseIdentifier: FolderCardCell.reuseID, for: indexPath) as! FolderCardCell
+        guard let cell = cv.dequeueReusableCell(withReuseIdentifier: FolderCardCell.reuseID, for: indexPath) as? FolderCardCell else {
+            return UICollectionViewCell()
+        }
         let folder = folders[indexPath.item]
         cell.configure(folder: folder, cards: CardStore.shared.cards(inFolder: folder.id))
         return cell
@@ -186,10 +203,10 @@ extension FolderListViewController: UICollectionViewDelegate {
         guard indexPath.item < folders.count else { return nil }
         let folder = folders[indexPath.item]
         return UIContextMenuConfiguration(actionProvider: { _ in
-            let edit = UIAction(title: "Изменить", image: UIImage(systemName: "pencil")) { [weak self] _ in
+            let edit = UIAction(title: L10n.edit, image: UIImage(systemName: "pencil")) { [weak self] _ in
                 self?.presentFolderEditor(existing: folder)
             }
-            let delete = UIAction(title: "Удалить", image: UIImage(systemName: "trash"),
+            let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"),
                                   attributes: .destructive) { [weak self] _ in
                 self?.deleteFolder(folder)
             }
@@ -394,7 +411,7 @@ final class FolderCardCell: UICollectionViewCell {
         // Если совсем нет заметок — показать «0 заметок»
         if cards.isEmpty {
             let empty = UILabel()
-            empty.text      = "нет заметок"
+            empty.text      = L10n.noNotesLabel
             empty.font      = .inter(ofSize: 10, weight: .regular)
             empty.textColor = .tertiaryLabel
             typeBadgesRow.addArrangedSubview(empty)
@@ -487,7 +504,7 @@ final class AddFolderCardCell: UICollectionViewCell {
         icon.translatesAutoresizingMaskIntoConstraints = false
 
         let label = UILabel()
-        label.text      = "Новая папка"
+        label.text      = L10n.newFolder
         label.font      = .inter(ofSize: 14, weight: .medium)
         label.textColor = DayPinDesign.accent
         label.translatesAutoresizingMaskIntoConstraints = false

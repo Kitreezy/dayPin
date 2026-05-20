@@ -19,6 +19,17 @@ final class TodayViewController: UIViewController {
     private var isSelectMode = false
     private var selectedIDs  = Set<UUID>()
 
+    // MARK: - Undo state
+
+    private var pendingDeleteCard: NoteCard?
+    private var undoTimer: Timer?
+    private let undoToast = UndoToastView()
+
+    // MARK: - Folder context state
+    // Set from add-notification userInfo when the grid is opened from a folder.
+    // Carried through multi-step flows (camera, photo picker) where it can't be passed directly.
+    private var pendingAddFolderID: UUID?
+
     // MARK: - Search state
 
     private var isSearchOpen  = false
@@ -193,6 +204,7 @@ final class TodayViewController: UIViewController {
         refreshButtonColors()
         collectionView.reloadData()
         rebuildMoreMenu()
+        undoToast.refreshAccent()
     }
 
     @objc private func onLanguageChanged() {
@@ -200,6 +212,7 @@ final class TodayViewController: UIViewController {
         searchBar.placeholder = L10n.searchPlaceholder
         rebuildMoreMenu()
         collectionView.reloadData()
+        undoToast.refresh()
     }
 
     private func refreshButtonColors() {
@@ -336,6 +349,18 @@ final class TodayViewController: UIViewController {
 
         collectionView.dataSource = self
         collectionView.delegate   = self
+
+        // Undo toast - floats above the pill bar (safeArea already includes the 70pt inset)
+        undoToast.translatesAutoresizingMaskIntoConstraints = false
+        undoToast.alpha = 0
+        undoToast.isUserInteractionEnabled = false
+        undoToast.onUndo = { [weak self] in self?.handleUndo() }
+        view.addSubview(undoToast)
+        NSLayoutConstraint.activate([
+            undoToast.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            undoToast.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            undoToast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
+        ])
     }
 
     // MARK: - Search overlay setup
@@ -499,6 +524,7 @@ final class TodayViewController: UIViewController {
 
     private func transitionToDate(_ newDate: Date, direction: Int) {
         guard !Calendar.current.isDate(newDate, inSameDayAs: currentDate) else { return }
+        dismissUndoToast()
 
         let outX = CGFloat(direction) * (-view.bounds.width * 0.35)
         let inX  = CGFloat(direction) * (view.bounds.width * 0.35)
@@ -779,22 +805,47 @@ final class TodayViewController: UIViewController {
     }
 
     // Typed add handlers — triggered by the global action grid in MainContainerViewController
-    @objc private func onAddText()   { presentTextEditor(card: nil) }
-    @objc private func onAddPhoto()  { presentImagePicker() }
-    @objc private func onAddCamera() { presentCamera() }
-    @objc private func onAddLink()   { presentLinkEditor(card: nil) }
+    // userInfo may carry "folderID": UUID when triggered from a folder context.
+    @objc private func onAddText(_ n: Notification)   {
+        presentTextEditor(card: nil, folderID: n.folderID)
+    }
+    @objc private func onAddPhoto(_ n: Notification)  {
+        pendingAddFolderID = n.folderID
+        presentImagePicker()
+    }
+    @objc private func onAddCamera(_ n: Notification) {
+        pendingAddFolderID = n.folderID
+        presentCamera()
+    }
+    @objc private func onAddLink(_ n: Notification)   {
+        presentLinkEditor(card: nil, folderID: n.folderID)
+    }
 
     // MARK: - Editors
 
-    func presentTextEditor(card: TextCard?) {
+    func presentTextEditor(card: TextCard?, folderID: UUID? = nil) {
         let vc = TextCardEditorViewController(card: card, dayDate: currentDate)
-        vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
+        vc.onSave = { [weak self] saved in
+            if let fid = folderID { saved.folderID = fid }
+            CardStore.shared.save(card: saved)
+            self?.loadCards()
+            if folderID != nil {
+                NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
+            }
+        }
         presentEditorSheet(vc)
     }
 
-    func presentLinkEditor(card: LinkCard?) {
+    func presentLinkEditor(card: LinkCard?, folderID: UUID? = nil) {
         let vc = LinkCardEditorViewController(card: card, dayDate: currentDate)
-        vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
+        vc.onSave = { [weak self] saved in
+            if let fid = folderID { saved.folderID = fid }
+            CardStore.shared.save(card: saved)
+            self?.loadCards()
+            if folderID != nil {
+                NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
+            }
+        }
         presentEditorSheet(vc)
     }
 
@@ -827,8 +878,17 @@ final class TodayViewController: UIViewController {
     }
 
     func presentImageCardEditor(imageData: Data?) {
+        let folderID = pendingAddFolderID
+        pendingAddFolderID = nil
         let vc = ImageCardEditorViewController(imageData: imageData, dayDate: currentDate, existingCard: nil)
-        vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
+        vc.onSave = { [weak self] saved in
+            if let fid = folderID { saved.folderID = fid }
+            CardStore.shared.save(card: saved)
+            self?.loadCards()
+            if folderID != nil {
+                NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
+            }
+        }
         present(UINavigationController(rootViewController: vc), animated: true)
     }
 
@@ -839,10 +899,18 @@ final class TodayViewController: UIViewController {
     }
 
     func deleteCard(_ card: NoteCard) {
+        // Commit any pending undo before starting a new delete
+        if pendingDeleteCard != nil {
+            undoTimer?.invalidate()
+            undoTimer = nil
+            pendingDeleteCard = nil
+        }
+
         guard let foundItem = flatCards.firstIndex(where: { $0.id == card.id }) else {
             CardStore.shared.delete(card: card)
             allCards = CardStore.shared.cards(for: currentDate)
             applyFilters()
+            showUndoToast(for: card)
             return
         }
 
@@ -852,15 +920,62 @@ final class TodayViewController: UIViewController {
 
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
-        let wasEmpty = flatCards.isEmpty
-        collectionView.performBatchUpdates {
-            self.collectionView.deleteItems(at: [IndexPath(item: foundItem, section: 0)])
-        } completion: { _ in
-            if wasEmpty {
-                UIView.transition(with: self.collectionView, duration: 0.2, options: .transitionCrossDissolve) {
-                    self.collectionView.reloadData()
-                }
+        if flatCards.isEmpty {
+            // Going from last card to empty state.
+            // Skip performBatchUpdates to avoid a UICollectionView count mismatch:
+            // numberOfItemsInSection returns 1 (EmptyCardCell) but UIKit would
+            // expect 0 items remaining after the deleteItems animation.
+            UIView.transition(with: collectionView, duration: 0.25, options: .transitionCrossDissolve) {
+                self.collectionView.reloadData()
             }
+        } else {
+            collectionView.performBatchUpdates {
+                self.collectionView.deleteItems(at: [IndexPath(item: foundItem, section: 0)])
+            }
+        }
+
+        showUndoToast(for: card)
+    }
+
+    // MARK: - Undo
+
+    private func showUndoToast(for card: NoteCard) {
+        pendingDeleteCard = card
+        undoToast.isUserInteractionEnabled = true
+
+        UIView.animate(withDuration: 0.35, delay: 0,
+                       usingSpringWithDamping: 0.8, initialSpringVelocity: 0.4) {
+            self.undoToast.alpha = 1
+            self.undoToast.transform = .identity
+        }
+
+        undoTimer?.invalidate()
+        undoTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: false) { [weak self] _ in
+            self?.dismissUndoToast()
+        }
+    }
+
+    @objc private func handleUndo() {
+        undoTimer?.invalidate()
+        undoTimer = nil
+        guard let card = pendingDeleteCard else { return }
+        pendingDeleteCard = nil
+        CardStore.shared.restoreFromTrash(card: card)
+        loadCards()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        dismissUndoToast()
+    }
+
+    private func dismissUndoToast() {
+        undoTimer?.invalidate()
+        undoTimer = nil
+        pendingDeleteCard = nil
+        undoToast.isUserInteractionEnabled = false
+        UIView.animate(withDuration: 0.22) {
+            self.undoToast.alpha = 0
+            self.undoToast.transform = CGAffineTransform(translationX: 0, y: 20)
+        } completion: { _ in
+            self.undoToast.transform = .identity
         }
     }
 
@@ -919,6 +1034,7 @@ extension TodayViewController: UICollectionViewDataSource {
             guard let empty = collectionView.dequeueReusableCell(withReuseIdentifier: EmptyCardCell.reuseID, for: indexPath) as? EmptyCardCell else {
                 return UICollectionViewCell()
             }
+            empty.startAnimating()
             return empty
         }
         let card = flatCards[indexPath.item]
@@ -1026,6 +1142,77 @@ extension TodayViewController: UICollectionViewDelegate {
             return UIMenu(children: [select, share, copyToDay, edit, folderMenu, delete])
         })
     }
+
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard !flatCards.isEmpty, !(cell is EmptyCardCell) else { return }
+        // Remove any stale gesture from cell reuse before adding a fresh one
+        cell.gestureRecognizers?
+            .filter { $0.name == "cardSwipe" }
+            .forEach { cell.removeGestureRecognizer($0) }
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(handleCardSwipe(_:)))
+        pan.name = "cardSwipe"
+        pan.delegate = self
+        cell.addGestureRecognizer(pan)
+    }
+}
+
+// MARK: - Card swipe-to-delete
+
+extension TodayViewController {
+
+    @objc private func handleCardSwipe(_ pan: UIPanGestureRecognizer) {
+        guard let cell = pan.view as? UICollectionViewCell else { return }
+        guard let indexPath = collectionView.indexPath(for: cell),
+              indexPath.item < flatCards.count else {
+            if pan.state == .ended || pan.state == .cancelled {
+                UIView.animate(withDuration: 0.3) {
+                    cell.transform = .identity
+                    cell.alpha = 1
+                }
+            }
+            return
+        }
+
+        let card = flatCards[indexPath.item]
+        let translation = pan.translation(in: cell)
+
+        switch pan.state {
+        case .changed:
+            let tx = min(0, translation.x)
+            cell.transform = CGAffineTransform(translationX: tx, y: 0)
+            let progress = abs(tx) / (cell.bounds.width * 0.5)
+            cell.alpha = max(0.4, 1.0 - progress * 0.35)
+
+        case .ended:
+            let velocity = pan.velocity(in: cell)
+            let shouldDelete = translation.x < -(cell.bounds.width * 0.35) || velocity.x < -700
+            if shouldDelete {
+                UIView.animate(withDuration: 0.22, delay: 0, options: .curveEaseIn) {
+                    cell.transform = CGAffineTransform(translationX: -(cell.bounds.width + 20), y: 0)
+                    cell.alpha = 0
+                } completion: { _ in
+                    cell.transform = .identity
+                    cell.alpha = 1
+                    self.deleteCard(card)
+                }
+            } else {
+                UIView.animate(withDuration: 0.35, delay: 0,
+                               usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3) {
+                    cell.transform = .identity
+                    cell.alpha = 1
+                }
+            }
+
+        case .cancelled, .failed:
+            UIView.animate(withDuration: 0.3) {
+                cell.transform = .identity
+                cell.alpha = 1
+            }
+
+        default:
+            break
+        }
+    }
 }
 
 // MARK: - PHPickerViewControllerDelegate
@@ -1048,6 +1235,28 @@ extension TodayViewController: UIImagePickerControllerDelegate, UINavigationCont
         presentImageCardEditor(imageData: image?.jpegData(compressionQuality: 0.85))
     }
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
+}
+
+// MARK: - UIGestureRecognizerDelegate
+
+extension TodayViewController: UIGestureRecognizerDelegate {
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let pan = gestureRecognizer as? UIPanGestureRecognizer,
+              pan.name == "cardSwipe",
+              let view = pan.view else { return true }
+        let v = pan.velocity(in: view)
+        // Only activate for a clearly left-dominant horizontal pan
+        return abs(v.x) > abs(v.y) && v.x < 0
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        // Card swipe must not fire alongside the collection view scroll
+        return false
+    }
 }
 
 // MARK: - CardTypeSectionHeader (kept for binary compatibility)

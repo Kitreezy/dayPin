@@ -10,6 +10,9 @@ extension Notification.Name {
     static let dayPinAddPhoto  = Notification.Name("daypin.addPhoto")
     static let dayPinAddCamera = Notification.Name("daypin.addCamera")
     static let dayPinAddLink   = Notification.Name("daypin.addLink")
+    /// Posted by NotePickerViewController after notes are added to a folder.
+    /// FolderDetailViewController listens to this and reloads.
+    static let dayPinFolderNeedsRefresh = Notification.Name("daypin.folderNeedsRefresh")
 }
 
 // MARK: - AppTheme (brightness)

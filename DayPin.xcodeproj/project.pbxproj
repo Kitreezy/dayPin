@@ -26,13 +26,17 @@
 		389A3BABD6F735C355471311 /* MainContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 580A8A33BFFFCE6ABC2F8B7D /* MainContainerViewController.swift */; };
 		3D9F5A0F76BE2BB3CFD56A26 /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28EEB088E806A6A4231C6AE /* AppGroup.swift */; };
 		3F89CC6B59C5C9231123836A /* TasksViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A9069EF327F6F688E9DDC64 /* TasksViewController.swift */; };
+		3FBBD9C957EC76CA5F130BA2 /* empty_cat.lottie in Resources */ = {isa = PBXBuildFile; fileRef = CAB7BC20E054F1FCFA4F8978 /* empty_cat.lottie */; };
 		427FA47A02CD12B7B7549C52 /* WaveBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3811B493D58F8359A3B89668 /* WaveBackgroundView.swift */; };
 		43F0B7DCFCA71814191E5739 /* TodayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E880FB38D2E789A7BE09FD46 /* TodayViewController.swift */; };
 		456D42A096E29C64F7CDCD82 /* CopyToDayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3847EB514F49124182B1EF07 /* CopyToDayViewController.swift */; };
 		46382AB7ADD516A51FA07694 /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BC21C03C0609694D007D41FA /* Inter-Bold.ttf */; };
+		463DDE1D0E622F60DEE25408 /* Notification+FolderID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08DEF84845C12C61D2FC819E /* Notification+FolderID.swift */; };
 		48B993E645C6B1E97107B5CD /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002B3223FA9BF36D228C41B /* Extensions.swift */; };
+		4F520631F9451CEF5C3AD3AC /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 9E535E3104FAC5065C22F072 /* Lottie */; };
 		51FDB72F8BE313F3500D5D87 /* GradientBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703D373DD7B40A169F744A73 /* GradientBackgroundView.swift */; };
 		56534DD842DF2F5B6DC55366 /* Inter-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 19BAAFFED431C0B238B4B3D4 /* Inter-SemiBold.ttf */; };
+		5C52F724E6D93D5ACA7ABFCE /* UndoToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BAC70D20A18A22E6F71FEAD /* UndoToastView.swift */; };
 		5FDEF265B19207941B07742A /* BackgroundPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627BB3A609BCA96D507DAB93 /* BackgroundPickerViewController.swift */; };
 		5FF8EC089219B0CCA4946409 /* LinkCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443F08F85AEC989A90078A36 /* LinkCardCell.swift */; };
 		60A71D2059804BADC4CAFF00 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 59B5E44E91A76D6236C3C45F /* Inter-Regular.ttf */; };
@@ -54,6 +58,7 @@
 		9C6E796A7EBC8B0DDF542516 /* ReminderPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FECEB1A71390D21A06E5E41 /* ReminderPickerViewController.swift */; };
 		9F1EBAFF3D91A5E71CB648CE /* LinkCardDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A5F1E6ABECBB2FF81EAA83 /* LinkCardDetailViewController.swift */; };
 		A406F0465B94FDFA7430E16B /* ImageCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE10EE4FDE3F272BBFDF623A /* ImageCardCell.swift */; };
+		A644A6B5227AD672E65C122D /* empty_cat.json in Resources */ = {isa = PBXBuildFile; fileRef = 5C0A8232A2D1A11ED7F2CD41 /* empty_cat.json */; };
 		A81528C63DBF3411F75342E4 /* PinListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BB7279FAD69E786324076A /* PinListViewController.swift */; };
 		AA4FEC496D4EA9FE35E1F88F /* ImageCardEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D718FFF5FF6335D37905A1B7 /* ImageCardEditorViewController.swift */; };
 		AD58B3583A00CA5C492276CF /* GlobalSearchViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E4BD0248AB8E3A0BACB09C /* GlobalSearchViewController.swift */; };
@@ -111,6 +116,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		08DEF84845C12C61D2FC819E /* Notification+FolderID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Notification+FolderID.swift"; sourceTree = "<group>"; };
 		1527142EE2C7F1DC149BF280 /* NoteCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCard.swift; sourceTree = "<group>"; };
 		16C4E86F7D60B6BA37164A11 /* ReminderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderManager.swift; sourceTree = "<group>"; };
 		1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekCalendarView.swift; sourceTree = "<group>"; };
@@ -132,6 +138,7 @@
 		3811B493D58F8359A3B89668 /* WaveBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveBackgroundView.swift; sourceTree = "<group>"; };
 		3847EB514F49124182B1EF07 /* CopyToDayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyToDayViewController.swift; sourceTree = "<group>"; };
 		3A59E64560B7346557245FFA /* CardDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDetailViewController.swift; sourceTree = "<group>"; };
+		3BAC70D20A18A22E6F71FEAD /* UndoToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndoToastView.swift; sourceTree = "<group>"; };
 		3F2381976CA64FE2BE587DC3 /* DayPinWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DayPinWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		40A03181568ADFCA18D282AA /* CardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRenderer.swift; sourceTree = "<group>"; };
 		443F08F85AEC989A90078A36 /* LinkCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCardCell.swift; sourceTree = "<group>"; };
@@ -145,6 +152,7 @@
 		580A8A33BFFFCE6ABC2F8B7D /* MainContainerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainContainerViewController.swift; sourceTree = "<group>"; };
 		59B5E44E91A76D6236C3C45F /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
 		5B65E4AA4B0A333783B6B900 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		5C0A8232A2D1A11ED7F2CD41 /* empty_cat.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = empty_cat.json; sourceTree = "<group>"; };
 		627BB3A609BCA96D507DAB93 /* BackgroundPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundPickerViewController.swift; sourceTree = "<group>"; };
 		656283854617633C21086122 /* TagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagStore.swift; sourceTree = "<group>"; };
 		66E6C3BF68BFC7A5F44687D3 /* TagsInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagsInputView.swift; sourceTree = "<group>"; };
@@ -175,6 +183,7 @@
 		C476DF2E0FAF4AC680C2160D /* FullScreenImageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenImageViewController.swift; sourceTree = "<group>"; };
 		C77016B53BE93414539B50F7 /* UIViewController+Background.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController+Background.swift"; sourceTree = "<group>"; };
 		CAAB6DB7F4618AD0280A997B /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
+		CAB7BC20E054F1FCFA4F8978 /* empty_cat.lottie */ = {isa = PBXFileReference; lastKnownFileType = file; path = empty_cat.lottie; sourceTree = "<group>"; };
 		CB27345B79A1478C6625C834 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CBFA918314AD44DBBBA6F663 /* DayPin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DayPin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3F87653F31E1F676C6BC02F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
@@ -211,6 +220,7 @@
 			files = (
 				2FC7C9766BF5CACF7682A585 /* CoreData.framework in Frameworks */,
 				D398F2DA1D87CB2ACE9E7F53 /* WidgetKit.framework in Frameworks */,
+				4F520631F9451CEF5C3AD3AC /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -276,6 +286,7 @@
 			isa = PBXGroup;
 			children = (
 				F28EEB088E806A6A4231C6AE /* AppGroup.swift */,
+				08DEF84845C12C61D2FC819E /* Notification+FolderID.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -283,6 +294,7 @@
 		30C13C36E029AC6962C257AD /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				AD8E6DBEC33069B8D25B06FF /* Animations */,
 				84F60D2604453B203F0A301D /* Fonts */,
 				5383A449595A3EFF892A6D8A /* Assets.xcassets */,
 			);
@@ -437,6 +449,15 @@
 			path = DayPin;
 			sourceTree = "<group>";
 		};
+		AD8E6DBEC33069B8D25B06FF /* Animations */ = {
+			isa = PBXGroup;
+			children = (
+				5C0A8232A2D1A11ED7F2CD41 /* empty_cat.json */,
+				CAB7BC20E054F1FCFA4F8978 /* empty_cat.lottie */,
+			);
+			path = Animations;
+			sourceTree = "<group>";
+		};
 		B4545D9A2EE82FF6A091D6AF /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -499,6 +520,7 @@
 				A2AF22EB95AE7747F3A90FD3 /* UICollectionViewCell+Selection.swift */,
 				C77016B53BE93414539B50F7 /* UIViewController+Background.swift */,
 				1D96A122F0F7F1739B2BC103 /* UIViewController+Sheet.swift */,
+				3BAC70D20A18A22E6F71FEAD /* UndoToastView.swift */,
 				1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */,
 			);
 			path = Components;
@@ -522,6 +544,9 @@
 				28C53A4DACAA22F2AD7B635D /* PBXTargetDependency */,
 			);
 			name = DayPin;
+			packageProductDependencies = (
+				9E535E3104FAC5065C22F072 /* Lottie */,
+			);
 			productName = DayPin;
 			productReference = CBFA918314AD44DBBBA6F663 /* DayPin.app */;
 			productType = "com.apple.product-type.application";
@@ -560,6 +585,9 @@
 				ru,
 			);
 			mainGroup = F9728C1D67BD8E311E602E3D;
+			packageReferences = (
+				38A5386F0D9EC2B9255B4642 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -580,6 +608,8 @@
 				60A71D2059804BADC4CAFF00 /* Inter-Regular.ttf in Resources */,
 				56534DD842DF2F5B6DC55366 /* Inter-SemiBold.ttf in Resources */,
 				636F65E983845337BAF0E185 /* Localizable.strings in Resources */,
+				A644A6B5227AD672E65C122D /* empty_cat.json in Resources */,
+				3FBBD9C957EC76CA5F130BA2 /* empty_cat.lottie in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -631,6 +661,7 @@
 				389A3BABD6F735C355471311 /* MainContainerViewController.swift in Sources */,
 				E40B636E0E0AEC807A9FBD79 /* NoteCard.swift in Sources */,
 				8CE890641F6C80DF1B777C9D /* NotePickerViewController.swift in Sources */,
+				463DDE1D0E622F60DEE25408 /* Notification+FolderID.swift in Sources */,
 				19FC0DE6C76347A29F15A803 /* PinCalloutView.swift in Sources */,
 				A81528C63DBF3411F75342E4 /* PinListViewController.swift in Sources */,
 				AF40BE05680485D247CE383F /* RecentPhotosPickerViewController.swift in Sources */,
@@ -651,6 +682,7 @@
 				B8E9C80C19C9F8B2E62C3085 /* UICollectionViewCell+Selection.swift in Sources */,
 				1E295C1068A00192086AD7B3 /* UIViewController+Background.swift in Sources */,
 				DD0BD355F2898F461E2DC411 /* UIViewController+Sheet.swift in Sources */,
+				5C52F724E6D93D5ACA7ABFCE /* UndoToastView.swift in Sources */,
 				427FA47A02CD12B7B7549C52 /* WaveBackgroundView.swift in Sources */,
 				C5B00C6620FAB0E214A63DDC /* WeekCalendarView.swift in Sources */,
 			);
@@ -917,6 +949,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		38A5386F0D9EC2B9255B4642 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.4.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9E535E3104FAC5065C22F072 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 38A5386F0D9EC2B9255B4642 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 071A1774A6F619CE371DBBD0 /* Project object */;
 }

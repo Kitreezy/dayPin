@@ -149,6 +149,9 @@ enum L10n {
     static var selectNotes: String  { s("Выбрать заметки", "Select Notes") }
     static var copyToDay: String    { s("Скопировать в день", "Copy to Day") }
     static var addNotes: String     { s("Добавить заметки", "Add Notes") }
+    static func addNotesCount(_ n: Int) -> String { s("Добавить \(n) заметок", "Add \(n) notes") }
+    static var noNotesForPicker: String     { s("Заметок пока нет", "No notes yet") }
+    static var noNotesForPickerHint: String { s("Добавьте заметки на главном экране", "Add notes from the main screen") }
     static var addToFolder: String       { s("Добавить в папку", "Add to Folder") }
     static var inFolder: String          { s("В папку", "To Folder") }
     static var noFoldersHint: String     { s("Нет папок - создайте во вкладке «Папки»", "No folders - create one in the Folders tab") }
@@ -200,6 +203,10 @@ enum L10n {
     static var calendarNotesSection: String { s("ЗАМЕТКИ", "NOTES") }
     static var calendarNoNotes: String     { s("Нет заметок за этот день", "No notes for this day") }
     static var bgApplied: String           { s("✓ Применено", "✓ Applied") }
+
+    // MARK: - Undo
+    static var noteDeleted: String  { s("Заметка удалена", "Note deleted") }
+    static var undo: String         { s("Отменить", "Undo") }
 
     // MARK: - Recently Deleted
     static var recentlyDeleted: String    { s("Недавно удалённые", "Recently Deleted") }

@@ -127,6 +127,7 @@ final class CardStore {
     private func persist() {
         guard let data = try? JSONEncoder().encode(storage) else { return }
         defaults.set(data, forKey: key)
+        defaults.synchronize()
         persistWidgetSnapshot()
         WidgetCenter.shared.reloadAllTimelines()
     }

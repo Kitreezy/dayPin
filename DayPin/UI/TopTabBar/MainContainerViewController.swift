@@ -82,6 +82,7 @@ private final class PillTabBar: UIView {
         let cfg = UIImage.SymbolConfiguration(pointSize: 20, weight: .medium)
         for (i, btn) in btns.enumerated() {
             let isOn = i == selectedIndex
+
             let name = isOn ? items[i].filled : items[i].normal
             btn.setImage(
                 UIImage(systemName: name, withConfiguration: cfg)
@@ -144,7 +145,9 @@ private final class AddActionGridView: UIView {
     private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
     private let tintView = UIView()
     private var stackView: UIStackView?
+    private var contextRow: UIView?
     private var items: [Item] = []
+    private var contextItem: Item?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -152,10 +155,13 @@ private final class AddActionGridView: UIView {
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    func configure(items: [Item]) {
+    func configure(items: [Item], contextItem: Item? = nil) {
         self.items = items
+        self.contextItem = contextItem
         stackView?.removeFromSuperview()
+        contextRow?.removeFromSuperview()
         buildGrid()
+        if let ctx = contextItem { buildContextRow(ctx) }
     }
 
     /// Call when the accent colour scheme changes so the tint overlay updates immediately.
@@ -243,17 +249,81 @@ private final class AddActionGridView: UIView {
         row.spacing      = 8
         row.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(row)
+
+        let hasContext = contextItem != nil
         NSLayoutConstraint.activate([
-            row.topAnchor.constraint(equalTo: blur.contentView.topAnchor,     constant: 12),
-            row.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor,   constant: 12),
+            row.topAnchor.constraint(equalTo: blur.contentView.topAnchor, constant: 12),
+            row.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor, constant: 12),
             row.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor, constant: -12),
-            row.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor,    constant: -12)
+            // When there's a context row below, don't pin to bottom here
+            hasContext
+                ? row.bottomAnchor.constraint(lessThanOrEqualTo: blur.contentView.bottomAnchor, constant: -12)
+                : row.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor, constant: -12)
         ])
 
         for (i, item) in items.enumerated() {
             row.addArrangedSubview(makeCell(item, tag: i))
         }
         stackView = row
+    }
+
+    // MARK: Context row — full-width button below the main grid
+
+    private func buildContextRow(_ item: Item) {
+        guard let gridRow = stackView else { return }
+
+        // Thin separator
+        let separator = UIView()
+        separator.backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.10)
+                : UIColor.black.withAlphaComponent(0.08)
+        }
+        separator.translatesAutoresizingMaskIntoConstraints = false
+
+        // Button row
+        let btn = UIButton(type: .system)
+        let iconCfg = UIImage.SymbolConfiguration(pointSize: 17, weight: .regular)
+        btn.setImage(UIImage(systemName: item.icon, withConfiguration: iconCfg), for: .normal)
+        btn.setTitle("  \(item.title)", for: .normal)
+        btn.tintColor = .label
+        btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .regular)
+        btn.contentHorizontalAlignment = .center
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.tag = 999
+        btn.addTarget(self, action: #selector(contextRowTapped), for: .touchUpInside)
+
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(separator)
+        container.addSubview(btn)
+
+        blur.contentView.addSubview(container)
+
+        NSLayoutConstraint.activate([
+            separator.topAnchor.constraint(equalTo: container.topAnchor),
+            separator.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            separator.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            separator.heightAnchor.constraint(equalToConstant: 0.5),
+
+            btn.topAnchor.constraint(equalTo: separator.bottomAnchor),
+            btn.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            btn.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            btn.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            btn.heightAnchor.constraint(equalToConstant: 44),
+
+            container.topAnchor.constraint(equalTo: gridRow.bottomAnchor, constant: 4),
+            container.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor),
+            container.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor),
+            container.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
+        ])
+
+        contextRow = container
+    }
+
+    @objc private func contextRowTapped() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        contextItem?.handler()
     }
 
     private func makeCell(_ item: Item, tag: Int) -> UIView {
@@ -349,6 +419,19 @@ final class MainContainerViewController: UITabBarController {
     private var gridBottomConstraint:    NSLayoutConstraint!
 
     private var isGridOpen = false
+
+    // MARK: - Folder context
+
+    /// Returns the folder ID if the user is currently inside a FolderDetailViewController
+    /// on the Folders tab (index 2). Checked at the moment "+" is tapped.
+    private var activeFolderID: UUID? {
+        guard selectedIndex == 2,
+              let foldersNav = viewControllers?[2] as? UINavigationController else { return nil }
+        return foldersNav.viewControllers
+            .compactMap { $0 as? FolderDetailViewController }
+            .last?
+            .contextFolderID
+    }
 
     // MARK: - Lifecycle
 
@@ -516,35 +599,75 @@ final class MainContainerViewController: UITabBarController {
 
     private func refreshGrid() {
         let hasCamera = UIImagePickerController.isSourceTypeAvailable(.camera)
-        // Short display names for the compact grid
-        let titleText   = L10n.filterText
-        let titlePhoto  = L10n.cardPhotoPin
-        let titleCamera = L10n.cardCameraShort
-        let titleLink   = L10n.cardTypeLink
+        let folderID  = activeFolderID   // capture current context at build time
+
         var rawItems: [(title: String, icon: String, color: UIColor, notif: Notification.Name)] = [
-            (titleText,  "text.alignleft",     DayPinDesign.textCardTint,  .dayPinAddText),
-            (titlePhoto, "photo.on.rectangle", DayPinDesign.imageCardTint, .dayPinAddPhoto)
+            (L10n.filterText,   "text.alignleft",     DayPinDesign.textCardTint,  .dayPinAddText),
+            (L10n.cardPhotoPin, "photo.on.rectangle", DayPinDesign.imageCardTint, .dayPinAddPhoto)
         ]
         if hasCamera {
-            rawItems.append((titleCamera, "camera", DayPinDesign.imageCardTint, .dayPinAddCamera))
+            rawItems.append((L10n.cardCameraShort, "camera", DayPinDesign.imageCardTint, .dayPinAddCamera))
         }
-        rawItems.append((titleLink, "link", DayPinDesign.linkCardTint, .dayPinAddLink))
+        rawItems.append((L10n.cardTypeLink, "link", DayPinDesign.linkCardTint, .dayPinAddLink))
 
         let items = rawItems.map { raw in
             AddActionGridView.Item(title: raw.title, icon: raw.icon, color: raw.color) { [weak self] in
                 self?.closeGrid(animated: true)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                    NotificationCenter.default.post(name: raw.notif, object: nil)
+                    var userInfo: [AnyHashable: Any]? = nil
+                    if let fid = folderID { userInfo = ["folderID": fid] }
+                    NotificationCenter.default.post(name: raw.notif, object: nil, userInfo: userInfo)
                 }
             }
         }
-        actionGrid.configure(items: items)
+
+        // Context item: "Add existing notes" — only shown inside a folder
+        var contextItem: AddActionGridView.Item?
+        if let fid = folderID {
+            contextItem = AddActionGridView.Item(
+                title: L10n.addExisting,
+                icon: "rectangle.stack.badge.plus",
+                color: DayPinDesign.accent
+            ) { [weak self] in
+                self?.closeGrid(animated: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
+                    self?.presentNotePicker(folderID: fid)
+                }
+            }
+        }
+
+        actionGrid.configure(items: items, contextItem: contextItem)
+    }
+
+    private func presentNotePicker(folderID: UUID) {
+        let vc = NotePickerViewController(folderID: folderID)
+        vc.onAdd = { notes in
+            notes.forEach { card in
+                card.folderID = folderID
+                CardStore.shared.save(card: card)
+            }
+            NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = true
+        }
+        present(nav, animated: true)
     }
 
     // MARK: - Add button toggle
 
     @objc private func addBtnTapped() {
-        isGridOpen ? closeGrid(animated: true) : openGrid()
+        if isGridOpen {
+            closeGrid(animated: true)
+        } else {
+            refreshGrid()   // rebuild with current folder context before showing
+            openGrid()
+        }
     }
 
     private func openGrid() {

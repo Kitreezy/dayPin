@@ -265,16 +265,20 @@ final class FolderCardCell: UICollectionViewCell {
 
     static let reuseID = "FolderCardCell"
 
-    private let cardView    = GlassCardView(style: .card)
-    private let header      = GradientHeaderView()
+    // Card base (shadow + glass)
+    private let cardView = GlassCardView(style: .card)
+    private let header   = GradientHeaderView()
 
-    // Иконка: изображение / эмодзи / системная SF иконка
-    private let photoView   = UIImageView()
-    private let emojiLabel  = UILabel()
-    private let folderIcon  = UIImageView()
+    // Icon: photo / emoji / SF icon
+    private let photoView  = UIImageView()
+    private let emojiLabel = UILabel()
+    private let folderIcon = UIImageView()
 
+    // Frosted island — sibling to cardView so the blur samples the gradient behind it
+    private let islandBlur    = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let islandTint    = UIView()
     private let nameLabel     = UILabel()
-    private let typeBadgesRow = UIStackView()   // [📝 2] [🖼 1] [🔗 3]
+    private let typeBadgesRow = UIStackView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -286,7 +290,7 @@ final class FolderCardCell: UICollectionViewCell {
         backgroundColor = .clear
         layer.cornerRadius = 18
 
-        // Card
+        // --- Card (fills entire cell) ---
         cardView.cornerRadius = 18
         cardView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(cardView)
@@ -299,17 +303,17 @@ final class FolderCardCell: UICollectionViewCell {
 
         let cv = cardView.glass.contentView
 
-        // Gradient header
+        // --- Gradient header: expands to full card height ---
         header.translatesAutoresizingMaskIntoConstraints = false
         cv.addSubview(header)
         NSLayoutConstraint.activate([
             header.topAnchor.constraint(equalTo: cv.topAnchor),
             header.leadingAnchor.constraint(equalTo: cv.leadingAnchor),
             header.trailingAnchor.constraint(equalTo: cv.trailingAnchor),
-            header.heightAnchor.constraint(equalTo: cv.heightAnchor, multiplier: 0.55)
+            header.bottomAnchor.constraint(equalTo: cv.bottomAnchor)
         ])
 
-        // Photo view (custom image)
+        // --- Photo view (full-bleed) ---
         photoView.contentMode   = .scaleAspectFill
         photoView.clipsToBounds = true
         photoView.translatesAutoresizingMaskIntoConstraints = false
@@ -321,17 +325,17 @@ final class FolderCardCell: UICollectionViewCell {
             photoView.bottomAnchor.constraint(equalTo: header.bottomAnchor)
         ])
 
-        // Emoji label
+        // --- Emoji label (shifted up to leave visual room for island) ---
         emojiLabel.font          = .inter(ofSize: 40)
         emojiLabel.textAlignment = .center
         emojiLabel.translatesAutoresizingMaskIntoConstraints = false
         header.addSubview(emojiLabel)
         NSLayoutConstraint.activate([
             emojiLabel.centerXAnchor.constraint(equalTo: header.centerXAnchor),
-            emojiLabel.centerYAnchor.constraint(equalTo: header.centerYAnchor)
+            emojiLabel.centerYAnchor.constraint(equalTo: header.centerYAnchor, constant: -14)
         ])
 
-        // Default folder icon
+        // --- Default folder icon (shifted up) ---
         let cfg = UIImage.SymbolConfiguration(pointSize: 30, weight: .medium)
         folderIcon.image        = UIImage(systemName: "folder.fill", withConfiguration: cfg)
         folderIcon.tintColor    = .white
@@ -340,33 +344,62 @@ final class FolderCardCell: UICollectionViewCell {
         header.addSubview(folderIcon)
         NSLayoutConstraint.activate([
             folderIcon.centerXAnchor.constraint(equalTo: header.centerXAnchor),
-            folderIcon.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+            folderIcon.centerYAnchor.constraint(equalTo: header.centerYAnchor, constant: -14),
             folderIcon.widthAnchor.constraint(equalToConstant: 36),
             folderIcon.heightAnchor.constraint(equalToConstant: 36)
         ])
 
-        // Name label
-        nameLabel.font          = .inter(ofSize: 14, weight: .semibold)
-        nameLabel.textColor     = .label
+        // --- Island blur: sibling to cardView, pinned to bottom of contentView ---
+        // Blur effect is placed as a sibling so it samples colors from the gradient/photo behind it
+        islandBlur.layer.cornerRadius  = 18
+        islandBlur.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        islandBlur.clipsToBounds       = true
+        islandBlur.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(islandBlur)
+        NSLayoutConstraint.activate([
+            islandBlur.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            islandBlur.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            islandBlur.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            islandBlur.heightAnchor.constraint(equalToConstant: 68)
+        ])
+
+        // --- Dark tint overlay inside island for text readability ---
+        islandTint.backgroundColor = UIColor { trait in
+            trait.userInterfaceStyle == .dark
+                ? UIColor(white: 0, alpha: 0.35)
+                : UIColor(white: 0, alpha: 0.22)
+        }
+        islandTint.translatesAutoresizingMaskIntoConstraints = false
+        islandBlur.contentView.addSubview(islandTint)
+        NSLayoutConstraint.activate([
+            islandTint.topAnchor.constraint(equalTo: islandBlur.contentView.topAnchor),
+            islandTint.leadingAnchor.constraint(equalTo: islandBlur.contentView.leadingAnchor),
+            islandTint.trailingAnchor.constraint(equalTo: islandBlur.contentView.trailingAnchor),
+            islandTint.bottomAnchor.constraint(equalTo: islandBlur.contentView.bottomAnchor)
+        ])
+
+        // --- Name label (white, inside island) ---
+        nameLabel.font          = .inter(ofSize: 13, weight: .semibold)
+        nameLabel.textColor     = .white
         nameLabel.numberOfLines = 1
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
-        cv.addSubview(nameLabel)
+        islandBlur.contentView.addSubview(nameLabel)
 
-        // Type badges row: [📝 2] [🖼 1] [🔗 3]
+        // --- Type badges row (inside island) ---
         typeBadgesRow.axis      = .horizontal
         typeBadgesRow.spacing   = 5
         typeBadgesRow.alignment = .center
         typeBadgesRow.translatesAutoresizingMaskIntoConstraints = false
-        cv.addSubview(typeBadgesRow)
+        islandBlur.contentView.addSubview(typeBadgesRow)
 
         NSLayoutConstraint.activate([
-            nameLabel.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 8),
-            nameLabel.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 10),
-            nameLabel.trailingAnchor.constraint(equalTo: cv.trailingAnchor, constant: -10),
+            nameLabel.topAnchor.constraint(equalTo: islandBlur.contentView.topAnchor, constant: 10),
+            nameLabel.leadingAnchor.constraint(equalTo: islandBlur.contentView.leadingAnchor, constant: 12),
+            nameLabel.trailingAnchor.constraint(equalTo: islandBlur.contentView.trailingAnchor, constant: -12),
 
             typeBadgesRow.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 5),
-            typeBadgesRow.leadingAnchor.constraint(equalTo: cv.leadingAnchor, constant: 10),
-            typeBadgesRow.bottomAnchor.constraint(lessThanOrEqualTo: cv.bottomAnchor, constant: -8)
+            typeBadgesRow.leadingAnchor.constraint(equalTo: islandBlur.contentView.leadingAnchor, constant: 12),
+            typeBadgesRow.bottomAnchor.constraint(lessThanOrEqualTo: islandBlur.contentView.bottomAnchor, constant: -8)
         ])
     }
 
@@ -375,13 +408,13 @@ final class FolderCardCell: UICollectionViewCell {
 
         header.setColors(base: base)
 
-        // Тень — заметно тише
+        // Colored shadow
         layer.shadowColor   = base.cgColor
-        layer.shadowOpacity = 0.12
-        layer.shadowRadius  = 8
-        layer.shadowOffset  = CGSize(width: 0, height: 3)
+        layer.shadowOpacity = 0.18
+        layer.shadowRadius  = 10
+        layer.shadowOffset  = CGSize(width: 0, height: 4)
 
-        // Icon: фото → эмодзи → дефолт
+        // Icon: photo -> emoji -> default
         if let data = folder.iconImageData, let img = UIImage(data: data) {
             photoView.image     = img
             photoView.isHidden  = false
@@ -400,40 +433,39 @@ final class FolderCardCell: UICollectionViewCell {
 
         nameLabel.text = folder.name
 
-        // Строим бейджи по типам
+        // Build white-style badges
         typeBadgesRow.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let types: [(CardType, String)] = [(.text, "text.alignleft"), (.image, "photo"), (.link, "link")]
         for (type, symbol) in types {
             let count = cards.filter { $0.type == type }.count
             guard count > 0 else { continue }
-            typeBadgesRow.addArrangedSubview(makeTypeBadge(symbol: symbol, count: count, color: base))
+            typeBadgesRow.addArrangedSubview(makeTypeBadge(symbol: symbol, count: count))
         }
-        // Если совсем нет заметок — показать «0 заметок»
         if cards.isEmpty {
             let empty = UILabel()
             empty.text      = L10n.noNotesLabel
             empty.font      = .inter(ofSize: 10, weight: .regular)
-            empty.textColor = .tertiaryLabel
+            empty.textColor = UIColor.white.withAlphaComponent(0.55)
             typeBadgesRow.addArrangedSubview(empty)
         }
     }
 
-    private func makeTypeBadge(symbol: String, count: Int, color: UIColor) -> UIView {
+    private func makeTypeBadge(symbol: String, count: Int) -> UIView {
         let bg = UIView()
-        bg.backgroundColor      = color.withAlphaComponent(0.15)
-        bg.layer.cornerRadius   = 7
-        bg.layer.masksToBounds  = true
+        bg.backgroundColor     = UIColor.white.withAlphaComponent(0.20)
+        bg.layer.cornerRadius  = 7
+        bg.layer.masksToBounds = true
 
         let cfg  = UIImage.SymbolConfiguration(pointSize: 9, weight: .medium)
         let icon = UIImageView(image: UIImage(systemName: symbol, withConfiguration: cfg))
-        icon.tintColor    = color
+        icon.tintColor    = .white
         icon.contentMode  = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
 
         let lbl = UILabel()
         lbl.text      = "\(count)"
         lbl.font      = .inter(ofSize: 10, weight: .semibold)
-        lbl.textColor = color
+        lbl.textColor = .white
         lbl.translatesAutoresizingMaskIntoConstraints = false
 
         let row = UIStackView(arrangedSubviews: [icon, lbl])

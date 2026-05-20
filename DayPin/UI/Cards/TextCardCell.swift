@@ -1,4 +1,5 @@
 import UIKit
+import Lottie
 
 final class TextCardCell: UICollectionViewCell {
 
@@ -121,12 +122,37 @@ final class EmptyCardCell: UICollectionViewCell {
 
     static let reuseID = "EmptyCardCell"
 
+    // MARK: - Properties
+
+    private let animationView = LottieAnimationView(name: "empty_cat", bundle: .main)
+
+    // MARK: - Init
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    // MARK: - Lifecycle
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            animationView.play()
+        } else {
+            animationView.stop()
+        }
+    }
+
+    /// Called by TodayViewController each time the cell is dequeued,
+    /// including after a day switch where didMoveToWindow does not fire again.
+    func startAnimating() {
+        animationView.play()
+    }
+
+    // MARK: - Setup
 
     private func setup() {
         backgroundColor = .clear
@@ -147,7 +173,7 @@ final class EmptyCardCell: UICollectionViewCell {
             outer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
 
-        // Frosted glass — same material & border as PillTabBar
+        // Frosted glass — same material & border as cards
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
         blur.layer.cornerRadius = 16
         blur.clipsToBounds      = true
@@ -163,7 +189,6 @@ final class EmptyCardCell: UICollectionViewCell {
         ])
 
         // Tint overlay — NEVER set contentView.backgroundColor directly (breaks blur on iOS 17+)
-        // 0.13 white in dark mode is the sweet spot: visible as "lighter card" without looking opaque
         let tint = UIView()
         tint.translatesAutoresizingMaskIntoConstraints = false
         tint.backgroundColor = UIColor { trait in
@@ -179,36 +204,44 @@ final class EmptyCardCell: UICollectionViewCell {
             tint.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
         ])
 
-        let icon = UIImageView(image: UIImage(systemName: "note.text"))
-        icon.tintColor = .tertiaryLabel
-        icon.contentMode = .scaleAspectFit
-        icon.translatesAutoresizingMaskIntoConstraints = false
+        // Lottie animation — loops continuously while visible
+        animationView.loopMode        = .loop
+        animationView.contentMode     = .scaleAspectFit
+        animationView.backgroundBehavior = .pauseAndRestore
+        animationView.translatesAutoresizingMaskIntoConstraints = false
+        blur.contentView.addSubview(animationView)
 
         let titleLabel = UILabel()
-        titleLabel.text = L10n.emptyDay
-        titleLabel.font = .inter(ofSize: 15, weight: .medium)
+        titleLabel.text      = L10n.emptyDay
+        titleLabel.font      = .inter(ofSize: 15, weight: .medium)
         titleLabel.textColor = .tertiaryLabel
         titleLabel.textAlignment = .center
 
         let hintLabel = UILabel()
-        hintLabel.text = L10n.emptyDayHint
-        hintLabel.font = .inter(ofSize: 13)
+        hintLabel.text      = L10n.emptyDayHint
+        hintLabel.font      = .inter(ofSize: 13)
         hintLabel.textColor = .quaternaryLabel
         hintLabel.textAlignment = .center
 
-        let stack = UIStackView(arrangedSubviews: [icon, titleLabel, hintLabel])
-        stack.axis      = .vertical
-        stack.spacing   = 6
-        stack.alignment = .center
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        blur.contentView.addSubview(stack)
+        let labelStack = UIStackView(arrangedSubviews: [titleLabel, hintLabel])
+        labelStack.axis      = .vertical
+        labelStack.spacing   = 4
+        labelStack.alignment = .center
+        labelStack.translatesAutoresizingMaskIntoConstraints = false
+        blur.contentView.addSubview(labelStack)
 
+        // Animation: 280x200 native ratio - display at 126x90
         NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: blur.contentView.centerXAnchor),
-            stack.topAnchor.constraint(equalTo: blur.contentView.topAnchor, constant: 28),
-            stack.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor, constant: -28),
-            icon.widthAnchor.constraint(equalToConstant: 34),
-            icon.heightAnchor.constraint(equalToConstant: 34)
+            animationView.centerXAnchor.constraint(equalTo: blur.contentView.centerXAnchor),
+            animationView.topAnchor.constraint(equalTo: blur.contentView.topAnchor, constant: 20),
+            animationView.widthAnchor.constraint(equalToConstant: 126),
+            animationView.heightAnchor.constraint(equalToConstant: 90),
+
+            labelStack.topAnchor.constraint(equalTo: animationView.bottomAnchor, constant: 8),
+            labelStack.centerXAnchor.constraint(equalTo: blur.contentView.centerXAnchor),
+            labelStack.leadingAnchor.constraint(equalTo: blur.contentView.leadingAnchor, constant: 16),
+            labelStack.trailingAnchor.constraint(equalTo: blur.contentView.trailingAnchor, constant: -16),
+            labelStack.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor, constant: -20)
         ])
     }
 }

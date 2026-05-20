@@ -6,6 +6,9 @@ import UIKit
 final class FolderDetailViewController: UIViewController {
 
     private var folder: Folder
+
+    /// Exposed so MainContainerViewController can detect the active folder context.
+    var contextFolderID: UUID { folder.id }
     private var cards: [NoteCard] = []
 
     private lazy var collectionView: UICollectionView = {
@@ -57,6 +60,12 @@ final class FolderDetailViewController: UIViewController {
             name: .dayPinLanguageChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
             name: .dayPinColorSchemeChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onFolderNeedsRefresh),
+            name: .dayPinFolderNeedsRefresh, object: nil)
+    }
+
+    @objc private func onFolderNeedsRefresh() {
+        loadCards()
     }
 
     @objc private func onLanguageChanged() {
@@ -75,13 +84,11 @@ final class FolderDetailViewController: UIViewController {
             image: UIImage(systemName: "chevron.left"),
             style: .plain, target: self, action: #selector(goBack)
         )
-        let addBtn   = UIBarButtonItem(image: UIImage(systemName: "plus"),
-                                       style: .plain, target: self, action: #selector(addNote))
         let editBtn  = UIBarButtonItem(image: UIImage(systemName: "square.and.pencil"),
                                        style: .plain, target: self, action: #selector(editFolder))
         let shareBtn = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"),
                                        style: .plain, target: self, action: #selector(shareFolder))
-        navigationItem.rightBarButtonItems = [addBtn, shareBtn, editBtn]
+        navigationItem.rightBarButtonItems = [shareBtn, editBtn]
     }
 
     private func setupUI() {
@@ -126,49 +133,6 @@ final class FolderDetailViewController: UIViewController {
             return card.title
         }
         present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
-    }
-
-    @objc private func addNote() {
-        let today = Calendar.current.startOfDay(for: Date())
-        let sheet = UIAlertController(title: L10n.newNote, message: nil, preferredStyle: .actionSheet)
-        sheet.addAction(UIAlertAction(title: L10n.cardText, style: .default) { [weak self] (_: UIAlertAction) in
-            guard let self else { return }
-            let vc = TextCardEditorViewController(card: nil, dayDate: today)
-            vc.onSave = { [weak self] saved in
-                guard let self else { return }
-                saved.folderID = self.folder.id
-                CardStore.shared.save(card: saved)
-                self.loadCards()
-            }
-            self.presentEditorSheet(vc)
-        })
-        sheet.addAction(UIAlertAction(title: L10n.imageLabel, style: .default) { [weak self] (_: UIAlertAction) in
-            guard let self else { return }
-            let vc = ImageCardEditorViewController(imageData: nil, dayDate: today, existingCard: nil)
-            vc.onSave = { [weak self] saved in
-                guard let self else { return }
-                saved.folderID = self.folder.id
-                CardStore.shared.save(card: saved)
-                self.loadCards()
-            }
-            self.present(UINavigationController(rootViewController: vc), animated: true)
-        })
-        sheet.addAction(UIAlertAction(title: L10n.addExisting, style: .default) { [weak self] (_: UIAlertAction) in
-            guard let self else { return }
-            let vc = NotePickerViewController(folderID: self.folder.id)
-            vc.onAdd = { [weak self] notes in
-                guard let self else { return }
-                notes.forEach { card in
-                    card.folderID = self.folder.id
-                    CardStore.shared.save(card: card)
-                }
-                self.loadCards()
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            }
-            self.present(UINavigationController(rootViewController: vc), animated: true)
-        })
-        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        present(sheet, animated: true)
     }
 
     @objc private func editFolder() {

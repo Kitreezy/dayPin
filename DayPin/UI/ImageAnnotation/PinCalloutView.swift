@@ -69,14 +69,14 @@ final class PinCalloutView: UIView {
         sourcePinView: UIView?,
         onEdit: @escaping (String, String, String) -> Void, onDelete: (() -> Void)?
     ) {
-        pinPoint            = pin
-        storedTitle         = title
-        storedText          = text
-        selectedColorHex    = colorHex
-        self.startInEdit    = startInEdit
-        self.sourcePinView  = sourcePinView
-        editCallback        = onEdit
-        deleteCallback      = onDelete
+        pinPoint = pin
+        storedTitle = title
+        storedText = text
+        selectedColorHex = colorHex
+        self.startInEdit = startInEdit
+        self.sourcePinView = sourcePinView
+        editCallback = onEdit
+        deleteCallback = onDelete
         super.init(frame: .zero)
         buildUI()
         observeKeyboard()
@@ -108,26 +108,26 @@ final class PinCalloutView: UIView {
 
         if cardAbovePin {
             // Prefer above pin, but also must be above keyboard
-            let abovePin    = pinPoint.y - height - 14
-            let aboveKbd    = safeBottom - height - 12
+            let abovePin = pinPoint.y - height - 14
+            let aboveKbd = safeBottom - height - 12
             return min(abovePin, aboveKbd)
         } else {
             let preferred = pinPoint.y + 14
-            let maxY      = safeBottom - height - 12
+            let maxY = safeBottom - height - 12
             return min(preferred, maxY)
         }
     }
 
     // MARK: - UI
 
-    private let dimView    = UIView()
+    private let dimView = UIView()
     private let cardShadow = UIView()
-    private let card       = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+    private let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
 
     // Two floating buttons — same positions, icons swap per mode:
     // view mode:  left = edit (pencil),     right = delete (trash)
     // edit mode:  left = save (checkmark),  right = cancel (xmark)
-    private let leftBtn  = CircleActionButton()
+    private let leftBtn = CircleActionButton()
     private let rightBtn = CircleActionButton()
 
     // View mode
@@ -138,7 +138,7 @@ final class PinCalloutView: UIView {
     // Edit mode
     private let editContentView = UIView()
     private let titleField = UITextField()
-    private let textView   = UITextView()
+    private let textView = UITextView()
 
     private var keyboardTop: CGFloat? = nil
 
@@ -163,10 +163,10 @@ final class PinCalloutView: UIView {
         // Card - outer shadow wrapper + inner blur (iOS 17+ glass pattern)
         let h = startInEdit ? editHeight : viewHeight
         cardShadow.layer.cornerRadius = 14
-        cardShadow.layer.shadowColor   = UIColor.black.cgColor
+        cardShadow.layer.shadowColor = UIColor.black.cgColor
         cardShadow.layer.shadowOpacity = 0.3
-        cardShadow.layer.shadowRadius  = 16
-        cardShadow.layer.shadowOffset  = CGSize(width: 0, height: 5)
+        cardShadow.layer.shadowRadius = 16
+        cardShadow.layer.shadowOffset = CGSize(width: 0, height: 5)
         cardShadow.frame = CGRect(x: cardOriginX, y: cardOriginY(height: h), width: cardWidth, height: h)
         addSubview(cardShadow)
         card.layer.cornerRadius = 14
@@ -185,16 +185,16 @@ final class PinCalloutView: UIView {
     // MARK: View content
 
     private func buildViewContent() {
-        titleDisplayLabel.text      = storedTitle
-        titleDisplayLabel.isHidden  = storedTitle.isEmpty
-        titleDisplayLabel.font      = .inter(ofSize: 13, weight: .semibold)
+        titleDisplayLabel.text = storedTitle
+        titleDisplayLabel.isHidden = storedTitle.isEmpty
+        titleDisplayLabel.font = .inter(ofSize: 13, weight: .semibold)
         titleDisplayLabel.textColor = UIColor { trait in
             trait.userInterfaceStyle == .dark ? .white : .white
         }
         titleDisplayLabel.numberOfLines = 1
 
-        textLabel.text      = storedText
-        textLabel.font      = .inter(ofSize: 13)
+        textLabel.text = storedText
+        textLabel.font = .inter(ofSize: 13)
         textLabel.textColor = UIColor { trait in
             trait.userInterfaceStyle == .dark
                 ? UIColor.white.withAlphaComponent(0.85)
@@ -207,7 +207,7 @@ final class PinCalloutView: UIView {
             inner = padded(view: textLabel, insets: UIEdgeInsets(top: 12, left: 14, bottom: 12, right: 14))
         } else {
             let stack = UIStackView(arrangedSubviews: [titleDisplayLabel, textLabel])
-            stack.axis    = .vertical
+            stack.axis = .vertical
             stack.spacing = 4
             inner = padded(view: stack, insets: UIEdgeInsets(top: 12, left: 14, bottom: 12, right: 14))
         }
@@ -235,7 +235,7 @@ final class PinCalloutView: UIView {
 
     private func buildEditContent() {
         // Title field
-        titleField.text        = storedTitle
+        titleField.text = storedTitle
         titleField.placeholder = L10n.photoName
         titleField.attributedPlaceholder = NSAttributedString(
             string: L10n.photoName,
@@ -245,13 +245,13 @@ final class PinCalloutView: UIView {
                     : UIColor.white.withAlphaComponent(0.35)
             }]
         )
-        titleField.font        = .inter(ofSize: 13, weight: .semibold)
-        titleField.textColor   = UIColor { trait in
+        titleField.font = .inter(ofSize: 13, weight: .semibold)
+        titleField.textColor = UIColor { trait in
             trait.userInterfaceStyle == .dark ? .white : .white
         }
         titleField.borderStyle = .none
         titleField.returnKeyType = .next
-        titleField.delegate    = self
+        titleField.delegate = self
         titleField.translatesAutoresizingMaskIntoConstraints = false
 
         // Separator
@@ -261,25 +261,25 @@ final class PinCalloutView: UIView {
 
         // Text view
         textView.backgroundColor = .clear
-        textView.font            = .inter(ofSize: 13)
-        textView.textColor       = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
-        textView.text            = storedText
+        textView.font = .inter(ofSize: 13)
+        textView.textColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
+        textView.text = storedText
         textView.isScrollEnabled = false
-        textView.returnKeyType   = .default
+        textView.returnKeyType = .default
         textView.textContainerInset = UIEdgeInsets(top: 8, left: 10, bottom: 8, right: 10)
         textView.translatesAutoresizingMaskIntoConstraints = false
 
         // Placeholder
         let ph = UILabel()
-        ph.text      = L10n.annotationPlaceholder
-        ph.font      = .inter(ofSize: 13)
+        ph.text = L10n.annotationPlaceholder
+        ph.font = .inter(ofSize: 13)
         ph.textColor = UIColor { trait in
             trait.userInterfaceStyle == .dark
                 ? UIColor.white.withAlphaComponent(0.35)
                 : UIColor.white.withAlphaComponent(0.35)
         }
         ph.translatesAutoresizingMaskIntoConstraints = false
-        ph.isHidden  = !storedText.isEmpty
+        ph.isHidden = !storedText.isEmpty
         textView.addSubview(ph)
         NSLayoutConstraint.activate([
             ph.topAnchor.constraint(equalTo: textView.topAnchor, constant: 10),
@@ -360,8 +360,8 @@ final class PinCalloutView: UIView {
             let color = UIColor(hex: hex) ?? .systemBlue
             btn.backgroundColor = color
             btn.layer.cornerRadius = 11
-            btn.layer.borderWidth  = 2
-            btn.widthAnchor.constraint(equalToConstant: 22).isActive  = true
+            btn.layer.borderWidth = 2
+            btn.widthAnchor.constraint(equalToConstant: 22).isActive = true
             btn.heightAnchor.constraint(equalToConstant: 22).isActive = true
             let capturedHex = hex
             btn.addAction(UIAction { [weak self] _ in
@@ -394,7 +394,7 @@ final class PinCalloutView: UIView {
     private func buildFloatingButtons() {
         // Set explicit bounds so center-based positioning gives correct hit area
         let size = CGSize(width: 36, height: 36)
-        leftBtn.bounds  = CGRect(origin: .zero, size: size)
+        leftBtn.bounds = CGRect(origin: .zero, size: size)
         rightBtn.bounds = CGRect(origin: .zero, size: size)
         // Wire once — targets dispatch to mode-aware selectors
         leftBtn.addTarget(self,  action: #selector(leftBtnTapped),  for: .touchUpInside)
@@ -407,7 +407,7 @@ final class PinCalloutView: UIView {
     /// Updates icon/color/visibility; does NOT change targets.
     private func updateButtonAppearance(forEdit edit: Bool) {
         let whiteTint = UIColor { trait in trait.userInterfaceStyle == .dark ? UIColor.white : UIColor.white }
-        let darkBg    = UIColor { trait in UIColor.black.withAlphaComponent(0.60) }
+        let darkBg = UIColor { trait in UIColor.black.withAlphaComponent(0.60) }
         if edit {
             leftBtn.configure(systemName: "checkmark", tint: whiteTint,
                               background: UIColor.systemGreen.withAlphaComponent(0.85))
@@ -432,15 +432,15 @@ final class PinCalloutView: UIView {
     private func positionFloatingButtons(animated: Bool) {
         let btnSize: CGFloat = 36
         let gap:     CGFloat = 10
-        let cardMid  = cardShadow.frame.midX
-        let centerY  = cardShadow.frame.minY - 10 - btnSize / 2
+        let cardMid = cardShadow.frame.midX
+        let centerY = cardShadow.frame.minY - 10 - btnSize / 2
 
         // Center leftBtn when rightBtn is hidden (single button)
         let leftCX:  CGFloat = rightBtn.isHidden ? cardMid : cardMid - btnSize / 2 - gap / 2
         let rightCX: CGFloat = cardMid + btnSize / 2 + gap / 2
 
         let block = { [self] in
-            leftBtn.center  = CGPoint(x: leftCX,  y: centerY)
+            leftBtn.center = CGPoint(x: leftCX,  y: centerY)
             rightBtn.center = CGPoint(x: rightCX, y: centerY)
         }
         if animated {
@@ -457,14 +457,14 @@ final class PinCalloutView: UIView {
     private func animateButtonSwap(toEdit: Bool) {
         UIView.animate(withDuration: 0.13, delay: 0, options: .curveEaseIn,
                        animations: {
-            self.leftBtn.alpha  = 0
+            self.leftBtn.alpha = 0
             self.rightBtn.alpha = 0
         }, completion: { _ in
             self.updateButtonAppearance(forEdit: toEdit)
             let showRight = !self.rightBtn.isHidden
             UIView.animate(withDuration: 0.18, delay: 0, options: .curveEaseOut,
                            animations: {
-                self.leftBtn.alpha  = 1
+                self.leftBtn.alpha = 1
                 self.rightBtn.alpha = showRight ? 1 : 0
             }, completion: nil)
         })
@@ -474,7 +474,7 @@ final class PinCalloutView: UIView {
 
     @objc private func enterEdit() {
         titleField.text = titleDisplayLabel.text
-        textView.text   = textLabel.text
+        textView.text = textLabel.text
         UIView.transition(with: card, duration: 0.2, options: .transitionCrossDissolve) {
             self.viewContentView.isHidden = true
             self.editContentView.isHidden = false
@@ -505,10 +505,10 @@ final class PinCalloutView: UIView {
 
     @objc private func saveTapped() {
         let newTitle = (titleField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let newText  = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newText = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
         textView.resignFirstResponder()
         titleField.resignFirstResponder()
-        let cb       = editCallback
+        let cb = editCallback
         let colorHex = selectedColorHex
         dismissSelf { cb(newTitle, newText, colorHex) }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -561,7 +561,7 @@ final class PinCalloutView: UIView {
         let btnSize: CGFloat = 36
         let gap:     CGFloat = 10
         let targetCY = newCardY - 10 - btnSize / 2
-        let cardMid  = cardOriginX + cardWidth / 2
+        let cardMid = cardOriginX + cardWidth / 2
         let showRight = !rightBtn.isHidden
         let leftCX: CGFloat = showRight ? cardMid - btnSize/2 - gap/2 : cardMid
 
@@ -569,7 +569,7 @@ final class PinCalloutView: UIView {
                        delay: 0,
                        options: [.beginFromCurrentState, .allowUserInteraction]) {
             self.cardShadow.frame.origin.y = newCardY
-            self.leftBtn.center  = CGPoint(x: leftCX,                     y: targetCY)
+            self.leftBtn.center = CGPoint(x: leftCX,                     y: targetCY)
             self.rightBtn.center = CGPoint(x: cardMid + btnSize/2 + gap/2, y: targetCY)
         }
     }
@@ -614,16 +614,16 @@ final class PinCalloutView: UIView {
         } completion: { _ in
             let f = self.cardShadow.frame
             self.cardShadow.layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-            self.cardShadow.layer.position    = CGPoint(x: f.midX, y: f.midY)
+            self.cardShadow.layer.position = CGPoint(x: f.midX, y: f.midY)
         }
 
         // 5. Animate buttons in with correct target alphas
         let rightAlpha: CGFloat = rightBtn.isHidden ? 0 : 1
         UIView.animate(withDuration: 0.28, delay: 0.12,
                        usingSpringWithDamping: 0.72, initialSpringVelocity: 0) {
-            self.leftBtn.alpha      = 1
-            self.leftBtn.transform  = .identity
-            self.rightBtn.alpha     = rightAlpha
+            self.leftBtn.alpha = 1
+            self.leftBtn.transform = .identity
+            self.rightBtn.alpha = rightAlpha
             self.rightBtn.transform = .identity
         }
 
@@ -692,14 +692,14 @@ private final class CircleActionButton: UIButton {
         tintColor = tint
         backgroundColor = background
         layer.cornerRadius = 18   // half of 36pt size
-        layer.borderWidth  = 0.5
-        layer.borderColor  = UIColor.white.withAlphaComponent(0.2).cgColor
+        layer.borderWidth = 0.5
+        layer.borderColor = UIColor.white.withAlphaComponent(0.2).cgColor
 
         // Subtle shadow
-        layer.shadowColor   = UIColor.black.cgColor
+        layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.55
-        layer.shadowRadius  = 10
-        layer.shadowOffset  = CGSize(width: 0, height: 3)
+        layer.shadowRadius = 10
+        layer.shadowOffset = CGSize(width: 0, height: 3)
     }
 
     override var isHighlighted: Bool {

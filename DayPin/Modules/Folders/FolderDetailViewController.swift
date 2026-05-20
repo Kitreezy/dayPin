@@ -1,13 +1,9 @@
 import UIKit
 
-// MARK: - FolderDetailViewController
-// Shows all cards assigned to a given folder in a 2-column grid.
-
 final class FolderDetailViewController: UIViewController {
 
     private var folder: Folder
 
-    /// Exposed so MainContainerViewController can detect the active folder context.
     var contextFolderID: UUID { folder.id }
     private var cards: [NoteCard] = []
 
@@ -77,14 +73,12 @@ final class FolderDetailViewController: UIViewController {
         collectionView.reloadData()
     }
 
-    // MARK: - Setup
-
     private func setupNav() {
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "chevron.left"),
             style: .plain, target: self, action: #selector(goBack)
         )
-        let editBtn  = UIBarButtonItem(image: UIImage(systemName: "square.and.pencil"),
+        let editBtn = UIBarButtonItem(image: UIImage(systemName: "square.and.pencil"),
                                        style: .plain, target: self, action: #selector(editFolder))
         let shareBtn = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"),
                                        style: .plain, target: self, action: #selector(shareFolder))
@@ -100,28 +94,24 @@ final class FolderDetailViewController: UIViewController {
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         collectionView.dataSource = self
-        collectionView.delegate   = self
+        collectionView.delegate = self
     }
 
     private func makeLayout() -> UICollectionViewLayout {
-        let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
-        let item      = NSCollectionLayoutItem(layoutSize: itemSize)
+        let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
         item.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 6, bottom: 4, trailing: 6)
         let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(160))
-        let group     = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item, item])
-        let section   = NSCollectionLayoutSection(group: group)
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item, item])
+        let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 10, bottom: 8, trailing: 10)
         return UICollectionViewCompositionalLayout(section: section)
     }
-
-    // MARK: - Data
 
     private func loadCards() {
         cards = CardStore.shared.cards(inFolder: folder.id)
         collectionView.reloadData()
     }
-
-    // MARK: - Actions
 
     @objc private func goBack() { navigationController?.popViewController(animated: true) }
 
@@ -140,7 +130,7 @@ final class FolderDetailViewController: UIViewController {
         vc.onSave = { [weak self] updated in
             FolderStore.shared.save(updated)
             self?.folder = updated
-            self?.title  = updated.name
+            self?.title = updated.name
         }
         present(UINavigationController(rootViewController: vc), animated: true)
     }

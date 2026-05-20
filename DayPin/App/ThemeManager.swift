@@ -6,10 +6,10 @@ import WidgetKit
 extension Notification.Name {
     static let dayPinColorSchemeChanged = Notification.Name("dayPinColorSchemeChanged")
     // Add-note typed triggers (posted by the global "+" grid, consumed by active VC)
-    static let dayPinAddText   = Notification.Name("daypin.addText")
-    static let dayPinAddPhoto  = Notification.Name("daypin.addPhoto")
+    static let dayPinAddText = Notification.Name("daypin.addText")
+    static let dayPinAddPhoto = Notification.Name("daypin.addPhoto")
     static let dayPinAddCamera = Notification.Name("daypin.addCamera")
-    static let dayPinAddLink   = Notification.Name("daypin.addLink")
+    static let dayPinAddLink = Notification.Name("daypin.addLink")
     /// Posted by NotePickerViewController after notes are added to a folder.
     /// FolderDetailViewController listens to this and reloads.
     static let dayPinFolderNeedsRefresh = Notification.Name("daypin.folderNeedsRefresh")
@@ -19,8 +19,8 @@ extension Notification.Name {
 
 enum AppTheme: Int, CaseIterable {
     case system = 0
-    case light  = 1
-    case dark   = 2
+    case light = 1
+    case dark = 2
 
     var userInterfaceStyle: UIUserInterfaceStyle {
         switch self {
@@ -53,10 +53,8 @@ final class ThemeManager {
     static let shared = ThemeManager()
     private init() {}
 
-    private let themeKey  = "appTheme"
+    private let themeKey = "appTheme"
     private let schemeKey = "colorSchemeID"
-
-    // MARK: Brightness
 
     var current: AppTheme {
         get { AppTheme(rawValue: UserDefaults.standard.integer(forKey: themeKey)) ?? .system }
@@ -66,8 +64,6 @@ final class ThemeManager {
         }
     }
 
-    // MARK: Color Scheme
-
     var colorScheme: AppColorScheme {
         get {
             let raw = UserDefaults.standard.integer(forKey: schemeKey)
@@ -75,9 +71,7 @@ final class ThemeManager {
         }
         set {
             UserDefaults.standard.set(newValue.id.rawValue, forKey: schemeKey)
-            // Sync to App Group so the widget can read the accent color
             AppGroup.defaults.set(newValue.id.rawValue, forKey: "daypin.colorSchemeID")
-            // Reload widget so it picks up the new accent immediately
             WidgetCenter.shared.reloadAllTimelines()
             NotificationCenter.default.post(name: .dayPinColorSchemeChanged, object: nil)
         }
@@ -87,7 +81,6 @@ final class ThemeManager {
 
     func apply() {
         applyBrightness()
-        // Write current scheme to App Group for widget (covers cold-launch case)
         AppGroup.defaults.set(colorScheme.id.rawValue, forKey: "daypin.colorSchemeID")
     }
 

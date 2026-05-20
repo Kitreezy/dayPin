@@ -1,14 +1,9 @@
 import UIKit
 import UniformTypeIdentifiers
 
-// MARK: - BackupViewController
-
 final class BackupViewController: UIViewController {
 
-    // MARK: - State
-
-    /// Tracks whether the currently-presented document picker is for export or import.
-    /// The delegate method is identical for both — we must distinguish via this flag.
+    // Both export and import share the same UIDocumentPickerDelegate — this flag tells them apart.
     private enum PickerMode { case export, restore }
     private var pickerMode: PickerMode = .export
 
@@ -49,15 +44,11 @@ final class BackupViewController: UIViewController {
         tableView.reloadData()
     }
 
-    @objc private func onColorSchemeChanged() {
-        // No accent-colored elements in this screen
-    }
-
-    // MARK: - Setup
+    @objc private func onColorSchemeChanged() {}
 
     private func setupTable() {
         tableView.dataSource = self
-        tableView.delegate   = self
+        tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
@@ -136,9 +127,9 @@ final class BackupViewController: UIViewController {
         df.dateStyle = .medium
         df.timeStyle = .short
         df.locale = L10n.activeLocale
-        let dateStr  = df.string(from: preview.exportDate)
-        let cards    = preview.cards.count
-        let folders  = preview.folders.count
+        let dateStr = df.string(from: preview.exportDate)
+        let cards = preview.cards.count
+        let folders = preview.folders.count
         let imgCards = preview.cards.filter { $0.imageData != nil }.count
 
         let alert = UIAlertController(
@@ -244,8 +235,8 @@ extension BackupViewController: UITableViewDataSource, UITableViewDelegate {
         case .export:
             var cfg = cell.defaultContentConfiguration()
             cfg.text = L10n.backupCreate
-            let allCards  = CardStore.shared.allDTOs().count
-            let allDays   = Set(CardStore.shared.allDTOs().map {
+            let allCards = CardStore.shared.allDTOs().count
+            let allDays = Set(CardStore.shared.allDTOs().map {
                 Calendar.current.startOfDay(for: $0.dayDate)
             }).count
             cfg.secondaryText = L10n.notesDayCount(notes: allCards, days: allDays)
@@ -265,11 +256,11 @@ extension BackupViewController: UITableViewDataSource, UITableViewDelegate {
 
         case .info:
             var cfg = cell.defaultContentConfiguration()
-            let dtos    = CardStore.shared.allDTOs()
-            let cards   = dtos.count
-            let imgs    = dtos.filter { $0.imageData != nil }.count
+            let dtos = CardStore.shared.allDTOs()
+            let cards = dtos.count
+            let imgs = dtos.filter { $0.imageData != nil }.count
             let folders = FolderStore.shared.all().count
-            let days    = Set(dtos.map { Calendar.current.startOfDay(for: $0.dayDate) }).count
+            let days = Set(dtos.map { Calendar.current.startOfDay(for: $0.dayDate) }).count
             cfg.text = L10n.backupSummary(cards: cards, days: days, imgs: imgs, folders: folders)
             cfg.textProperties.font = .inter(ofSize: 14)
             cfg.textProperties.color = .secondaryLabel
@@ -298,12 +289,10 @@ extension BackupViewController: UIDocumentPickerDelegate {
 
     func documentPicker(_ controller: UIDocumentPickerViewController,
                         didPickDocumentsAt urls: [URL]) {
-        // IMPORTANT: this delegate fires for BOTH export and import.
-        // We distinguish via `pickerMode` set before presenting each picker.
+        // Fires for both export and import — pickerMode was set before presenting.
         switch pickerMode {
         case .export:
-            // Export finished — nothing to do (file is already saved by the picker)
-            break
+            break // file already saved by the picker
         case .restore:
             guard let url = urls.first else { return }
             processImport(url: url)

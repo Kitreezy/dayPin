@@ -8,7 +8,7 @@ final class ImageCardDetailViewController: UIViewController {
     private var annotations: [ImageAnnotation]
 
     init(card: ImageCard) {
-        self.card        = card
+        self.card = card
         self.annotations = card.annotations
         super.init(nibName: nil, bundle: nil)
     }
@@ -61,8 +61,7 @@ final class ImageCardDetailViewController: UIViewController {
     }
 
     @objc private func onLanguageChanged() {
-        // No persistent nav title or labels to refresh on this screen;
-        // menu action titles are built on-demand in moreTapped().
+        // Menu action titles in moreTapped() are built on-demand, nothing else to refresh.
     }
 
     @objc private func onColorSchemeChanged() {
@@ -76,7 +75,7 @@ final class ImageCardDetailViewController: UIViewController {
         zoomScrollView.minimumZoomScale = 1
         zoomScrollView.maximumZoomScale = 5
         zoomScrollView.delegate = self
-        zoomScrollView.showsVerticalScrollIndicator   = false
+        zoomScrollView.showsVerticalScrollIndicator = false
         zoomScrollView.showsHorizontalScrollIndicator = false
         zoomScrollView.contentInsetAdjustmentBehavior = .never
         view.addSubview(zoomScrollView)
@@ -110,7 +109,6 @@ final class ImageCardDetailViewController: UIViewController {
     private var bellImageView: UIImageView?
 
     private func setupFloatingControls() {
-        // Back pill — top-left
         let backBlur = makeBlurPill()
         let backIcon = UIImageView(image: UIImage(systemName: "chevron.left",
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
@@ -124,7 +122,6 @@ final class ImageCardDetailViewController: UIViewController {
         backBlur.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(goBack)))
         view.addSubview(backBlur)
 
-        // Bell pill button
         let bellIcon = makeBellIcon()
         let bellBlur = makeBlurPill()
         bellIcon.translatesAutoresizingMaskIntoConstraints = false
@@ -139,10 +136,9 @@ final class ImageCardDetailViewController: UIViewController {
         bellBlurPill = bellBlur
         bellImageView = bellIcon
 
-        // Right pills stack (bell, edit, list, more)
-        let editBlur  = makePillButton(icon: "pencil",          action: #selector(editCard))
-        let listBlur  = makePillButton(icon: "list.bullet",     action: #selector(showPinList))
-        let moreBlur  = makePillButton(icon: "ellipsis",        action: #selector(moreTapped))
+        let editBlur = makePillButton(icon: "pencil",          action: #selector(editCard))
+        let listBlur = makePillButton(icon: "list.bullet",     action: #selector(showPinList))
+        let moreBlur = makePillButton(icon: "ellipsis",        action: #selector(moreTapped))
 
         let rightStack = UIStackView(arrangedSubviews: [bellBlur, editBlur, listBlur, moreBlur])
         rightStack.axis = .horizontal
@@ -277,10 +273,10 @@ final class ImageCardDetailViewController: UIViewController {
         let vc = ImageCardEditorViewController(imageData: card.imageData, dayDate: card.dayDate, existingCard: card)
         vc.onSave = { [weak self] saved in
             guard let self else { return }
-            self.card.title       = saved.title
-            self.card.imageData   = saved.imageData
+            self.card.title = saved.title
+            self.card.imageData = saved.imageData
             self.card.annotations = saved.annotations
-            self.annotations      = saved.annotations
+            self.annotations = saved.annotations
             self.annotationView.image = saved.imageData.flatMap { UIImage(data: $0) }
             self.annotationView.load(annotations: self.annotations)
             self.persist()
@@ -301,8 +297,8 @@ final class ImageCardDetailViewController: UIViewController {
     }
 
     @objc private func moreTapped() {
-        let shareAction  = UIAction(title: L10n.share,     image: UIImage(systemName: "square.and.arrow.up"))  { [weak self] _ in self?.share() }
-        let copyAction   = UIAction(title: L10n.copyToDay, image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in self?.copyToDay() }
+        let shareAction = UIAction(title: L10n.share,     image: UIImage(systemName: "square.and.arrow.up"))  { [weak self] _ in self?.share() }
+        let copyAction = UIAction(title: L10n.copyToDay, image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in self?.copyToDay() }
         let folderAction = UIAction(title: L10n.inFolder,  image: UIImage(systemName: "folder.badge.plus"))   { [weak self] _ in self?.addToFolder() }
         let menu = UIMenu(children: [shareAction, copyAction, folderAction])
         let config = UIButton.Configuration.plain()
@@ -310,7 +306,6 @@ final class ImageCardDetailViewController: UIViewController {
         btn.menu = menu
         btn.showsMenuAsPrimaryAction = true
         btn.sendActions(for: .menuActionTriggered)
-        // Show as action sheet on iOS 14+
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: L10n.share,     style: .default) { [weak self] _ in self?.share() })
         alert.addAction(UIAlertAction(title: L10n.copyToDay, style: .default) { [weak self] _ in self?.copyToDay() })

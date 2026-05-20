@@ -1,8 +1,5 @@
 import UIKit
 
-// MARK: - RecentlyDeletedViewController
-// Shows soft-deleted notes (up to 30 days). User can restore or permanently delete.
-
 final class RecentlyDeletedViewController: UIViewController {
 
     var onRestored: (() -> Void)?
@@ -14,18 +11,18 @@ final class RecentlyDeletedViewController: UIViewController {
         tv.backgroundColor = .clear
         tv.translatesAutoresizingMaskIntoConstraints = false
         tv.dataSource = self
-        tv.delegate   = self
+        tv.delegate = self
         tv.register(RecentlyDeletedCell.self, forCellReuseIdentifier: RecentlyDeletedCell.reuseID)
         return tv
     }()
 
     private lazy var emptyLabel: UILabel = {
         let lbl = UILabel()
-        lbl.text          = L10n.noDeletedNotes
-        lbl.font          = .inter(ofSize: 16, weight: .medium)
-        lbl.textColor     = .secondaryLabel
+        lbl.text = L10n.noDeletedNotes
+        lbl.font = .inter(ofSize: 16, weight: .medium)
+        lbl.textColor = .secondaryLabel
         lbl.textAlignment = .center
-        lbl.isHidden      = true
+        lbl.isHidden = true
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
     }()
@@ -98,7 +95,7 @@ final class RecentlyDeletedViewController: UIViewController {
         }
         tableView.reloadData()
         emptyLabel.isHidden = !items.isEmpty
-        tableView.isHidden  = items.isEmpty
+        tableView.isHidden = items.isEmpty
         navigationItem.rightBarButtonItem?.isEnabled = !items.isEmpty
     }
 
@@ -127,7 +124,7 @@ final class RecentlyDeletedViewController: UIViewController {
         tableView.deleteRows(at: [indexPath], with: .automatic)
         if items.isEmpty {
             emptyLabel.isHidden = false
-            tableView.isHidden  = true
+            tableView.isHidden = true
             navigationItem.rightBarButtonItem?.isEnabled = false
         }
         onRestored?()
@@ -140,7 +137,7 @@ final class RecentlyDeletedViewController: UIViewController {
         tableView.deleteRows(at: [indexPath], with: .automatic)
         if items.isEmpty {
             emptyLabel.isHidden = false
-            tableView.isHidden  = true
+            tableView.isHidden = true
             navigationItem.rightBarButtonItem?.isEnabled = false
         }
         UINotificationFeedbackGenerator().notificationOccurred(.warning)
@@ -170,7 +167,6 @@ extension RecentlyDeletedViewController: UITableViewDataSource, UITableViewDeleg
         items.isEmpty ? nil : L10n.autoDeleteNote
     }
 
-    // Swipe actions
     func tableView(_ tv: UITableView,
                    trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         let card = items[indexPath.row].card
@@ -189,7 +185,7 @@ extension RecentlyDeletedViewController: UITableViewDataSource, UITableViewDeleg
             self?.restore(card, at: indexPath)
             done(true)
         }
-        restore.image           = UIImage(systemName: "arrow.uturn.backward")
+        restore.image = UIImage(systemName: "arrow.uturn.backward")
         restore.backgroundColor = DayPinDesign.accent
         return UISwipeActionsConfiguration(actions: [restore])
     }
@@ -220,10 +216,10 @@ private final class RecentlyDeletedCell: UITableViewCell {
 
     static let reuseID = "RecentlyDeletedCell"
 
-    private let typeIcon  = UIImageView()
-    private let titleLbl  = UILabel()
-    private let dateLbl   = UILabel()
-    private let daysLbl   = UILabel()
+    private let typeIcon = UIImageView()
+    private let titleLbl = UILabel()
+    private let dateLbl = UILabel()
+    private let daysLbl = UILabel()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -236,31 +232,30 @@ private final class RecentlyDeletedCell: UITableViewCell {
         contentView.backgroundColor = .clear
         selectionStyle = .none
 
-        // Icon background
         let iconBg = UIView()
-        iconBg.backgroundColor    = DayPinDesign.accent.withAlphaComponent(0.10)
+        iconBg.backgroundColor = DayPinDesign.accent.withAlphaComponent(0.10)
         iconBg.layer.cornerRadius = 10
         iconBg.translatesAutoresizingMaskIntoConstraints = false
 
         typeIcon.contentMode = .scaleAspectFit
-        typeIcon.tintColor   = DayPinDesign.accent
+        typeIcon.tintColor = DayPinDesign.accent
         typeIcon.translatesAutoresizingMaskIntoConstraints = false
         iconBg.addSubview(typeIcon)
 
-        titleLbl.font      = .inter(ofSize: 15, weight: .semibold)
+        titleLbl.font = .inter(ofSize: 15, weight: .semibold)
         titleLbl.textColor = .label
         titleLbl.translatesAutoresizingMaskIntoConstraints = false
 
-        dateLbl.font      = .inter(ofSize: 12)
+        dateLbl.font = .inter(ofSize: 12)
         dateLbl.textColor = .secondaryLabel
         dateLbl.translatesAutoresizingMaskIntoConstraints = false
 
-        daysLbl.font          = .inter(ofSize: 12, weight: .medium)
+        daysLbl.font = .inter(ofSize: 12, weight: .medium)
         daysLbl.textAlignment = .right
         daysLbl.translatesAutoresizingMaskIntoConstraints = false
 
         let textStack = UIStackView(arrangedSubviews: [titleLbl, dateLbl])
-        textStack.axis    = .vertical
+        textStack.axis = .vertical
         textStack.spacing = 2
         textStack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -297,15 +292,14 @@ private final class RecentlyDeletedCell: UITableViewCell {
         df.locale = L10n.activeLocale
         dateLbl.text = L10n.deletedNotePrefix(df.string(from: deletedAt))
 
-        // Days remaining
-        let expiry  = deletedAt.addingTimeInterval(30 * 24 * 3600)
+        let expiry = deletedAt.addingTimeInterval(30 * 24 * 3600)
         let seconds = expiry.timeIntervalSinceNow
-        let days    = max(0, Int(ceil(seconds / 86400)))
+        let days = max(0, Int(ceil(seconds / 86400)))
         if days <= 3 {
-            daysLbl.text      = days == 0 ? L10n.deletedToday : L10n.daysRemaining(days)
+            daysLbl.text = days == 0 ? L10n.deletedToday : L10n.daysRemaining(days)
             daysLbl.textColor = .systemRed
         } else {
-            daysLbl.text      = L10n.daysRemaining(days)
+            daysLbl.text = L10n.daysRemaining(days)
             daysLbl.textColor = .tertiaryLabel
         }
 

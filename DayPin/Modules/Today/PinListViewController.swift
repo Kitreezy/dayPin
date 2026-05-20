@@ -1,7 +1,5 @@
 import UIKit
 
-/// Bottom-sheet listing all annotation pins for an image card.
-/// Tap a row to dismiss and focus the map on that pin.
 final class PinListViewController: UIViewController {
 
     private let annotations: [ImageAnnotation]
@@ -23,7 +21,7 @@ final class PinListViewController: UIViewController {
 
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.dataSource = self
-        tableView.delegate   = self
+        tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         view.addSubview(tableView)
 

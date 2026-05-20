@@ -2,23 +2,18 @@ import UIKit
 
 final class ImageCardCell: UICollectionViewCell {
 
-    // MARK: - Properties
-
     static let reuseID = "ImageCardCell"
 
     private let thumbnailView = UIImageView()
-    private let titleLabel    = UILabel()
+    private let titleLabel = UILabel()
     private let pinCountLabel = UILabel()
-    private let pinIcon       = UIImageView()
-    private let timeLabel     = UILabel()
+    private let pinIcon = UIImageView()
+    private let timeLabel = UILabel()
     private let gradientLayer = CAGradientLayer()
-    private let reminderDot   = UIImageView()
+    private let reminderDot = UIImageView()
 
-    // Glass panel: plain UIView - semi-transparent so the photo shows through.
-    // UIVisualEffectView doesn't blur sibling views in collection cells reliably.
+    // Plain UIView, not UIVisualEffectView — blur of sibling views in cells is unreliable
     private let glassPanel = UIView()
-
-    // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -31,18 +26,13 @@ final class ImageCardCell: UICollectionViewCell {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    // MARK: - Notifications
-
     @objc private func onSchemeChanged() {
         refreshTint(DayPinDesign.imageCardTint)
     }
 
-    // MARK: - UI Setup
-
     private func refreshTint(_ tint: UIColor) {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
         tint.getRed(&r, green: &g, blue: &b, alpha: nil)
-        // Black base (alpha 0.52) lightly tinted — image shows through the 48% transparency
         glassPanel.backgroundColor = UIColor(red: r * 0.18, green: g * 0.18, blue: b * 0.18, alpha: 0.52)
     }
 
@@ -52,7 +42,6 @@ final class ImageCardCell: UICollectionViewCell {
         layer.cornerRadius = 18
         DayPinDesign.applyCardShadow(to: layer)
 
-        // ── Photo ──────────────────────────────────────────────
         thumbnailView.contentMode = .scaleAspectFill
         thumbnailView.backgroundColor = UIColor { t in
             t.userInterfaceStyle == .dark
@@ -64,23 +53,19 @@ final class ImageCardCell: UICollectionViewCell {
         thumbnailView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(thumbnailView)
 
-        // ── Vignette gradient ──────────────────────────────────
         gradientLayer.colors = [UIColor.clear.cgColor,
                                 UIColor(dynamicProvider: { _ in UIColor.black }).withAlphaComponent(0.60).cgColor]
         gradientLayer.locations = [0.28, 1.0]
         gradientLayer.cornerRadius = 18
         contentView.layer.addSublayer(gradientLayer)
 
-        // ── Floating glass panel ───────────────────────────────
         glassPanel.layer.cornerRadius = 14
-        glassPanel.layer.borderWidth  = 0.5
-        glassPanel.layer.borderColor  = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.18).cgColor
+        glassPanel.layer.borderWidth = 0.5
+        glassPanel.layer.borderColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.18).cgColor
         glassPanel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(glassPanel)
         refreshTint(DayPinDesign.imageCardTint)
 
-
-        // ── Labels ─────────────────────────────────────────────
         titleLabel.font = .inter(ofSize: 15, weight: .semibold)
         titleLabel.textColor = UIColor(dynamicProvider: { _ in UIColor.white })
         titleLabel.numberOfLines = 2
@@ -124,19 +109,16 @@ final class ImageCardCell: UICollectionViewCell {
         setupReminderDot()
 
         NSLayoutConstraint.activate([
-            // Photo
             thumbnailView.topAnchor.constraint(equalTo: contentView.topAnchor),
             thumbnailView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             thumbnailView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             ratioConstraint,
             thumbnailView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
-            // Glass panel — 8pt inset from sides, 8pt from bottom
             glassPanel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
             glassPanel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
             glassPanel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
 
-            // Info stack
             infoStack.topAnchor.constraint(equalTo: glassPanel.topAnchor, constant: 10),
             infoStack.leadingAnchor.constraint(equalTo: glassPanel.leadingAnchor, constant: 12),
             infoStack.trailingAnchor.constraint(equalTo: glassPanel.trailingAnchor, constant: -12),
@@ -163,15 +145,11 @@ final class ImageCardCell: UICollectionViewCell {
         ])
     }
 
-    // MARK: - Layout
-
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = contentView.bounds
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 18).cgPath
     }
-
-    // MARK: - Configuration
 
     func configure(with card: ImageCard) {
         titleLabel.text = card.title
@@ -185,7 +163,6 @@ final class ImageCardCell: UICollectionViewCell {
         if count == 0 {
             pinCountLabel.text = L10n.noAnnotations
         } else {
-            // Title is the primary field — always prefer it over the optional comment
             let first = card.annotations.first(where: { !$0.title.isEmpty })?.title
                      ?? card.annotations.first(where: { !$0.text.isEmpty })?.text
             if let label = first {

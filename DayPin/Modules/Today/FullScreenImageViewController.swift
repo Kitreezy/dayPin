@@ -1,22 +1,21 @@
 import UIKit
 
-/// Full-screen image viewer with pinch-to-zoom and swipe-down-to-dismiss.
 final class FullScreenImageViewController: UIViewController {
 
     private let image: UIImage
     private weak var sourceView: UIView?
 
-    private let scrollView   = UIScrollView()
-    private let imageView    = UIImageView()
+    private let scrollView = UIScrollView()
+    private let imageView = UIImageView()
     private let backgroundView = UIView()
-    private let closeButton  = UIView()
+    private let closeButton = UIView()
 
     // Swipe-down tracking
     private var panStart: CGPoint = .zero
     private var isAnimatingDismiss = false
 
     init(image: UIImage, sourceView: UIView?) {
-        self.image      = image
+        self.image = image
         self.sourceView = sourceView
         super.init(nibName: nil, bundle: nil)
     }
@@ -48,13 +47,9 @@ final class FullScreenImageViewController: UIViewController {
             name: .dayPinColorSchemeChanged, object: nil)
     }
 
-    @objc private func onLanguageChanged() {
-        // No user-visible L10n strings on this screen
-    }
+    @objc private func onLanguageChanged() {}
 
-    @objc private func onColorSchemeChanged() {
-        // Background is always dark (photo viewer) — no accent-dependent colors
-    }
+    @objc private func onColorSchemeChanged() {}
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -82,7 +77,7 @@ final class FullScreenImageViewController: UIViewController {
         scrollView.delegate = self
         scrollView.minimumZoomScale = 1
         scrollView.maximumZoomScale = 4
-        scrollView.showsVerticalScrollIndicator   = false
+        scrollView.showsVerticalScrollIndicator = false
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -94,7 +89,7 @@ final class FullScreenImageViewController: UIViewController {
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        imageView.image       = image
+        imageView.image = image
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(imageView)
@@ -109,9 +104,8 @@ final class FullScreenImageViewController: UIViewController {
     }
 
     private func setupCloseButton() {
-        // Frosted glass pill with a small × symbol
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-        blur.layer.cornerRadius  = 14
+        blur.layer.cornerRadius = 14
         blur.layer.masksToBounds = true
         blur.isUserInteractionEnabled = false
         blur.translatesAutoresizingMaskIntoConstraints = false
@@ -151,18 +145,15 @@ final class FullScreenImageViewController: UIViewController {
     }
 
     private func setupGestures() {
-        // Tap to dismiss (only when not zoomed)
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         tap.numberOfTapsRequired = 1
         scrollView.addGestureRecognizer(tap)
 
-        // Double-tap to zoom
         let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
         doubleTap.numberOfTapsRequired = 2
         scrollView.addGestureRecognizer(doubleTap)
         tap.require(toFail: doubleTap)
 
-        // Pan to dismiss (swipe down)
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
         pan.delegate = self
         scrollView.addGestureRecognizer(pan)
@@ -173,16 +164,16 @@ final class FullScreenImageViewController: UIViewController {
     private func animateIn() {
         UIView.animate(withDuration: 0.22, delay: 0, options: .curveEaseOut) {
             self.backgroundView.alpha = 1
-            self.imageView.alpha      = 1
-            self.closeButton.alpha    = 1
+            self.imageView.alpha = 1
+            self.closeButton.alpha = 1
         }
     }
 
     private func animateOut(completion: @escaping () -> Void) {
         UIView.animate(withDuration: 0.18, delay: 0, options: .curveEaseIn) {
             self.backgroundView.alpha = 0
-            self.imageView.alpha      = 0
-            self.closeButton.alpha    = 0
+            self.imageView.alpha = 0
+            self.closeButton.alpha = 0
         } completion: { _ in
             completion()
         }
@@ -200,7 +191,7 @@ final class FullScreenImageViewController: UIViewController {
             scrollView.setZoomScale(1, animated: true)
         } else {
             let point = recognizer.location(in: imageView)
-            let rect  = CGRect(origin: CGPoint(x: point.x - 40, y: point.y - 40),
+            let rect = CGRect(origin: CGPoint(x: point.x - 40, y: point.y - 40),
                                size: CGSize(width: 80, height: 80))
             scrollView.zoom(to: rect, animated: true)
         }
@@ -218,16 +209,16 @@ final class FullScreenImageViewController: UIViewController {
             let progress = min(dy / 260, 1)
             scrollView.transform = CGAffineTransform(translationX: 0, y: dy)
             backgroundView.alpha = 1 - progress * 0.7
-            closeButton.alpha    = 1 - progress
+            closeButton.alpha = 1 - progress
         case .ended, .cancelled:
             let velocity = pan.velocity(in: view).y
             let dy = translation.y
             if dy > 100 || velocity > 600 {
                 isAnimatingDismiss = true
                 UIView.animate(withDuration: 0.22, delay: 0, options: .curveEaseIn) {
-                    self.scrollView.transform  = CGAffineTransform(translationX: 0, y: self.view.bounds.height)
-                    self.backgroundView.alpha  = 0
-                    self.closeButton.alpha     = 0
+                    self.scrollView.transform = CGAffineTransform(translationX: 0, y: self.view.bounds.height)
+                    self.backgroundView.alpha = 0
+                    self.closeButton.alpha = 0
                 } completion: { _ in
                     self.dismiss(animated: false)
                 }
@@ -235,7 +226,7 @@ final class FullScreenImageViewController: UIViewController {
                 UIView.animate(withDuration: 0.28, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0.3) {
                     self.scrollView.transform = .identity
                     self.backgroundView.alpha = 1
-                    self.closeButton.alpha    = 1
+                    self.closeButton.alpha = 1
                 }
             }
         default:
@@ -274,7 +265,6 @@ extension FullScreenImageViewController: UIScrollViewDelegate {
 extension FullScreenImageViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
-        // Allow pan-to-dismiss alongside scrollView pan only when at zoom scale 1
         return scrollView.zoomScale == 1
     }
 }

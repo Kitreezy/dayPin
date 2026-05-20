@@ -2,19 +2,10 @@ import UIKit
 import Photos
 import PhotosUI
 
-// MARK: - RecentPhotosPickerViewController
-//
-// Bottom sheet that shows the last 30 photos from the camera roll.
-// No permission dialog is shown — if access is not granted yet, only
-// the "Все фото" button is visible (PHPicker needs no permission).
-// On selection the caller receives the image Data via `onSelect`.
-
 final class RecentPhotosPickerViewController: UIViewController {
 
     var onSelect:  ((Data) -> Void)?
     var onShowAll: (() -> Void)?
-
-    // MARK: - Private
 
     private var assets: [PHAsset] = []
     private let imageManager = PHCachingImageManager()
@@ -58,8 +49,6 @@ final class RecentPhotosPickerViewController: UIViewController {
         showAllButton?.setTitleColor(DayPinDesign.accent, for: .normal)
     }
 
-    // MARK: - Sheet appearance
-
     private func setupSheet() {
         view.backgroundColor = UIColor { t in
             t.userInterfaceStyle == .dark
@@ -78,8 +67,6 @@ final class RecentPhotosPickerViewController: UIViewController {
         }
     }
 
-    // MARK: - Header
-
     private func setupHeader() {
         headerLabel.text = L10n.recentPhotos
         headerLabel.font = .inter(ofSize: 17, weight: .semibold)
@@ -92,8 +79,6 @@ final class RecentPhotosPickerViewController: UIViewController {
             headerLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20)
         ])
     }
-
-    // MARK: - Collection view
 
     private func setupCollection() {
         let spacing: CGFloat = 3
@@ -111,7 +96,7 @@ final class RecentPhotosPickerViewController: UIViewController {
         collectionView.showsVerticalScrollIndicator = false
         collectionView.register(RecentPhotoCell.self, forCellWithReuseIdentifier: RecentPhotoCell.reuseID)
         collectionView.dataSource = self
-        collectionView.delegate   = self
+        collectionView.delegate = self
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
 
@@ -122,8 +107,6 @@ final class RecentPhotosPickerViewController: UIViewController {
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -90)
         ])
     }
-
-    // MARK: - "Все фото" button
 
     private func setupAllPhotosButton() {
         let container = UIView()
@@ -157,7 +140,6 @@ final class RecentPhotosPickerViewController: UIViewController {
             btn.topAnchor.constraint(equalTo: container.topAnchor, constant: 14)
         ])
 
-        // Top separator
         let sep = UIView()
         sep.backgroundColor = UIColor.separator.withAlphaComponent(0.4)
         sep.translatesAutoresizingMaskIntoConstraints = false
@@ -170,7 +152,7 @@ final class RecentPhotosPickerViewController: UIViewController {
         ])
     }
 
-    // MARK: - Load photos
+    // MARK: - Photos
 
     private func loadAssets() {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
@@ -178,7 +160,6 @@ final class RecentPhotosPickerViewController: UIViewController {
         case .authorized, .limited:
             fetchAssets()
         case .notDetermined:
-            // User is explicitly here to pick a photo — good moment to ask
             PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] granted in
                 DispatchQueue.main.async {
                     if granted == .authorized || granted == .limited {
@@ -187,7 +168,7 @@ final class RecentPhotosPickerViewController: UIViewController {
                 }
             }
         default:
-            break  // denied/restricted — only "Показать все" button is visible
+            break
         }
     }
 

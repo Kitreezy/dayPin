@@ -22,8 +22,8 @@ final class TagsInputView: UIView {
     // MARK: - Private UI
 
     private let scrollView = UIScrollView()
-    private let stack      = UIStackView()
-    private let addButton  = UIButton(type: .system)
+    private let stack = UIStackView()
+    private let addButton = UIButton(type: .system)
 
     // We keep the popover VC reference so we can update it when tags change.
     private var pickerVC: TagPickerViewController?
@@ -48,8 +48,8 @@ final class TagsInputView: UIView {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(scrollView)
 
-        stack.axis      = .horizontal
-        stack.spacing   = 6
+        stack.axis = .horizontal
+        stack.spacing = 6
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(stack)
@@ -62,9 +62,9 @@ final class TagsInputView: UIView {
         addButton.tintColor = DayPinDesign.accent
         addButton.setTitleColor(DayPinDesign.accent, for: .normal)
         addButton.layer.cornerRadius = 9
-        addButton.layer.borderWidth  = 1
-        addButton.layer.borderColor  = DayPinDesign.accent.withAlphaComponent(0.4).cgColor
-        addButton.contentEdgeInsets  = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+        addButton.layer.borderWidth = 1
+        addButton.layer.borderColor = DayPinDesign.accent.withAlphaComponent(0.4).cgColor
+        addButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
         addButton.addTarget(self, action: #selector(addTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
@@ -201,8 +201,8 @@ final class TagPickerViewController: UIViewController {
     private var allTags: [Tag] = []
     private var filteredTags: [Tag] = []
 
-    private let searchField  = UITextField()
-    private let tableView    = UITableView(frame: .zero, style: .insetGrouped)
+    private let searchField = UITextField()
+    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
     private var createRowVisible = false
 
     init(selectedIDs: [UUID]) {
@@ -233,9 +233,9 @@ final class TagPickerViewController: UIViewController {
         container.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(container)
 
-        searchField.placeholder   = L10n.newTag
-        searchField.font          = .inter(ofSize: 15)
-        searchField.borderStyle   = .roundedRect
+        searchField.placeholder = L10n.newTag
+        searchField.font = .inter(ofSize: 15)
+        searchField.borderStyle = .roundedRect
         searchField.clearButtonMode = .whileEditing
         searchField.returnKeyType = .done
         searchField.translatesAutoresizingMaskIntoConstraints = false
@@ -268,14 +268,14 @@ final class TagPickerViewController: UIViewController {
     private func setupTable() {
         tableView.backgroundColor = .clear
         tableView.dataSource = self
-        tableView.delegate   = self
+        tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "tag")
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "create")
     }
 
     private func reload() {
-        allTags      = TagStore.shared.all()
-        let query    = searchField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        allTags = TagStore.shared.all()
+        let query = searchField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         filteredTags = query.isEmpty ? allTags : allTags.filter { $0.name.localizedCaseInsensitiveContains(query) }
         createRowVisible = !query.isEmpty && !allTags.contains(where: { $0.name.caseInsensitiveCompare(query) == .orderedSame })
         tableView.reloadData()
@@ -335,15 +335,15 @@ extension TagPickerViewController: UITableViewDataSource, UITableViewDelegate {
         }
 
         let cell = tableView.dequeueReusableCell(withIdentifier: "tag", for: indexPath)
-        let tag  = filteredTags[indexPath.row]
+        let tag = filteredTags[indexPath.row]
         var config = cell.defaultContentConfiguration()
         config.text = tag.name
         config.image = UIImage(systemName: "circle.fill")
         config.imageProperties.tintColor = tag.color
 
         let isSelected = selectedIDs.contains(tag.id)
-        cell.accessoryType   = isSelected ? .checkmark : .none
-        cell.tintColor       = DayPinDesign.accent
+        cell.accessoryType = isSelected ? .checkmark : .none
+        cell.tintColor = DayPinDesign.accent
         cell.backgroundColor = .clear
         cell.contentConfiguration = config
         return cell

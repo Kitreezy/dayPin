@@ -5,18 +5,18 @@ import Foundation
 struct Folder: Identifiable, Codable {
     let id: UUID
     var name: String
-    var colorHex: String       // accent color
+    var colorHex: String
     var createdAt: Date
-    var emojiIcon: String?     // nil → дефолтная иконка
-    var iconImageData: Data?   // nil → нет фото
+    var emojiIcon: String?
+    var iconImageData: Data?
 
     init(id: UUID = UUID(), name: String, colorHex: String = "#007AFF",
          emojiIcon: String? = nil, iconImageData: Data? = nil) {
-        self.id            = id
-        self.name          = name
-        self.colorHex      = colorHex
-        self.createdAt     = Date()
-        self.emojiIcon     = emojiIcon
+        self.id = id
+        self.name = name
+        self.colorHex = colorHex
+        self.createdAt = Date()
+        self.emojiIcon = emojiIcon
         self.iconImageData = iconImageData
     }
 }
@@ -49,14 +49,12 @@ final class FolderStore {
 
     func delete(_ folder: Folder) {
         folders.removeAll { $0.id == folder.id }
-        // Unassign all cards in this folder
         CardStore.shared.removeFolder(folder.id)
         persist()
     }
 
     // MARK: - Backup / Restore
 
-    /// Replaces all folders with data from a backup.
     func restore(folders: [Folder]) {
         self.folders = folders
         persist()

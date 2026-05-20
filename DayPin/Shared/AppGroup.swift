@@ -1,8 +1,6 @@
 import Foundation
 
-/// Shared App Group container — used by both the main app and the Widget extension.
-/// The suite name must match exactly what is registered in the Apple Developer portal
-/// and enabled in both targets' capabilities.
+// Shared UserDefaults for the main app and Widget extension — suite name must match the portal.
 enum AppGroup {
     static let suiteName = "group.com.daypin.app"
 

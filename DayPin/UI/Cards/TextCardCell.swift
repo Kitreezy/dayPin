@@ -54,7 +54,6 @@ final class TextCardCell: UICollectionViewCell {
         commentLabel.numberOfLines = 4
         commentLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        // Small bell badge for reminders
         let bellCfg = UIImage.SymbolConfiguration(pointSize: 10, weight: .medium)
         reminderDot.image = UIImage(systemName: "bell.fill", withConfiguration: bellCfg)
         reminderDot.tintColor = DayPinDesign.accent
@@ -122,11 +121,7 @@ final class EmptyCardCell: UICollectionViewCell {
 
     static let reuseID = "EmptyCardCell"
 
-    // MARK: - Properties
-
     private let animationView = LottieAnimationView(name: "empty_cat", bundle: .main)
-
-    // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -134,8 +129,6 @@ final class EmptyCardCell: UICollectionViewCell {
     }
 
     required init?(coder: NSCoder) { fatalError() }
-
-    // MARK: - Lifecycle
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
@@ -146,24 +139,20 @@ final class EmptyCardCell: UICollectionViewCell {
         }
     }
 
-    /// Called by TodayViewController each time the cell is dequeued,
-    /// including after a day switch where didMoveToWindow does not fire again.
+    // Called on dequeue too, since didMoveToWindow doesn't fire again after a day switch.
     func startAnimating() {
         animationView.play()
     }
 
-    // MARK: - Setup
-
     private func setup() {
         backgroundColor = .clear
 
-        // Shadow outer wrapper — no clip so shadow renders outside rounded rect
         let outer = UIView()
-        outer.layer.cornerRadius  = 16
-        outer.layer.shadowColor   = UIColor.black.cgColor
+        outer.layer.cornerRadius = 16
+        outer.layer.shadowColor = UIColor.black.cgColor
         outer.layer.shadowOpacity = 0.10
-        outer.layer.shadowRadius  = 14
-        outer.layer.shadowOffset  = CGSize(width: 0, height: 3)
+        outer.layer.shadowRadius = 14
+        outer.layer.shadowOffset = CGSize(width: 0, height: 3)
         outer.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(outer)
         NSLayoutConstraint.activate([
@@ -173,12 +162,11 @@ final class EmptyCardCell: UICollectionViewCell {
             outer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
         ])
 
-        // Frosted glass — same material & border as cards
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
         blur.layer.cornerRadius = 16
-        blur.clipsToBounds      = true
-        blur.layer.borderWidth  = 0.5
-        blur.layer.borderColor  = UIColor.white.withAlphaComponent(0.18).cgColor
+        blur.clipsToBounds = true
+        blur.layer.borderWidth = 0.5
+        blur.layer.borderColor = UIColor.white.withAlphaComponent(0.18).cgColor
         blur.translatesAutoresizingMaskIntoConstraints = false
         outer.addSubview(blur)
         NSLayoutConstraint.activate([
@@ -188,7 +176,7 @@ final class EmptyCardCell: UICollectionViewCell {
             blur.bottomAnchor.constraint(equalTo: outer.bottomAnchor)
         ])
 
-        // Tint overlay — NEVER set contentView.backgroundColor directly (breaks blur on iOS 17+)
+        // Setting contentView.backgroundColor directly breaks blur on iOS 17+, use a subview tint instead
         let tint = UIView()
         tint.translatesAutoresizingMaskIntoConstraints = false
         tint.backgroundColor = UIColor { trait in
@@ -204,33 +192,31 @@ final class EmptyCardCell: UICollectionViewCell {
             tint.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
         ])
 
-        // Lottie animation — loops continuously while visible
-        animationView.loopMode        = .loop
-        animationView.contentMode     = .scaleAspectFit
+        animationView.loopMode = .loop
+        animationView.contentMode = .scaleAspectFit
         animationView.backgroundBehavior = .pauseAndRestore
         animationView.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(animationView)
 
         let titleLabel = UILabel()
-        titleLabel.text      = L10n.emptyDay
-        titleLabel.font      = .inter(ofSize: 15, weight: .medium)
+        titleLabel.text = L10n.emptyDay
+        titleLabel.font = .inter(ofSize: 15, weight: .medium)
         titleLabel.textColor = .tertiaryLabel
         titleLabel.textAlignment = .center
 
         let hintLabel = UILabel()
-        hintLabel.text      = L10n.emptyDayHint
-        hintLabel.font      = .inter(ofSize: 13)
+        hintLabel.text = L10n.emptyDayHint
+        hintLabel.font = .inter(ofSize: 13)
         hintLabel.textColor = .quaternaryLabel
         hintLabel.textAlignment = .center
 
         let labelStack = UIStackView(arrangedSubviews: [titleLabel, hintLabel])
-        labelStack.axis      = .vertical
-        labelStack.spacing   = 4
+        labelStack.axis = .vertical
+        labelStack.spacing = 4
         labelStack.alignment = .center
         labelStack.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(labelStack)
 
-        // Animation: 280x200 native ratio - display at 126x90
         NSLayoutConstraint.activate([
             animationView.centerXAnchor.constraint(equalTo: blur.contentView.centerXAnchor),
             animationView.topAnchor.constraint(equalTo: blur.contentView.topAnchor, constant: 20),

@@ -22,7 +22,6 @@ final class DebugOverlayManager {
     static let shared = DebugOverlayManager()
     private init() {}
 
-    // Strong reference — we own this window until hide() sets it to nil.
     private var overlayWindow: UIWindow?
     var isActive: Bool { overlayWindow != nil }
 
@@ -33,10 +32,9 @@ final class DebugOverlayManager {
     func show(in window: UIWindow) {
         guard !isActive, let scene = window.windowScene else { return }
 
-        let topVC  = Self.topVC(window.rootViewController)
+        let topVC = Self.topVC(window.rootViewController)
         let vcName = topVC.map { String(describing: type(of: $0)) } ?? "Unknown"
-        // Walk the VC (and its custom subview classes) via Mirror to build a
-        // property-name → UIView map: e.g. photoContainer, scrollView, addPinButton …
+        // Walk the VC and its custom subviews via Mirror to build a property-name → UIView map
         var nameMap: [ObjectIdentifier: String] = [:]
         if let vc = topVC { nameMap = Self.buildNameMap(for: vc) }
 
@@ -49,7 +47,7 @@ final class DebugOverlayManager {
             nameMap:      nameMap
         )
         overlayWin.isHidden = false
-        self.overlayWindow  = overlayWin
+        self.overlayWindow = overlayWin
 
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
@@ -66,15 +64,14 @@ final class DebugOverlayManager {
         guard let root else { return nil }
         if let nav = root as? UINavigationController { return topVC(nav.visibleViewController) }
         if let tab = root as? UITabBarController     { return topVC(tab.selectedViewController) }
-        if let pr  = root.presentedViewController    { return topVC(pr) }
+        if let pr = root.presentedViewController    { return topVC(pr) }
         return root
     }
 
-    /// Recursively enumerate stored properties via Mirror.
-    /// Recurses into custom (non-UIKit) UIView subclasses so nested views
-    /// like PinCardView.titleLbl are mapped to their variable name.
+    /// Recursively enumerate stored properties via Mirror; recurses into custom UIView subclasses
+    /// so nested views like PinCardView.titleLbl are resolved to their variable name.
     static func buildNameMap(for root: AnyObject) -> [ObjectIdentifier: String] {
-        var map     = [ObjectIdentifier: String]()
+        var map = [ObjectIdentifier: String]()
         var visited = Set<ObjectIdentifier>()
         scanProperties(of: root, map: &map, visited: &visited)
         return map
@@ -93,14 +90,13 @@ final class DebugOverlayManager {
         while let m = mirror {
             for child in m.children {
                 guard let raw = child.label else { continue }
-                // Lazy-var backing stores appear as "_propName" in Mirror
+                // Lazy-var backing storage appears as "_propName" in Mirror
                 let name = raw.hasPrefix("_") ? String(raw.dropFirst()) : raw
                 guard !name.isEmpty else { continue }
 
                 if let view = child.value as? UIView {
                     let vid = ObjectIdentifier(view)
                     if map[vid] == nil { map[vid] = name }
-                    // Recurse into non-standard-UIKit views to capture their sub-properties
                     let cls = String(describing: type(of: view))
                     if !cls.hasPrefix("UI") && !cls.hasPrefix("_UI") {
                         scanProperties(of: view, map: &map, visited: &visited)
@@ -150,8 +146,8 @@ private final class DebugOverlayViewController: UIViewController {
 
     init(sourceWindow: UIWindow, vcName: String, nameMap: [ObjectIdentifier: String]) {
         self.sourceWindow = sourceWindow
-        self.vcName       = vcName
-        self.nameMap      = nameMap
+        self.vcName = vcName
+        self.nameMap = nameMap
         super.init(nibName: nil, bundle: nil)
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -165,21 +161,15 @@ private final class DebugOverlayViewController: UIViewController {
     // MARK: - Build UI
 
     private func buildUI() {
-        // Canvas — non-interactive, always behind everything
         canvas = DebugCanvasView(sourceWindow: sourceWindow, overlayView: view, nameMap: nameMap)
         canvas.isUserInteractionEnabled = false
         canvas.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(canvas)
 
-        // VC banner
-        let banner     = makeBanner()
-
-        // Filter bar
-        let filterBar  = makeFilterBar()
-
-        // Bottom controls
-        let exitBtn    = makeExitButton()
-        let hint       = makeHintLabel()
+        let banner = makeBanner()
+        let filterBar = makeFilterBar()
+        let exitBtn = makeExitButton()
+        let hint = makeHintLabel()
 
         NSLayoutConstraint.activate([
             canvas.topAnchor.constraint(equalTo: view.topAnchor),
@@ -187,8 +177,6 @@ private final class DebugOverlayViewController: UIViewController {
             canvas.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             canvas.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            // Floating pill — sits just below the status bar / Dynamic Island,
-            // centered and self-sizing so it covers minimal content.
             banner.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 6),
             banner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             banner.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -48),
@@ -207,38 +195,22 @@ private final class DebugOverlayViewController: UIViewController {
             hint.topAnchor.constraint(equalTo: exitBtn.bottomAnchor, constant: 4)
         ])
 
-        // First draw after layout settles
         DispatchQueue.main.async { self.applyFilter() }
     }
 
-    // ── Banner ───────────────────────────────────────────────────────────
-    // Compact floating pill — frosted glass, self-sizing, blocks minimal content.
-    //
-    // Layer structure:
-    //   outer (UIView)               — shadow only, NO masksToBounds
-    //   └─ blur (UIVisualEffectView) — clipsToBounds, rounded blur
-    //      └─ blur.contentView
-    //         ├─ tint (UIView)       — purple overlay on top of blur
-    //         └─ row (UIStackView)   — dot + VC name + DEBUG badge
-    //
-    // Keeping shadow on the outer view and clip on blur is the only correct way
-    // to combine rounded UIBlurEffect with a drop shadow in UIKit.
-
     private func makeBanner() -> UIView {
-        // ── Outer wrapper: shadow, NO clip ───────────────────────────────
         let outer = UIView()
-        outer.layer.cornerRadius  = 16
-        outer.layer.shadowColor   = UIColor.black.cgColor
+        outer.layer.cornerRadius = 16
+        outer.layer.shadowColor = UIColor.black.cgColor
         outer.layer.shadowOpacity = 0.30
-        outer.layer.shadowRadius  = 8
-        outer.layer.shadowOffset  = CGSize(width: 0, height: 3)
+        outer.layer.shadowRadius = 8
+        outer.layer.shadowOffset = CGSize(width: 0, height: 3)
         outer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(outer)
 
-        // ── Inner blur: rounded + clipped ───────────────────────────────
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
         blur.layer.cornerRadius = 16
-        blur.clipsToBounds      = true
+        blur.clipsToBounds = true
         blur.translatesAutoresizingMaskIntoConstraints = false
         outer.addSubview(blur)
         NSLayoutConstraint.activate([
@@ -248,7 +220,6 @@ private final class DebugOverlayViewController: UIViewController {
             blur.bottomAnchor.constraint(equalTo: outer.bottomAnchor)
         ])
 
-        // ── Purple tint over the blur ────────────────────────────────────
         let tint = UIView()
         tint.backgroundColor = UIColor(red: 0.25, green: 0.06, blue: 0.60, alpha: 0.58)
         tint.translatesAutoresizingMaskIntoConstraints = false
@@ -260,31 +231,27 @@ private final class DebugOverlayViewController: UIViewController {
             tint.bottomAnchor.constraint(equalTo: blur.contentView.bottomAnchor)
         ])
 
-        // ── Content row ──────────────────────────────────────────────────
-        // Dot
         let dot = UIView()
-        dot.backgroundColor    = UIColor(red: 0.72, green: 0.45, blue: 1.0, alpha: 1)
+        dot.backgroundColor = UIColor(red: 0.72, green: 0.45, blue: 1.0, alpha: 1)
         dot.layer.cornerRadius = 4
         dot.translatesAutoresizingMaskIntoConstraints = false
-        dot.widthAnchor.constraint(equalToConstant: 8).isActive  = true
+        dot.widthAnchor.constraint(equalToConstant: 8).isActive = true
         dot.heightAnchor.constraint(equalToConstant: 8).isActive = true
 
-        // VC name
         let nameLabel = UILabel()
-        nameLabel.text      = vcName
-        nameLabel.font      = .monospacedSystemFont(ofSize: 11, weight: .bold)
+        nameLabel.text = vcName
+        nameLabel.font = .monospacedSystemFont(ofSize: 11, weight: .bold)
         nameLabel.textColor = .white
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        // "DEBUG" badge
         let badgeLbl = UILabel()
-        badgeLbl.text      = "DEBUG"
-        badgeLbl.font      = .monospacedSystemFont(ofSize: 8, weight: .semibold)
+        badgeLbl.text = "DEBUG"
+        badgeLbl.font = .monospacedSystemFont(ofSize: 8, weight: .semibold)
         badgeLbl.textColor = UIColor(red: 0.80, green: 0.55, blue: 1.0, alpha: 1)
         badgeLbl.translatesAutoresizingMaskIntoConstraints = false
 
         let badge = UIView()
-        badge.backgroundColor    = UIColor(red: 0.72, green: 0.45, blue: 1.0, alpha: 0.22)
+        badge.backgroundColor = UIColor(red: 0.72, green: 0.45, blue: 1.0, alpha: 0.22)
         badge.layer.cornerRadius = 4
         badge.translatesAutoresizingMaskIntoConstraints = false
         badge.addSubview(badgeLbl)
@@ -296,8 +263,8 @@ private final class DebugOverlayViewController: UIViewController {
         ])
 
         let row = UIStackView(arrangedSubviews: [dot, nameLabel, badge])
-        row.axis      = .horizontal
-        row.spacing   = 7
+        row.axis = .horizontal
+        row.spacing = 7
         row.alignment = .center
         row.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(row)
@@ -312,8 +279,6 @@ private final class DebugOverlayViewController: UIViewController {
         return outer
     }
 
-    // ── Filter bar ───────────────────────────────────────────────────────
-
     private func makeFilterBar() -> UIView {
         let scroll = UIScrollView()
         scroll.showsHorizontalScrollIndicator = false
@@ -322,7 +287,7 @@ private final class DebugOverlayViewController: UIViewController {
         view.addSubview(scroll)
 
         let stack = UIStackView()
-        stack.axis    = .horizontal
+        stack.axis = .horizontal
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
         scroll.addSubview(stack)
@@ -346,16 +311,14 @@ private final class DebugOverlayViewController: UIViewController {
         return scroll
     }
 
-    // ── Bottom controls ──────────────────────────────────────────────────
-
     private func makeExitButton() -> UIButton {
         let btn = UIButton(type: .system)
         btn.setTitle("✕  Exit Debug", for: .normal)
-        btn.titleLabel?.font   = .monospacedSystemFont(ofSize: 12, weight: .bold)
+        btn.titleLabel?.font = .monospacedSystemFont(ofSize: 12, weight: .bold)
         btn.setTitleColor(.white, for: .normal)
-        btn.backgroundColor    = UIColor.systemRed.withAlphaComponent(0.85)
+        btn.backgroundColor = UIColor.systemRed.withAlphaComponent(0.85)
         btn.layer.cornerRadius = 19
-        btn.layer.shadowColor  = UIColor.black.cgColor
+        btn.layer.shadowColor = UIColor.black.cgColor
         btn.layer.shadowOpacity = 0.28
         btn.layer.shadowRadius = 6
         btn.layer.shadowOffset = CGSize(width: 0, height: 3)
@@ -367,8 +330,8 @@ private final class DebugOverlayViewController: UIViewController {
 
     private func makeHintLabel() -> UILabel {
         let l = UILabel()
-        l.text      = "shake again to exit"
-        l.font      = .monospacedSystemFont(ofSize: 9, weight: .regular)
+        l.text = "shake again to exit"
+        l.font = .monospacedSystemFont(ofSize: 9, weight: .regular)
         l.textColor = UIColor.white.withAlphaComponent(0.40)
         l.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(l)
@@ -392,7 +355,6 @@ private final class DebugOverlayViewController: UIViewController {
             }
         }
 
-        // Sync chip appearance
         filterChipStack?.arrangedSubviews
             .compactMap { $0 as? FilterChipButton }
             .forEach { $0.isOn = activeFilterIDs.contains($0.filter.id) }
@@ -406,7 +368,7 @@ private final class DebugOverlayViewController: UIViewController {
         canvas.populate(matching: active)
     }
 
-    // MARK: - Actions / responder
+    // MARK: - Actions
 
     @objc private func exitTapped() { DebugOverlayManager.shared.hide() }
 
@@ -424,19 +386,19 @@ private final class FilterChipButton: UIButton {
     let filter: DebugFilter
     var isOn: Bool = false { didSet { updateAppearance() } }
 
-    private static let onBg    = UIColor.white.withAlphaComponent(0.92)
-    private static let offBg   = UIColor.white.withAlphaComponent(0.12)
-    private static let onText  = UIColor(red: 0.30, green: 0.10, blue: 0.70, alpha: 1)
+    private static let onBg = UIColor.white.withAlphaComponent(0.92)
+    private static let offBg = UIColor.white.withAlphaComponent(0.12)
+    private static let onText = UIColor(red: 0.30, green: 0.10, blue: 0.70, alpha: 1)
     private static let offText = UIColor.white
 
     init(filter: DebugFilter) {
         self.filter = filter
         super.init(frame: .zero)
         setTitle(filter.label, for: .normal)
-        titleLabel?.font   = .monospacedSystemFont(ofSize: 11, weight: .semibold)
+        titleLabel?.font = .monospacedSystemFont(ofSize: 11, weight: .semibold)
         layer.cornerRadius = 12
-        layer.borderWidth  = 1
-        contentEdgeInsets  = UIEdgeInsets(top: 5, left: 12, bottom: 5, right: 12)
+        layer.borderWidth = 1
+        contentEdgeInsets = UIEdgeInsets(top: 5, left: 12, bottom: 5, right: 12)
         updateAppearance()
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -466,14 +428,13 @@ private final class DebugCanvasView: UIView {
 
     init(sourceWindow: UIWindow, overlayView: UIView, nameMap: [ObjectIdentifier: String]) {
         self.sourceWindow = sourceWindow
-        self.overlayView  = overlayView
-        self.nameMap      = nameMap
+        self.overlayView = overlayView
+        self.nameMap = nameMap
         super.init(frame: .zero)
         backgroundColor = .clear
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    /// Clear and redraw using the given active filters.
     func populate(matching filters: [DebugFilter]) {
         subviews.forEach { $0.removeFromSuperview() }
         var depth = 0
@@ -498,22 +459,20 @@ private final class DebugCanvasView: UIView {
         if filters.contains(where: { $0.match(v) }) {
             let color = palette[depth % palette.count]
 
-            // Colored border overlay
             let box = UIView(frame: frame)
-            box.backgroundColor   = color.withAlphaComponent(0.05)
+            box.backgroundColor = color.withAlphaComponent(0.05)
             box.layer.borderColor = color.withAlphaComponent(0.60).cgColor
             box.layer.borderWidth = 1
             box.isUserInteractionEnabled = false
             addSubview(box)
 
-            // Name label — "propName · ClassName" or just "ClassName"
             let lbl = DebugLabel()
-            lbl.text            = labelText(for: v)
-            lbl.font            = .monospacedSystemFont(ofSize: 7, weight: .medium)
-            lbl.textColor       = color
+            lbl.text = labelText(for: v)
+            lbl.font = .monospacedSystemFont(ofSize: 7, weight: .medium)
+            lbl.textColor = color
             lbl.backgroundColor = UIColor.black.withAlphaComponent(0.62)
             lbl.layer.cornerRadius = 2
-            lbl.clipsToBounds   = true
+            lbl.clipsToBounds = true
             lbl.isUserInteractionEnabled = false
             lbl.sizeToFit()
             let ox = min(max(frame.minX + 2, 2), bounds.width  - lbl.frame.width  - 2)
@@ -527,16 +486,15 @@ private final class DebugCanvasView: UIView {
         depth -= 1
     }
 
-    /// "propName · ClassName" when we know the property name; plain "ClassName" as fallback.
     private func labelText(for v: UIView) -> String {
         let cls = String(describing: type(of: v))
         if let name = nameMap[ObjectIdentifier(v)] { return "\(name) · \(cls)" }
-        if let aid  = v.accessibilityIdentifier, !aid.isEmpty { return "\(aid) · \(cls)" }
+        if let aid = v.accessibilityIdentifier, !aid.isEmpty { return "\(aid) · \(cls)" }
         return cls
     }
 }
 
-// MARK: - DebugLabel (padded UILabel)
+// MARK: - DebugLabel
 
 private final class DebugLabel: UILabel {
     private let pad = UIEdgeInsets(top: 1, left: 3, bottom: 1, right: 3)
@@ -551,7 +509,6 @@ private final class DebugLabel: UILabel {
 
 #else
 
-// Release build — DayPinWindow is a plain UIWindow with zero overhead.
 typealias DayPinWindow = UIWindow
 
 #endif

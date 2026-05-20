@@ -1,7 +1,6 @@
 import Foundation
 import UserNotifications
 
-/// Manages scheduling and cancelling local reminder notifications for NoteCards.
 final class ReminderManager {
 
     static let shared = ReminderManager()
@@ -27,11 +26,7 @@ final class ReminderManager {
 
     // MARK: - Schedule
 
-    /// Schedules a reminder for the given card at the given date.
-    /// Cancels any existing reminder for this card first.
-    /// Calls completion with the new notification identifier, or nil on failure.
     func schedule(for card: NoteCard, at date: Date, completion: @escaping (String?) -> Void) {
-        // Cancel existing notification if any
         cancel(for: card)
 
         requestPermission { [weak self] granted in

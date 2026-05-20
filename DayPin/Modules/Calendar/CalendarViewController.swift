@@ -1,11 +1,6 @@
 import UIKit
 
-// MARK: - CalendarViewController
-// Redesigned: single-month view with custom month/year picker + inline notes list.
-
 final class CalendarViewController: UIViewController {
-
-    // MARK: - State
 
     private let cal = Calendar.current
     private var displayedMonth: Date = {
@@ -17,17 +12,13 @@ final class CalendarViewController: UIViewController {
     private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
     private var notesForSelectedDay: [NoteCard] = []
 
-    // MARK: - UI: Top header (pinned)
-
-    private let titleLabel      = UILabel()
-    private let todayBtn        = UIButton(type: .system)
+    private let titleLabel = UILabel()
+    private let todayBtn = UIButton(type: .system)
     private let monthPickerView = MonthPickerView()
-
-    // MARK: - UI: Collection (calendar grid + notes)
 
     private lazy var collectionView: UICollectionView = {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
-        cv.backgroundColor    = .clear
+        cv.backgroundColor = .clear
         cv.alwaysBounceVertical = true
         cv.showsVerticalScrollIndicator = false
         cv.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 24, right: 0)
@@ -46,9 +37,8 @@ final class CalendarViewController: UIViewController {
         return cv
     }()
 
-    // MARK: - Section identifiers
     private let sectionCalendar = 0
-    private let sectionNotes    = 1
+    private let sectionNotes = 1
 
     // MARK: - Lifecycle
 
@@ -80,31 +70,28 @@ final class CalendarViewController: UIViewController {
     // MARK: - Build UI
 
     private func buildUI() {
-        // Title label
-        titleLabel.font          = .inter(ofSize: 34, weight: .bold)
-        titleLabel.textColor     = .label
-        titleLabel.text          = L10n.calendarTitle
+        titleLabel.font = .inter(ofSize: 34, weight: .bold)
+        titleLabel.textColor = .label
+        titleLabel.text = L10n.calendarTitle
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(titleLabel)
 
-        // "Today" jump button — top-right, aligned with title
         let iconCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         todayBtn.setImage(UIImage(systemName: "arrow.clockwise", withConfiguration: iconCfg), for: .normal)
         todayBtn.setTitle(L10n.calendarTodayBtn, for: .normal)
-        todayBtn.titleLabel?.font     = .inter(ofSize: 13, weight: .semibold)
-        todayBtn.tintColor            = DayPinDesign.accent
+        todayBtn.titleLabel?.font = .inter(ofSize: 13, weight: .semibold)
+        todayBtn.tintColor = DayPinDesign.accent
         todayBtn.setTitleColor(DayPinDesign.accent, for: .normal)
-        todayBtn.backgroundColor      = DayPinDesign.accent.withAlphaComponent(0.1)
-        todayBtn.layer.cornerRadius   = 10
-        todayBtn.layer.borderWidth    = 0.5
-        todayBtn.layer.borderColor    = DayPinDesign.accent.withAlphaComponent(0.3).cgColor
-        todayBtn.layer.masksToBounds  = true
-        todayBtn.contentEdgeInsets    = UIEdgeInsets(top: 6, left: 10, bottom: 6, right: 12)
+        todayBtn.backgroundColor = DayPinDesign.accent.withAlphaComponent(0.1)
+        todayBtn.layer.cornerRadius = 10
+        todayBtn.layer.borderWidth = 0.5
+        todayBtn.layer.borderColor = DayPinDesign.accent.withAlphaComponent(0.3).cgColor
+        todayBtn.layer.masksToBounds = true
+        todayBtn.contentEdgeInsets = UIEdgeInsets(top: 6, left: 10, bottom: 6, right: 12)
         todayBtn.translatesAutoresizingMaskIntoConstraints = false
         todayBtn.addTarget(self, action: #selector(jumpToToday), for: .touchUpInside)
         view.addSubview(todayBtn)
 
-        // Month picker
         monthPickerView.translatesAutoresizingMaskIntoConstraints = false
         monthPickerView.configure(date: displayedMonth)
         monthPickerView.onPrev = { [weak self] in self?.shiftMonth(by: -1) }
@@ -112,14 +99,12 @@ final class CalendarViewController: UIViewController {
         monthPickerView.onPickerTapped = { [weak self] in self?.showMonthYearPicker() }
         view.addSubview(monthPickerView)
 
-        // Collection
         view.addSubview(collectionView)
         collectionView.dataSource = self
-        collectionView.delegate   = self
+        collectionView.delegate = self
 
-        // Swipe gestures for month navigation
-        let swipeLeft  = UISwipeGestureRecognizer(target: self, action: #selector(swipedLeft))
-        swipeLeft.direction  = .left
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(swipedLeft))
+        swipeLeft.direction = .left
         let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(swipedRight))
         swipeRight.direction = .right
         collectionView.addGestureRecognizer(swipeLeft)
@@ -149,7 +134,6 @@ final class CalendarViewController: UIViewController {
         let today = cal.startOfDay(for: Date())
         selectedDate = today
 
-        // Navigate to current month if needed
         var comps = cal.dateComponents([.year, .month], from: today)
         comps.day = 1
         if let monthFirst = cal.date(from: comps), !cal.isDate(monthFirst, equalTo: displayedMonth, toGranularity: .month) {
@@ -160,7 +144,6 @@ final class CalendarViewController: UIViewController {
         reloadNotes()
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
-        // Scroll to top to show calendar
         collectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .top, animated: true)
     }
 
@@ -176,7 +159,6 @@ final class CalendarViewController: UIViewController {
         displayedMonth = next
         monthPickerView.configure(date: displayedMonth)
 
-        // Animate calendar section only
         UIView.transition(with: collectionView, duration: 0.22,
                           options: [.transitionCrossDissolve, .allowUserInteraction]) {
             self.collectionView.reloadSections(IndexSet(integer: self.sectionCalendar))
@@ -191,7 +173,6 @@ final class CalendarViewController: UIViewController {
         let picker = UIDatePicker()
         picker.datePickerMode = .date
         picker.preferredDatePickerStyle = .wheels
-        // Restrict to month/year navigation by responding to value changes
         picker.date = displayedMonth
 
         let alert = UIAlertController(title: L10n.calendarSelectMonth,
@@ -221,10 +202,10 @@ final class CalendarViewController: UIViewController {
         view.backgroundColor = DayPinDesign.background
         titleLabel.text = L10n.calendarTitle
         todayBtn.setTitle(L10n.calendarTodayBtn, for: .normal)
-        todayBtn.tintColor          = DayPinDesign.accent
+        todayBtn.tintColor = DayPinDesign.accent
         todayBtn.setTitleColor(DayPinDesign.accent, for: .normal)
-        todayBtn.backgroundColor    = DayPinDesign.accent.withAlphaComponent(0.1)
-        todayBtn.layer.borderColor  = DayPinDesign.accent.withAlphaComponent(0.3).cgColor
+        todayBtn.backgroundColor = DayPinDesign.accent.withAlphaComponent(0.1)
+        todayBtn.layer.borderColor = DayPinDesign.accent.withAlphaComponent(0.3).cgColor
         monthPickerView.configure(date: displayedMonth)
         collectionView.reloadData()
     }
@@ -250,7 +231,6 @@ final class CalendarViewController: UIViewController {
     }
 
     private func calendarSectionLayout() -> NSCollectionLayoutSection {
-        // 7-column grid
         let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0 / 7.0),
                                               heightDimension: .absolute(50))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
@@ -263,7 +243,6 @@ final class CalendarViewController: UIViewController {
         let section = NSCollectionLayoutSection(group: row)
         section.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 10, bottom: 8, trailing: 10)
 
-        // Weekday labels header
         let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1),
                                                 heightDimension: .absolute(32))
         let header = NSCollectionLayoutBoundarySupplementaryItem(
@@ -277,25 +256,24 @@ final class CalendarViewController: UIViewController {
     private func notesSectionLayout() -> NSCollectionLayoutSection {
         let hasNotes = !notesForSelectedDay.isEmpty
         if hasNotes {
-            let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5),
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5),
                                                    heightDimension: .absolute(160))
-            let item      = NSCollectionLayoutItem(layoutSize: itemSize)
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
             item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
             let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1),
                                                    heightDimension: .absolute(160))
-            let group     = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
-            let section   = NSCollectionLayoutSection(group: group)
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
+            let section = NSCollectionLayoutSection(group: group)
             section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 11, bottom: 16, trailing: 11)
             section.interGroupSpacing = 10
             section.boundarySupplementaryItems = [notesSectionHeader()]
             return section
         } else {
-            // Empty state cell
-            let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1),
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1),
                                                    heightDimension: .absolute(80))
-            let item      = NSCollectionLayoutItem(layoutSize: itemSize)
-            let group     = NSCollectionLayoutGroup.vertical(layoutSize: itemSize, subitems: [item])
-            let section   = NSCollectionLayoutSection(group: group)
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
+            let group = NSCollectionLayoutGroup.vertical(layoutSize: itemSize, subitems: [item])
+            let section = NSCollectionLayoutSection(group: group)
             section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
             section.boundarySupplementaryItems = [notesSectionHeader()]
             return section
@@ -311,12 +289,10 @@ final class CalendarViewController: UIViewController {
             alignment: .top)
     }
 
-    // MARK: - Calendar cells builder
-
     private func calendarCells() -> [CalendarCellData] {
         guard let range = cal.range(of: .day, in: .month, for: displayedMonth) else { return [] }
         let weekday = cal.component(.weekday, from: displayedMonth)
-        let offset  = (weekday - 2 + 7) % 7  // Monday = 0
+        let offset = (weekday - 2 + 7) % 7
 
         var result: [CalendarCellData] = Array(repeating: CalendarCellData(date: nil), count: offset)
         for day in 1...range.count {
@@ -349,9 +325,9 @@ extension CalendarViewController: UICollectionViewDataSource {
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CalendarDayCell.reuseID, for: indexPath) as? CalendarDayCell else {
                 return UICollectionViewCell()
             }
-            let data  = cells[indexPath.item]
+            let data = cells[indexPath.item]
             let hasCards = data.date.map { !CardStore.shared.cards(for: $0).isEmpty } ?? false
-            let isSel    = data.date.map { cal.isDate($0, inSameDayAs: selectedDate) } ?? false
+            let isSel = data.date.map { cal.isDate($0, inSameDayAs: selectedDate) } ?? false
             cell.configure(with: data, hasCards: hasCards, isSelected: isSel)
             return cell
         } else {
@@ -433,9 +409,9 @@ final class MonthPickerView: UIView {
     var onNext: (() -> Void)?
     var onPickerTapped: (() -> Void)?
 
-    private let prevBtn   = UIButton(type: .system)
-    private let nextBtn   = UIButton(type: .system)
-    private let monthBtn  = UIButton(type: .system)   // tappable label
+    private let prevBtn = UIButton(type: .system)
+    private let nextBtn = UIButton(type: .system)
+    private let monthBtn = UIButton(type: .system)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -447,11 +423,11 @@ final class MonthPickerView: UIView {
         let arrowCfg = UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
 
         for btn in [prevBtn, nextBtn] {
-            btn.backgroundColor    = UIColor.secondarySystemFill
+            btn.backgroundColor = UIColor.secondarySystemFill
             btn.layer.cornerRadius = 8
-            btn.layer.borderWidth  = 0.5
-            btn.layer.borderColor  = UIColor.separator.cgColor
-            btn.tintColor          = .secondaryLabel
+            btn.layer.borderWidth = 0.5
+            btn.layer.borderColor = UIColor.separator.cgColor
+            btn.tintColor = .secondaryLabel
             btn.translatesAutoresizingMaskIntoConstraints = false
         }
         prevBtn.setImage(UIImage(systemName: "chevron.left",  withConfiguration: arrowCfg), for: .normal)
@@ -459,16 +435,15 @@ final class MonthPickerView: UIView {
         prevBtn.addTarget(self, action: #selector(prevTapped), for: .touchUpInside)
         nextBtn.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
 
-        // Tappable month/year label
         var cfg = UIButton.Configuration.plain()
         cfg.imagePlacement = .trailing
-        cfg.imagePadding   = 4
+        cfg.imagePadding = 4
         let chevron = UIImage(systemName: "chevron.down",
                               withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .semibold))
-        monthBtn.configuration        = cfg
+        monthBtn.configuration = cfg
         monthBtn.setImage(chevron, for: .normal)
-        monthBtn.tintColor            = .secondaryLabel
-        monthBtn.titleLabel?.font     = .inter(ofSize: 15, weight: .semibold)
+        monthBtn.tintColor = .secondaryLabel
+        monthBtn.titleLabel?.font = .inter(ofSize: 15, weight: .semibold)
         monthBtn.setTitleColor(.label, for: .normal)
         monthBtn.addTarget(self, action: #selector(pickerTapped), for: .touchUpInside)
         monthBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -518,7 +493,7 @@ final class WeekdayHeaderView: UICollectionReusableView {
         super.init(frame: frame)
         backgroundColor = .clear
 
-        stack.axis         = .horizontal
+        stack.axis = .horizontal
         stack.distribution = .fillEqually
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
@@ -531,8 +506,8 @@ final class WeekdayHeaderView: UICollectionReusableView {
         for i in 0..<7 {
             let lbl = UILabel()
             lbl.textAlignment = .center
-            lbl.font          = .inter(ofSize: 11, weight: .semibold)
-            lbl.textColor     = (i >= 5) ? UIColor.systemRed.withAlphaComponent(0.7) : .secondaryLabel
+            lbl.font = .inter(ofSize: 11, weight: .semibold)
+            lbl.textColor = (i >= 5) ? UIColor.systemRed.withAlphaComponent(0.7) : .secondaryLabel
             stack.addArrangedSubview(lbl)
         }
     }
@@ -558,7 +533,7 @@ final class NotesSectionHeader: UICollectionReusableView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        label.font      = .inter(ofSize: 11, weight: .semibold)
+        label.font = .inter(ofSize: 11, weight: .semibold)
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
 
@@ -583,7 +558,7 @@ final class NotesSectionHeader: UICollectionReusableView {
     func configure(date: Date) {
         let cal = Calendar.current
         let day = cal.component(.day, from: date)
-        let df  = DateFormatter()
+        let df = DateFormatter()
         df.dateFormat = "MMMM"
         df.locale = L10n.activeLocale
         let month = df.string(from: date).uppercased()
@@ -598,8 +573,8 @@ final class CalendarDayCell: UICollectionViewCell {
     static let reuseID = "CalendarDayCell"
 
     private let selectionRect = UIView()
-    private let dayLabel      = UILabel()
-    private let dotView       = UIView()
+    private let dayLabel = UILabel()
+    private let dotView = UIView()
     private var cellDate: Date?
 
     override init(frame: CGRect) {
@@ -609,18 +584,18 @@ final class CalendarDayCell: UICollectionViewCell {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        selectionRect.layer.cornerRadius       = 10
+        selectionRect.layer.cornerRadius = 10
         selectionRect.isUserInteractionEnabled = false
         selectionRect.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(selectionRect)
 
         dayLabel.textAlignment = .center
-        dayLabel.font          = .inter(ofSize: 15, weight: .regular)
+        dayLabel.font = .inter(ofSize: 15, weight: .regular)
         dayLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(dayLabel)
 
         dotView.layer.cornerRadius = 2.5
-        dotView.isHidden           = true
+        dotView.isHidden = true
         dotView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(dotView)
 
@@ -649,30 +624,30 @@ final class CalendarDayCell: UICollectionViewCell {
             return
         }
         cellDate = date
-        let day       = Calendar.current.component(.day, from: date)
-        let isToday   = Calendar.current.isDateInToday(date)
+        let day = Calendar.current.component(.day, from: date)
+        let isToday = Calendar.current.isDateInToday(date)
         let isWeekend = Calendar.current.isDateInWeekend(date)
 
         dayLabel.text = "\(day)"
 
         if isSelected {
-            selectionRect.backgroundColor   = DayPinDesign.accent
+            selectionRect.backgroundColor = DayPinDesign.accent
             selectionRect.layer.borderWidth = 0
-            dayLabel.font       = .inter(ofSize: 15, weight: .bold)
-            dayLabel.textColor  = UIColor(dynamicProvider: { _ in UIColor.white })
+            dayLabel.font = .inter(ofSize: 15, weight: .bold)
+            dayLabel.textColor = UIColor(dynamicProvider: { _ in UIColor.white })
             dotView.backgroundColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.8)
         } else if isToday {
-            selectionRect.backgroundColor   = .clear
+            selectionRect.backgroundColor = .clear
             selectionRect.layer.borderWidth = 1.5
             selectionRect.layer.borderColor = DayPinDesign.accent.withAlphaComponent(0.6).cgColor
-            dayLabel.font       = .inter(ofSize: 15, weight: .bold)
-            dayLabel.textColor  = DayPinDesign.accent
+            dayLabel.font = .inter(ofSize: 15, weight: .bold)
+            dayLabel.textColor = DayPinDesign.accent
             dotView.backgroundColor = DayPinDesign.accent
         } else {
-            selectionRect.backgroundColor   = .clear
+            selectionRect.backgroundColor = .clear
             selectionRect.layer.borderWidth = 0
-            dayLabel.font       = .inter(ofSize: 15, weight: .regular)
-            dayLabel.textColor  = isWeekend ? UIColor.systemRed.withAlphaComponent(0.65) : .label
+            dayLabel.font = .inter(ofSize: 15, weight: .regular)
+            dayLabel.textColor = isWeekend ? UIColor.systemRed.withAlphaComponent(0.65) : .label
             dotView.backgroundColor = DayPinDesign.accent
         }
         dotView.isHidden = !hasCards
@@ -702,9 +677,9 @@ final class EmptyNotesCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
         let label = UILabel()
-        label.font          = .inter(ofSize: 14, weight: .regular)
-        label.textColor     = .tertiaryLabel
-        label.text          = L10n.calendarNoNotes
+        label.font = .inter(ofSize: 14, weight: .regular)
+        label.textColor = .tertiaryLabel
+        label.text = L10n.calendarNoNotes
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(label)
@@ -729,7 +704,7 @@ struct MonthData {
             return
         }
         let weekday = calendar.component(.weekday, from: firstDay)
-        let offset  = (weekday - 2 + 7) % 7
+        let offset = (weekday - 2 + 7) % 7
 
         var result: [CalendarCellData] = Array(repeating: CalendarCellData(date: nil), count: offset)
         for day in 1...range.count {

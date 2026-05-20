@@ -11,19 +11,19 @@ extension UICollectionViewCell {
         guard isSelecting else { return }
 
         let circle = UIView()
-        circle.tag                      = Self.overlayTag
-        circle.layer.cornerRadius       = 11
-        circle.layer.masksToBounds      = true
+        circle.tag = Self.overlayTag
+        circle.layer.cornerRadius = 11
+        circle.layer.masksToBounds = true
         circle.isUserInteractionEnabled = false
         circle.translatesAutoresizingMaskIntoConstraints = false
 
         if isSelected {
-            circle.backgroundColor      = DayPinDesign.accent
-            circle.layer.borderWidth    = 0
+            circle.backgroundColor = DayPinDesign.accent
+            circle.layer.borderWidth = 0
 
-            let cfg   = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
+            let cfg = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
             let check = UIImageView(image: UIImage(systemName: "checkmark", withConfiguration: cfg))
-            check.tintColor   = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
+            check.tintColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
             check.contentMode = .scaleAspectFit
             check.translatesAutoresizingMaskIntoConstraints = false
             circle.addSubview(check)
@@ -34,7 +34,7 @@ extension UICollectionViewCell {
                 check.heightAnchor.constraint(equalToConstant: 11)
             ])
         } else {
-            circle.backgroundColor   = UIColor { trait in UIColor.black.withAlphaComponent(0.30) }
+            circle.backgroundColor = UIColor { trait in UIColor.black.withAlphaComponent(0.30) }
             circle.layer.borderWidth = 1.5
             circle.layer.borderColor = UIColor { trait in UIColor.white.withAlphaComponent(0.8) }.cgColor
         }

@@ -3,18 +3,17 @@ import UIKit
 // MARK: - AppBackground
 
 enum AppBackground: Equatable {
-    case system                              // default: accent-tinted diagonal gradient
-    case solidColor(hex: String)             // flat color
-    case gradient(startHex: String, endHex: String, angle: Float)  // custom gradient
+    case system
+    case solidColor(hex: String)
+    case gradient(startHex: String, endHex: String, angle: Float)
 }
 
 extension AppBackground {
 
-    // MARK: Persistence keys
-    private static let modeKey      = "daypin.bgMode"
-    private static let startHexKey  = "daypin.bgStartHex"
-    private static let endHexKey    = "daypin.bgEndHex"
-    private static let angleKey     = "daypin.bgAngle"
+    private static let modeKey = "daypin.bgMode"
+    private static let startHexKey = "daypin.bgStartHex"
+    private static let endHexKey = "daypin.bgEndHex"
+    private static let angleKey = "daypin.bgAngle"
 
     var modeName: String {
         switch self {
@@ -42,7 +41,7 @@ extension AppBackground {
     }
 
     static func load() -> AppBackground {
-        let ud   = UserDefaults.standard
+        let ud = UserDefaults.standard
         let mode = ud.string(forKey: modeKey) ?? "system"
         switch mode {
         case "solid":

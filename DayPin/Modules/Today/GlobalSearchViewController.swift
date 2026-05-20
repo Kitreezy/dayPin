@@ -1,15 +1,11 @@
 import UIKit
 
-// MARK: - Result Model
-
 struct SearchResult {
     let card: NoteCard
-    let matchedTitle: Bool       // true = title match, false = comment match
-    let snippet: String          // short excerpt to show
+    let matchedTitle: Bool
+    let snippet: String
     let date: Date
 }
-
-// MARK: - GlobalSearchViewController
 
 final class GlobalSearchViewController: UIViewController {
 
@@ -86,7 +82,7 @@ final class GlobalSearchViewController: UIViewController {
     private func setupTable() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.dataSource = self
-        tableView.delegate   = self
+        tableView.delegate = self
         tableView.keyboardDismissMode = .onDrag
         tableView.register(SearchResultCell.self, forCellReuseIdentifier: SearchResultCell.reuseID)
         view.addSubview(tableView)
@@ -160,12 +156,12 @@ private final class SearchResultCell: UITableViewCell {
 
     static let reuseID = "SearchResultCell"
 
-    private let typeIcon    = UIImageView()
-    private let titleLabel  = UILabel()
+    private let typeIcon = UIImageView()
+    private let titleLabel = UILabel()
     private let snippetLabel = UILabel()
-    private let dateLabel   = UILabel()
-    private let pill        = UIView()
-    private let pillLabel   = UILabel()
+    private let dateLabel = UILabel()
+    private let pill = UIView()
+    private let pillLabel = UILabel()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)

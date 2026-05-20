@@ -68,8 +68,6 @@ final class DayCardsViewController: UIViewController {
 
     let date: Date
 
-    // MARK: - Data
-
     private var allCards: [NoteCard] = []
 
     private struct TypeSection {
@@ -116,8 +114,6 @@ final class DayCardsViewController: UIViewController {
     }()
 
 
-    // MARK: - Init
-
     init(date: Date) {
         self.date = date
         super.init(nibName: nil, bundle: nil)
@@ -159,7 +155,7 @@ final class DayCardsViewController: UIViewController {
         nc.addObserver(self, selector: #selector(onAddCamera), name: .dayPinAddCamera, object: nil)
         nc.addObserver(self, selector: #selector(onAddLink),   name: .dayPinAddLink,   object: nil)
         collectionView.dataSource = self
-        collectionView.delegate   = self
+        collectionView.delegate = self
         loadCards()
     }
 
@@ -176,14 +172,14 @@ final class DayCardsViewController: UIViewController {
     }
 
     private func applyFilter() {
-        var text  = allCards.filter { $0.type == .text }
+        var text = allCards.filter { $0.type == .text }
         var image = allCards.filter { $0.type == .image }
-        var link  = allCards.filter { $0.type == .link }
+        var link = allCards.filter { $0.type == .link }
 
         switch activeFilter {
-        case .text:  image = []; link  = []
-        case .image: text  = []; link  = []
-        case .link:  text  = []; image = []
+        case .text:  image = []; link = []
+        case .image: text = []; link = []
+        case .link:  text = []; image = []
         case .all:   break
         }
 
@@ -204,21 +200,21 @@ final class DayCardsViewController: UIViewController {
 
             if self.activeSections.isEmpty {
                 let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(120))
-                let item  = NSCollectionLayoutItem(layoutSize: size)
+                let item = NSCollectionLayoutItem(layoutSize: size)
                 let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
-                let sec   = NSCollectionLayoutSection(group: group)
+                let sec = NSCollectionLayoutSection(group: group)
                 sec.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 24, trailing: 16)
                 return sec
             }
 
-            let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
-            let item      = NSCollectionLayoutItem(layoutSize: itemSize)
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
             item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
             let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(160))
-            let group     = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
 
             let sec = NSCollectionLayoutSection(group: group)
-            sec.contentInsets   = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 16, trailing: 11)
+            sec.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 16, trailing: 11)
             sec.interGroupSpacing = 10
 
             let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(36))

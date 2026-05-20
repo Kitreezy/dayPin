@@ -4,26 +4,22 @@ final class LinkCardCell: UICollectionViewCell {
 
     static let reuseID = "LinkCardCell"
 
-    // MARK: - Glass mode (no thumbnail)
-
-    private let cardView      = GlassCardView(style: .card)
+    private let cardView = GlassCardView(style: .card)
     private let linkIconBadge = UIView()
     private let linkIconImage = UIImageView(image: UIImage(systemName: "link"))
-    private let titleLabel    = UILabel()
-    private let urlLabel      = UILabel()
-    private let commentLabel  = UILabel()
+    private let titleLabel = UILabel()
+    private let urlLabel = UILabel()
+    private let commentLabel = UILabel()
     private let glassTimeLabel = UILabel()
-    private let reminderDot   = UIImageView()
+    private let reminderDot = UIImageView()
 
-    // MARK: - Thumbnail mode (previewImageData present)
-
-    private let thumbnailView  = UIImageView()
-    private let thumbGradient  = CAGradientLayer()
-    private let thumbBadge     = UIView()
+    private let thumbnailView = UIImageView()
+    private let thumbGradient = CAGradientLayer()
+    private let thumbBadge = UIView()
     private let thumbBadgeIcon = UIImageView(image: UIImage(systemName: "link"))
-    private let thumbTitle     = UILabel()
-    private let thumbUrl       = UILabel()
-    private let thumbTime      = UILabel()
+    private let thumbTitle = UILabel()
+    private let thumbUrl = UILabel()
+    private let thumbTime = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -31,8 +27,6 @@ final class LinkCardCell: UICollectionViewCell {
     }
 
     required init?(coder: NSCoder) { fatalError() }
-
-    // MARK: - Setup
 
     private func setup() {
         backgroundColor = .clear
@@ -139,7 +133,6 @@ final class LinkCardCell: UICollectionViewCell {
         thumbGradient.locations = [0.3, 0.7, 1.0]
         contentView.layer.addSublayer(thumbGradient)
 
-        // Badge
         thumbBadge.backgroundColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.18)
         thumbBadge.layer.cornerRadius = 8
         thumbBadge.translatesAutoresizingMaskIntoConstraints = false
@@ -190,7 +183,7 @@ final class LinkCardCell: UICollectionViewCell {
         ])
 
         thumbnailView.isHidden = true
-        bottomStack.isHidden   = true
+        bottomStack.isHidden = true
 
         // Store reference to toggle
         thumbnailContentStack = bottomStack
@@ -202,9 +195,9 @@ final class LinkCardCell: UICollectionViewCell {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        thumbGradient.frame  = contentView.bounds
-        layer.masksToBounds  = thumbnailView.isHidden ? false : true
-        layer.shadowPath     = UIBezierPath(roundedRect: bounds, cornerRadius: 16).cgPath
+        thumbGradient.frame = contentView.bounds
+        layer.masksToBounds = thumbnailView.isHidden ? false : true
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 16).cgPath
     }
 
     // MARK: - Configure
@@ -223,29 +216,29 @@ final class LinkCardCell: UICollectionViewCell {
 
         if hasThumb, let data = card.previewImageData, let image = UIImage(data: data) {
             // Thumbnail mode
-            thumbnailView.image     = image
-            thumbnailView.isHidden  = false
+            thumbnailView.image = image
+            thumbnailView.isHidden = false
             thumbnailContentStack?.isHidden = false
-            cardView.isHidden       = true
+            cardView.isHidden = true
 
             thumbTitle.text = card.previewTitle ?? card.title
-            thumbUrl.text   = card.url.host ?? card.url.absoluteString
-            thumbTime.text  = timeStr
+            thumbUrl.text = card.url.host ?? card.url.absoluteString
+            thumbTime.text = timeStr
         } else {
             // Glass mode
-            thumbnailView.isHidden  = true
+            thumbnailView.isHidden = true
             thumbnailContentStack?.isHidden = true
-            cardView.isHidden       = false
+            cardView.isHidden = false
 
-            titleLabel.text   = card.previewTitle ?? card.title
-            urlLabel.text     = card.url.host ?? card.url.absoluteString
+            titleLabel.text = card.previewTitle ?? card.title
+            urlLabel.text = card.url.host ?? card.url.absoluteString
             urlLabel.textColor = tint
             commentLabel.text = card.comment.isEmpty ? nil : card.comment
             commentLabel.isHidden = card.comment.isEmpty
             glassTimeLabel.text = timeStr
 
-            linkIconImage.tintColor         = tint
-            linkIconBadge.backgroundColor   = tint.withAlphaComponent(0.12)
+            linkIconImage.tintColor = tint
+            linkIconBadge.backgroundColor = tint.withAlphaComponent(0.12)
             cardView.setAccentColor(tint)
         }
 

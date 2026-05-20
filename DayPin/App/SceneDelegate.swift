@@ -25,7 +25,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             object: nil
         )
 
-        // Handle URL if app was cold-launched from a widget tap
         if let url = connectionOptions.urlContexts.first?.url {
             handleURL(url)
         }
@@ -44,22 +43,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         switch url.host {
 
         case "today":
-            // Switch to Today tab (index 0)
             (window?.rootViewController as? MainContainerViewController)?.selectedIndex = 0
 
         case "add":
-            // Switch to Today tab and broadcast intent to show add sheet
             (window?.rootViewController as? MainContainerViewController)?.selectedIndex = 0
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 NotificationCenter.default.post(name: NSNotification.Name("daypin.triggerAdd"), object: nil)
             }
 
         case "open":
-            // Open a specific card: daypin://open?cardID=<UUID>
             guard
                 let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                let cardIDStr  = components.queryItems?.first(where: { $0.name == "cardID" })?.value,
-                let cardID     = UUID(uuidString: cardIDStr)
+                let cardIDStr = components.queryItems?.first(where: { $0.name == "cardID" })?.value,
+                let cardID = UUID(uuidString: cardIDStr)
             else { return }
             openCardByID(cardID)
 
@@ -85,10 +81,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             let navVC = container.selectedViewController as? UINavigationController
         else { return }
 
-        // Switch to Today tab so the back stack is correct
         container.selectedIndex = 0
-
-        // Pop to root so we don't stack duplicate detail VCs
         navVC.popToRootViewController(animated: false)
 
         let detailVC: UIViewController

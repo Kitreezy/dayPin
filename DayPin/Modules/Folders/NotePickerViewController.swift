@@ -1,39 +1,27 @@
 import UIKit
 
-// MARK: - NotePickerViewController
-// Beautiful card-grid picker for adding existing notes to a folder.
-// Presented as a bottom sheet (medium + large detents).
-
 final class NotePickerViewController: UIViewController {
 
     var onAdd: (([NoteCard]) -> Void)?
 
-    // MARK: - Data
-
     private let folderID: UUID
-    private var sections: [DaySection] = []      // grouped by day (normal mode)
-    private var searchResults: [NoteCard] = []   // flat (search mode)
+    private var sections: [DaySection] = []
+    private var searchResults: [NoteCard] = []
     private var selectedIDs = Set<UUID>()
     private var isSearching: Bool { !searchBar.text.map { $0.isEmpty }.unwrapped(default: true) }
-
-    // MARK: - UI
 
     private let searchBar = UISearchBar()
     private lazy var collectionView: UICollectionView = makeCollectionView()
 
-    // Bottom action button container (glass blur)
     private let addBtnOuter = UIView()
-    private let addBtnBlur  = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let addBtnBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
     private let addBtnInner = UIButton(type: .system)
     private var addBtnBottomConstraint: NSLayoutConstraint!
 
-    // Empty state
-    private let emptyView    = UIView()
-    private let emptyIcon    = UIImageView()
-    private let emptyLabel   = UILabel()
+    private let emptyView = UIView()
+    private let emptyIcon = UIImageView()
+    private let emptyLabel = UILabel()
     private let emptySubLabel = UILabel()
-
-    // MARK: - Init
 
     init(folderID: UUID) {
         self.folderID = folderID
@@ -91,11 +79,11 @@ final class NotePickerViewController: UIViewController {
     }
 
     private func setupSearch() {
-        searchBar.placeholder    = L10n.searchPlaceholder
+        searchBar.placeholder = L10n.searchPlaceholder
         searchBar.searchBarStyle = .minimal
-        searchBar.tintColor      = DayPinDesign.accent
+        searchBar.tintColor = DayPinDesign.accent
         searchBar.backgroundImage = UIImage()
-        searchBar.delegate       = self
+        searchBar.delegate = self
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(searchBar)
         NSLayoutConstraint.activate([
@@ -115,26 +103,23 @@ final class NotePickerViewController: UIViewController {
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         collectionView.dataSource = self
-        collectionView.delegate   = self
+        collectionView.delegate = self
     }
 
     private func setupAddButton() {
-        // Shadow wrapper
-        addBtnOuter.layer.cornerRadius  = 16
-        addBtnOuter.layer.shadowColor   = UIColor.black.cgColor
+        addBtnOuter.layer.cornerRadius = 16
+        addBtnOuter.layer.shadowColor = UIColor.black.cgColor
         addBtnOuter.layer.shadowOpacity = 0.14
-        addBtnOuter.layer.shadowRadius  = 14
-        addBtnOuter.layer.shadowOffset  = CGSize(width: 0, height: 4)
+        addBtnOuter.layer.shadowRadius = 14
+        addBtnOuter.layer.shadowOffset = CGSize(width: 0, height: 4)
         addBtnOuter.translatesAutoresizingMaskIntoConstraints = false
 
-        // Blur
         addBtnBlur.layer.cornerRadius = 16
-        addBtnBlur.clipsToBounds      = true
-        addBtnBlur.layer.borderWidth  = 0.5
+        addBtnBlur.clipsToBounds = true
+        addBtnBlur.layer.borderWidth = 0.5
         addBtnBlur.translatesAutoresizingMaskIntoConstraints = false
         addBtnOuter.addSubview(addBtnBlur)
 
-        // Tint overlay
         let tint = UIView()
         tint.backgroundColor = UIColor { t in
             t.userInterfaceStyle == .dark
@@ -144,7 +129,6 @@ final class NotePickerViewController: UIViewController {
         tint.translatesAutoresizingMaskIntoConstraints = false
         addBtnBlur.contentView.addSubview(tint)
 
-        // Button
         addBtnInner.setTitle(L10n.addNotes, for: .normal)
         addBtnInner.titleLabel?.font = .inter(ofSize: 15, weight: .semibold)
         addBtnInner.tintColor = DayPinDesign.accent
@@ -188,27 +172,27 @@ final class NotePickerViewController: UIViewController {
         view.addSubview(emptyView)
 
         let cfg = UIImage.SymbolConfiguration(pointSize: 40, weight: .thin)
-        emptyIcon.image       = UIImage(systemName: "tray", withConfiguration: cfg)
-        emptyIcon.tintColor   = .tertiaryLabel
+        emptyIcon.image = UIImage(systemName: "tray", withConfiguration: cfg)
+        emptyIcon.tintColor = .tertiaryLabel
         emptyIcon.contentMode = .scaleAspectFit
         emptyIcon.translatesAutoresizingMaskIntoConstraints = false
 
-        emptyLabel.text          = L10n.noNotesForPicker
-        emptyLabel.font          = .inter(ofSize: 16, weight: .medium)
-        emptyLabel.textColor     = .secondaryLabel
+        emptyLabel.text = L10n.noNotesForPicker
+        emptyLabel.font = .inter(ofSize: 16, weight: .medium)
+        emptyLabel.textColor = .secondaryLabel
         emptyLabel.textAlignment = .center
         emptyLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        emptySubLabel.text          = L10n.noNotesForPickerHint
-        emptySubLabel.font          = .inter(ofSize: 13)
-        emptySubLabel.textColor     = .tertiaryLabel
+        emptySubLabel.text = L10n.noNotesForPickerHint
+        emptySubLabel.font = .inter(ofSize: 13)
+        emptySubLabel.textColor = .tertiaryLabel
         emptySubLabel.textAlignment = .center
         emptySubLabel.numberOfLines = 2
         emptySubLabel.translatesAutoresizingMaskIntoConstraints = false
 
         let stack = UIStackView(arrangedSubviews: [emptyIcon, emptyLabel, emptySubLabel])
-        stack.axis      = .vertical
-        stack.spacing   = 8
+        stack.axis = .vertical
+        stack.spacing = 8
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         emptyView.addSubview(stack)
@@ -244,7 +228,6 @@ final class NotePickerViewController: UIViewController {
     // MARK: - Data
 
     private func loadNotes() {
-        // All notes not already in this folder, grouped by dayDate
         let available = CardStore.shared.allCards().filter { $0.folderID != folderID }
         sections = makeSections(from: available)
         reloadContent()
@@ -296,7 +279,7 @@ final class NotePickerViewController: UIViewController {
             let isEmpty = searchResults.isEmpty
             emptyView.isHidden = !isEmpty
             emptySubLabel.text = isEmpty ? L10n.searchNoResults : ""
-            emptyLabel.text    = isEmpty ? L10n.searchNoResults : L10n.noNotesForPicker
+            emptyLabel.text = isEmpty ? L10n.searchNoResults : L10n.noNotesForPicker
             collectionView.isHidden = isEmpty
         }
         collectionView.reloadData()
@@ -319,7 +302,6 @@ final class NotePickerViewController: UIViewController {
         let title = n > 0 ? L10n.addNotesCount(n) : L10n.addNotes
         addBtnInner.setTitle(title, for: .normal)
 
-        // Animate button in/out based on selection count
         let shouldShow = n > 0
         let targetConstant: CGFloat = shouldShow ? -16 : 80
         guard addBtnBottomConstraint.constant != targetConstant else { return }
@@ -328,22 +310,19 @@ final class NotePickerViewController: UIViewController {
                        usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3) {
             self.view.layoutIfNeeded()
         }
-        // Adjust collection view inset so cards don't hide under the button
         let bottomInset: CGFloat = shouldShow ? 76 : 8
         UIView.animate(withDuration: 0.25) {
             self.collectionView.contentInset.bottom = bottomInset
         }
     }
 
-    // MARK: - Collection view factory
-
     private func makeCollectionView() -> UICollectionView {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
-        cv.backgroundColor           = .clear
-        cv.alwaysBounceVertical      = true
-        cv.keyboardDismissMode       = .onDrag
+        cv.backgroundColor = .clear
+        cv.alwaysBounceVertical = true
+        cv.keyboardDismissMode = .onDrag
         cv.showsVerticalScrollIndicator = false
-        cv.contentInset              = UIEdgeInsets(top: 0, left: 0, bottom: 8, right: 0)
+        cv.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 8, right: 0)
         cv.register(TextCardCell.self,  forCellWithReuseIdentifier: TextCardCell.reuseID)
         cv.register(ImageCardCell.self, forCellWithReuseIdentifier: ImageCardCell.reuseID)
         cv.register(LinkCardCell.self,  forCellWithReuseIdentifier: LinkCardCell.reuseID)
@@ -357,7 +336,7 @@ final class NotePickerViewController: UIViewController {
         UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
             guard let self else { return nil }
 
-            let itemSize  = NSCollectionLayoutSize(
+            let itemSize = NSCollectionLayoutSize(
                 widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
             item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
@@ -368,7 +347,7 @@ final class NotePickerViewController: UIViewController {
                 layoutSize: groupSize, subitem: item, count: 2)
 
             let section = NSCollectionLayoutSection(group: group)
-            section.contentInsets    = NSDirectionalEdgeInsets(top: 4, leading: 11, bottom: 8, trailing: 11)
+            section.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 11, bottom: 8, trailing: 11)
             section.interGroupSpacing = 10
 
             // Section header (day label) — skip in search mode (flat list with 1 section)
@@ -494,7 +473,7 @@ private final class PickerSectionHeader: UICollectionReusableView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        label.font      = .inter(ofSize: 11, weight: .semibold)
+        label.font = .inter(ofSize: 11, weight: .semibold)
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)

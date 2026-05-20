@@ -1,6 +1,5 @@
 import UIKit
 
-/// Telegram-style frosted glass container
 final class GlassView: UIView {
 
     enum Style {
@@ -31,8 +30,6 @@ final class GlassView: UIView {
             blurView.layer.cornerRadius = cornerRadius
         }
     }
-
-    // MARK: Init
 
     init(style: Style = .thinLight) {
         let blur = UIBlurEffect(style: style.blurStyle)
@@ -72,7 +69,6 @@ final class GlassView: UIView {
 
 // MARK: - GlassCardView
 
-/// Card with shadow + glass effect — used for NoteCard cells
 final class GlassCardView: UIView {
 
     let glass: GlassView
@@ -80,8 +76,8 @@ final class GlassCardView: UIView {
 
     var cornerRadius: CGFloat = 16 {
         didSet {
-            layer.cornerRadius       = cornerRadius
-            glass.cornerRadius       = cornerRadius
+            layer.cornerRadius = cornerRadius
+            glass.cornerRadius = cornerRadius
             glass.layer.cornerRadius = cornerRadius
         }
     }
@@ -101,8 +97,7 @@ final class GlassCardView: UIView {
         DayPinDesign.applyCardShadow(to: layer, for: traitCollection)
     }
 
-    /// Adds a subtle tinted overlay inside the card.
-    /// Each call replaces the previous accent (tag 9001).
+    /// Adds a tinted overlay; tag 9001 ensures only one overlay exists at a time.
     func setAccentColor(_ color: UIColor) {
         glass.contentView.viewWithTag(9001)?.removeFromSuperview()
         let overlay = UIView()

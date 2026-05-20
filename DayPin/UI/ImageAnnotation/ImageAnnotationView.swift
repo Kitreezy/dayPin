@@ -17,7 +17,7 @@ final class ImageAnnotationView: UIView {
     // MARK: Subviews
 
     private let imageView = UIImageView()
-    private let ghostPin  = GhostPinView()
+    private let ghostPin = GhostPinView()
 
     private var pinViews:    [UUID: AnnotationPinView] = [:]
     private var annotations: [ImageAnnotation] = []
@@ -119,7 +119,7 @@ final class ImageAnnotationView: UIView {
         case .ended:
             if let id = draggingAnnotationID, let pin = pinViews[id] {
                 UIView.animate(withDuration: 0.15) { pin.transform = .identity }
-                let clamped    = clampedToImageFrame(CGPoint(x: point.x - dragOffset.x, y: point.y - dragOffset.y))
+                let clamped = clampedToImageFrame(CGPoint(x: point.x - dragOffset.x, y: point.y - dragOffset.y))
                 let normalized = normalizedPoint(from: clamped)
                 if var annotation = annotations.first(where: { $0.id == id }) {
                     annotation.x = normalized.x
@@ -134,7 +134,7 @@ final class ImageAnnotationView: UIView {
             let finalPoint = clampedToImageFrame(point)
             hideGhost()
             guard imageContentFrame.contains(finalPoint) else { return }
-            let normalized  = normalizedPoint(from: finalPoint)
+            let normalized = normalizedPoint(from: finalPoint)
             let windowPoint = convert(finalPoint, to: window)
             presentAnnotationInput(at: normalized, windowPoint: windowPoint, existingAnnotation: nil)
 
@@ -229,8 +229,8 @@ final class ImageAnnotationView: UIView {
                 sourcePinView: pinView,
                 onEdit: { [weak self] newTitle, newText, newColorHex in
                     var updated = annotation
-                    updated.title    = newTitle
-                    updated.text     = newText
+                    updated.title = newTitle
+                    updated.text = newText
                     updated.colorHex = newColorHex
                     self?.updateAnnotation(updated)
                 },
@@ -266,8 +266,8 @@ final class ImageAnnotationView: UIView {
             sourcePinView: pinView,
             onEdit: { [weak self] title, text, colorHex in
                 if var existing = existingAnnotation {
-                    existing.title    = title
-                    existing.text     = text
+                    existing.title = title
+                    existing.text = text
                     existing.colorHex = colorHex
                     self?.updateAnnotation(existing)
                 } else {
@@ -322,10 +322,10 @@ final class ImageAnnotationView: UIView {
 
     private var imageContentFrame: CGRect {
         guard let image = imageView.image, image.size.width > 0, image.size.height > 0 else { return bounds }
-        let viewSize  = bounds.size
+        let viewSize = bounds.size
         let imageSize = image.size
         let scale = min(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
-        let width  = imageSize.width  * scale
+        let width = imageSize.width  * scale
         let height = imageSize.height * scale
         let x = (viewSize.width  - width)  * 0.5
         let y = (viewSize.height - height) * 0.5
@@ -363,17 +363,17 @@ private final class GhostPinView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        layer.cornerRadius  = 18
-        layer.borderWidth   = 2
-        layer.borderColor   = UIColor(dynamicProvider: { _ in UIColor.white }).cgColor
-        backgroundColor     = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.25)
-        layer.shadowColor   = UIColor.black.cgColor
+        layer.cornerRadius = 18
+        layer.borderWidth = 2
+        layer.borderColor = UIColor(dynamicProvider: { _ in UIColor.white }).cgColor
+        backgroundColor = UIColor(dynamicProvider: { _ in UIColor.white }).withAlphaComponent(0.25)
+        layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.35
-        layer.shadowRadius  = 10
-        layer.shadowOffset  = .zero
+        layer.shadowRadius = 10
+        layer.shadowOffset = .zero
 
         let dot = UIView()
-        dot.backgroundColor  = UIColor(dynamicProvider: { _ in UIColor.white })
+        dot.backgroundColor = UIColor(dynamicProvider: { _ in UIColor.white })
         dot.layer.cornerRadius = 4
         dot.translatesAutoresizingMaskIntoConstraints = false
         addSubview(dot)
@@ -424,8 +424,8 @@ final class AnnotationPinView: UIView {
 
     private func setup() {
         layer.shadowOpacity = 0.5
-        layer.shadowRadius  = 4
-        layer.shadowOffset  = .zero
+        layer.shadowRadius = 4
+        layer.shadowOffset = .zero
 
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
         blur.layer.cornerRadius = 9   // 18px pin → 9pt radius = circle
@@ -468,7 +468,7 @@ final class AnnotationPinView: UIView {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleBlur.contentView.addSubview(titleLabel)
 
-        titleLeadingConstraint  = titleBlur.leadingAnchor.constraint(equalTo: trailingAnchor, constant: 4)
+        titleLeadingConstraint = titleBlur.leadingAnchor.constraint(equalTo: trailingAnchor, constant: 4)
         titleTrailingConstraint = titleBlur.trailingAnchor.constraint(equalTo: leadingAnchor, constant: -4)
         titleTrailingConstraint?.isActive = false
 
@@ -496,12 +496,12 @@ final class AnnotationPinView: UIView {
 
     private func updateTitle() {
         let trimmed = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
-        titleLabel.text  = trimmed
+        titleLabel.text = trimmed
         titleBlur.isHidden = trimmed.isEmpty
     }
 
     private func updateTitleSide() {
-        titleLeadingConstraint?.isActive  = !titleOnLeft
+        titleLeadingConstraint?.isActive = !titleOnLeft
         titleTrailingConstraint?.isActive =  titleOnLeft
     }
 

@@ -2,20 +2,14 @@ import UIKit
 
 final class TasksViewController: UIViewController {
 
-    // MARK: - Search state
-
     private var isSearchOpen = false
-    private var searchQuery  = ""
+    private var searchQuery = ""
 
-    // MARK: - Header UI
-
-    private let headerContainer  = UIView()
-    private let titleLabel       = UILabel()
-    private let searchBtn        = UIButton(type: .system)
-    private let searchContainer  = UIView()
-    private let searchBar        = UISearchBar()
-
-    // MARK: - Filter + Collection
+    private let headerContainer = UIView()
+    private let titleLabel = UILabel()
+    private let searchBtn = UIButton(type: .system)
+    private let searchContainer = UIView()
+    private let searchBar = UISearchBar()
 
     private let filterChips = FilterChipsView()
     private var activeFilter: FilterChipsView.Filter = .all
@@ -23,20 +17,20 @@ final class TasksViewController: UIViewController {
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
             guard let self, sectionIndex < self.sections.count else {
-                let size  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(100))
-                let item  = NSCollectionLayoutItem(layoutSize: size)
+                let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(100))
+                let item = NSCollectionLayoutItem(layoutSize: size)
                 let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
                 return NSCollectionLayoutSection(group: group)
             }
 
-            let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
-            let item      = NSCollectionLayoutItem(layoutSize: itemSize)
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
             item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
             let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(160))
-            let group     = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
 
             let section = NSCollectionLayoutSection(group: group)
-            section.contentInsets   = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 16, trailing: 11)
+            section.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 11, bottom: 16, trailing: 11)
             section.interGroupSpacing = 10
 
             let hdrSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(28))
@@ -63,8 +57,6 @@ final class TasksViewController: UIViewController {
                     withReuseIdentifier: TasksSectionHeader.reuseID)
         return cv
     }()
-
-    // MARK: - Data
 
     private var allSections: [(date: Date, cards: [NoteCard])] = []
     private var sections:    [(date: Date, cards: [NoteCard])] = []
@@ -107,16 +99,15 @@ final class TasksViewController: UIViewController {
         }
     }
 
-    // MARK: - UI Setup
+    // MARK: - UI
 
     private func setupUI() {
-        // Header container (title + search button)
         headerContainer.backgroundColor = .clear
         headerContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(headerContainer)
 
-        titleLabel.text      = L10n.tabAll
-        titleLabel.font      = .inter(ofSize: 34, weight: .bold)
+        titleLabel.text = L10n.tabAll
+        titleLabel.font = .inter(ofSize: 34, weight: .bold)
         titleLabel.textColor = .label
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         headerContainer.addSubview(titleLabel)
@@ -124,13 +115,12 @@ final class TasksViewController: UIViewController {
         let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
         searchBtn.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: iconCfg), for: .normal)
         searchBtn.layer.cornerRadius = 10
-        searchBtn.layer.borderWidth  = 1
+        searchBtn.layer.borderWidth = 1
         searchBtn.layer.masksToBounds = true
         searchBtn.translatesAutoresizingMaskIntoConstraints = false
         searchBtn.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
         headerContainer.addSubview(searchBtn)
         refreshButtonColors()
-
         NSLayoutConstraint.activate([
             headerContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 4),
             headerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -146,10 +136,8 @@ final class TasksViewController: UIViewController {
             searchBtn.heightAnchor.constraint(equalToConstant: 34)
         ])
 
-        // Search overlay
         setupSearchOverlay()
 
-        // Filter chips
         filterChips.translatesAutoresizingMaskIntoConstraints = false
         filterChips.onFilterChange = { [weak self] filter in
             self?.activeFilter = filter
@@ -157,10 +145,9 @@ final class TasksViewController: UIViewController {
         }
         view.addSubview(filterChips)
 
-        // Collection
         view.addSubview(collectionView)
         collectionView.dataSource = self
-        collectionView.delegate   = self
+        collectionView.delegate = self
 
         NSLayoutConstraint.activate([
             filterChips.topAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: 2),
@@ -176,23 +163,23 @@ final class TasksViewController: UIViewController {
     }
 
     private func setupSearchOverlay() {
-        searchContainer.backgroundColor      = .clear
-        searchContainer.clipsToBounds        = true
-        searchContainer.alpha                = 0
+        searchContainer.backgroundColor = .clear
+        searchContainer.clipsToBounds = true
+        searchContainer.alpha = 0
         searchContainer.isUserInteractionEnabled = false
         searchContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(searchContainer)
 
-        searchBar.placeholder           = L10n.searchPlaceholder
-        searchBar.searchBarStyle        = .minimal
-        searchBar.tintColor             = DayPinDesign.accent
-        searchBar.backgroundImage       = UIImage()
+        searchBar.placeholder = L10n.searchPlaceholder
+        searchBar.searchBarStyle = .minimal
+        searchBar.tintColor = DayPinDesign.accent
+        searchBar.backgroundImage = UIImage()
         searchBar.setValue(L10n.cancel, forKey: "cancelButtonText")
         searchBar.setShowsCancelButton(true, animated: false)
-        searchBar.searchTextField.font  = .inter(ofSize: 16, weight: .regular)
+        searchBar.searchTextField.font = .inter(ofSize: 16, weight: .regular)
         searchBar.searchTextField.layer.cornerRadius = 12
         searchBar.searchTextField.layer.masksToBounds = true
-        searchBar.delegate              = self
+        searchBar.delegate = self
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         searchContainer.addSubview(searchBar)
 
@@ -210,8 +197,8 @@ final class TasksViewController: UIViewController {
 
     private func refreshButtonColors() {
         let accent = DayPinDesign.accent
-        searchBtn.tintColor         = accent
-        searchBtn.backgroundColor   = accent.withAlphaComponent(0.12)
+        searchBtn.tintColor = accent
+        searchBtn.backgroundColor = accent.withAlphaComponent(0.12)
         searchBtn.layer.borderColor = accent.withAlphaComponent(0.3).cgColor
     }
 
@@ -221,12 +208,12 @@ final class TasksViewController: UIViewController {
         isSearchOpen = true
         searchContainer.isUserInteractionEnabled = true
         searchContainer.transform = CGAffineTransform(translationX: 0, y: -8)
-        searchContainer.alpha     = 0
+        searchContainer.alpha = 0
         UIView.animate(withDuration: 0.28, delay: 0,
                        usingSpringWithDamping: 0.85, initialSpringVelocity: 0.3) {
-            self.headerContainer.alpha     = 0
+            self.headerContainer.alpha = 0
             self.headerContainer.transform = CGAffineTransform(translationX: 0, y: -6)
-            self.searchContainer.alpha     = 1
+            self.searchContainer.alpha = 1
             self.searchContainer.transform = .identity
         }
         searchBar.becomeFirstResponder()
@@ -240,9 +227,9 @@ final class TasksViewController: UIViewController {
         searchContainer.isUserInteractionEnabled = false
         UIView.animate(withDuration: 0.25, delay: 0,
                        usingSpringWithDamping: 0.9, initialSpringVelocity: 0) {
-            self.headerContainer.alpha     = 1
+            self.headerContainer.alpha = 1
             self.headerContainer.transform = .identity
-            self.searchContainer.alpha     = 0
+            self.searchContainer.alpha = 0
             self.searchContainer.transform = CGAffineTransform(translationX: 0, y: -8)
         }
         applyFilters()
@@ -251,7 +238,7 @@ final class TasksViewController: UIViewController {
     // MARK: - Data loading
 
     private func loadAll() {
-        let all     = CardStore.shared.allCards()
+        let all = CardStore.shared.allCards()
         let grouped = Dictionary(grouping: all) { Calendar.current.startOfDay(for: $0.dayDate) }
         allSections = grouped.sorted { $0.key > $1.key }.map { ($0.key, $0.value) }
         applyFilters()
@@ -295,8 +282,6 @@ final class TasksViewController: UIViewController {
         collectionView.reloadData()
     }
 
-    // MARK: - Scheme change
-
     @objc private func onSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
         titleLabel.text = L10n.tabAll
@@ -310,8 +295,6 @@ final class TasksViewController: UIViewController {
             refreshButtonColors()
         }
     }
-
-    // MARK: - Editor helper
 
     private func presentEditor(for card: NoteCard) {
         switch card.type {
@@ -442,7 +425,7 @@ final class TasksSectionHeader: UICollectionReusableView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        label.font      = .inter(ofSize: 11, weight: .semibold)
+        label.font = .inter(ofSize: 11, weight: .semibold)
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)

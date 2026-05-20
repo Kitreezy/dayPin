@@ -1,8 +1,6 @@
 import UIKit
 import PhotosUI
 
-// MARK: - FolderEditorViewController
-
 final class FolderEditorViewController: UIViewController {
 
     var onSave: ((Folder) -> Void)?
@@ -10,22 +8,19 @@ final class FolderEditorViewController: UIViewController {
     private var folder: Folder
     private let isNew: Bool
 
-    // State
     private var selectedHex: String
     private var selectedEmoji: String?
     private var selectedImageData: Data?
 
-    // UI
     private let previewContainer = UIView()
-    private let previewGradient  = GradientPreviewView()
-    private let previewPhoto     = UIImageView()
-    private let previewEmoji     = UILabel()
+    private let previewGradient = GradientPreviewView()
+    private let previewPhoto = UIImageView()
+    private let previewEmoji = UILabel()
     private let previewFolderIcon = UIImageView()
 
     private let nameField = UITextField()
     private var colorDots: [UIButton] = []
 
-    // MARK: - Palette
     private static var palette: [(name: String, hex: String)] {[
         (L10n.colorBlue,   "#007AFF"),
         (L10n.colorRed,    "#FF3B30"),
@@ -37,20 +32,18 @@ final class FolderEditorViewController: UIViewController {
         (L10n.colorPink,   "#FF2D55")
     ]}
 
-    // MARK: - Init
-
     init(folder: Folder?) {
         if let f = folder {
-            self.folder            = f
-            self.isNew             = false
-            self.selectedHex       = f.colorHex
-            self.selectedEmoji     = f.emojiIcon
+            self.folder = f
+            self.isNew = false
+            self.selectedHex = f.colorHex
+            self.selectedEmoji = f.emojiIcon
             self.selectedImageData = f.iconImageData
         } else {
-            self.folder            = Folder(name: "")
-            self.isNew             = true
-            self.selectedHex       = Self.palette[0].hex
-            self.selectedEmoji     = nil
+            self.folder = Folder(name: "")
+            self.isNew = true
+            self.selectedHex = Self.palette[0].hex
+            self.selectedEmoji = nil
             self.selectedImageData = nil
         }
         super.init(nibName: nil, bundle: nil)
@@ -73,6 +66,7 @@ final class FolderEditorViewController: UIViewController {
         updatePreview()
         updateColorDots()
         observeNotifications()
+        addKeyboardDismissGesture()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -91,7 +85,7 @@ final class FolderEditorViewController: UIViewController {
 
     @objc private func onLanguageChanged() {
         title = isNew ? L10n.newFolder : L10n.editFolder
-        navigationItem.leftBarButtonItem?.title  = L10n.cancel
+        navigationItem.leftBarButtonItem?.title = L10n.cancel
         navigationItem.rightBarButtonItem?.title = L10n.save
         nameField.placeholder = L10n.folderNamePlaceholder
     }
@@ -101,10 +95,8 @@ final class FolderEditorViewController: UIViewController {
         navigationItem.rightBarButtonItem?.tintColor = DayPinDesign.accent
     }
 
-    // MARK: - Nav
-
     private func setupNav() {
-        navigationItem.leftBarButtonItem  = UIBarButtonItem(title: L10n.cancel, style: .plain,
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: L10n.cancel, style: .plain,
                                                             target: self, action: #selector(cancel))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: L10n.save, style: .done,
                                                             target: self, action: #selector(save))
@@ -114,14 +106,11 @@ final class FolderEditorViewController: UIViewController {
     // MARK: - Build UI
 
     private func buildUI() {
-
-        // ── Превью иконки ──────────────────────────────────────────────────
         previewGradient.translatesAutoresizingMaskIntoConstraints = false
-        previewGradient.layer.cornerRadius  = 24
+        previewGradient.layer.cornerRadius = 24
         previewGradient.layer.masksToBounds = true
 
-        // Фото поверх градиента
-        previewPhoto.contentMode   = .scaleAspectFill
+        previewPhoto.contentMode = .scaleAspectFill
         previewPhoto.clipsToBounds = true
         previewPhoto.translatesAutoresizingMaskIntoConstraints = false
         previewGradient.addSubview(previewPhoto)
@@ -132,8 +121,7 @@ final class FolderEditorViewController: UIViewController {
             previewPhoto.bottomAnchor.constraint(equalTo: previewGradient.bottomAnchor)
         ])
 
-        // Эмодзи
-        previewEmoji.font          = .inter(ofSize: 52)
+        previewEmoji.font = .inter(ofSize: 52)
         previewEmoji.textAlignment = .center
         previewEmoji.translatesAutoresizingMaskIntoConstraints = false
         previewGradient.addSubview(previewEmoji)
@@ -142,11 +130,10 @@ final class FolderEditorViewController: UIViewController {
             previewEmoji.centerYAnchor.constraint(equalTo: previewGradient.centerYAnchor)
         ])
 
-        // Дефолтная иконка папки
         let cfg = UIImage.SymbolConfiguration(pointSize: 38, weight: .medium)
-        previewFolderIcon.image        = UIImage(systemName: "folder.fill", withConfiguration: cfg)
-        previewFolderIcon.tintColor    = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
-        previewFolderIcon.contentMode  = .scaleAspectFit
+        previewFolderIcon.image = UIImage(systemName: "folder.fill", withConfiguration: cfg)
+        previewFolderIcon.tintColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
+        previewFolderIcon.contentMode = .scaleAspectFit
         previewFolderIcon.translatesAutoresizingMaskIntoConstraints = false
         previewGradient.addSubview(previewFolderIcon)
         NSLayoutConstraint.activate([
@@ -164,14 +151,13 @@ final class FolderEditorViewController: UIViewController {
             previewGradient.heightAnchor.constraint(equalToConstant: 110)
         ])
 
-        // ── Кнопки выбора иконки ───────────────────────────────────────────
         let iconButtonsRow = UIStackView(arrangedSubviews: [
             makeIconButton(title: L10n.emoji,       icon: "face.smiling",           action: #selector(pickEmoji)),
             makeIconButton(title: L10n.filterImage, icon: "photo.on.rectangle",     action: #selector(pickPhoto)),
             makeIconButton(title: L10n.defaultIcon, icon: "arrow.counterclockwise", action: #selector(resetIcon))
         ])
-        iconButtonsRow.axis         = .horizontal
-        iconButtonsRow.spacing      = 10
+        iconButtonsRow.axis = .horizontal
+        iconButtonsRow.spacing = 10
         iconButtonsRow.distribution = .fillEqually
         iconButtonsRow.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(iconButtonsRow)
@@ -183,16 +169,15 @@ final class FolderEditorViewController: UIViewController {
             iconButtonsRow.heightAnchor.constraint(equalToConstant: 36)
         ])
 
-        // ── Поле имени ─────────────────────────────────────────────────────
         let formCard = GlassCardView(style: .card)
         formCard.translatesAutoresizingMaskIntoConstraints = false
 
-        nameField.placeholder   = L10n.folderNamePlaceholder
-        nameField.font          = .inter(ofSize: 16, weight: .semibold)
-        nameField.borderStyle   = .none
+        nameField.placeholder = L10n.folderNamePlaceholder
+        nameField.font = .inter(ofSize: 16, weight: .semibold)
+        nameField.borderStyle = .none
         nameField.returnKeyType = .done
-        nameField.delegate      = self
-        nameField.text          = isNew ? "" : folder.name
+        nameField.delegate = self
+        nameField.text = isNew ? "" : folder.name
         nameField.heightAnchor.constraint(equalToConstant: 44).isActive = true
         formCard.stackView.addArrangedSubview(nameField)
 
@@ -203,25 +188,24 @@ final class FolderEditorViewController: UIViewController {
             formCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
         ])
 
-        // ── Цвет папки ─────────────────────────────────────────────────────
         let colorLabel = UILabel()
-        colorLabel.text      = L10n.folderColorLabel
-        colorLabel.font      = .inter(ofSize: 11, weight: .semibold)
+        colorLabel.text = L10n.folderColorLabel
+        colorLabel.font = .inter(ofSize: 11, weight: .semibold)
         colorLabel.textColor = .secondaryLabel
         colorLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(colorLabel)
 
         let colorStack = UIStackView()
-        colorStack.axis         = .horizontal
-        colorStack.spacing      = 12
-        colorStack.alignment    = .center
+        colorStack.axis = .horizontal
+        colorStack.spacing = 12
+        colorStack.alignment = .center
         colorStack.translatesAutoresizingMaskIntoConstraints = false
 
         for (_, hex) in Self.palette {
             let btn = UIButton(type: .custom)
-            btn.backgroundColor   = UIColor(hex: hex) ?? .systemBlue
+            btn.backgroundColor = UIColor(hex: hex) ?? .systemBlue
             btn.layer.cornerRadius = 12
-            btn.widthAnchor.constraint(equalToConstant: 24).isActive  = true
+            btn.widthAnchor.constraint(equalToConstant: 24).isActive = true
             btn.heightAnchor.constraint(equalToConstant: 24).isActive = true
             let h = hex
             btn.addAction(UIAction { [weak self] _ in
@@ -248,14 +232,14 @@ final class FolderEditorViewController: UIViewController {
         btn.setTitle("  \(title)", for: .normal)
         let cfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .medium)
         btn.setImage(UIImage(systemName: icon, withConfiguration: cfg), for: .normal)
-        btn.titleLabel?.font    = .inter(ofSize: 13, weight: .medium)
-        btn.tintColor           = DayPinDesign.accent
-        btn.backgroundColor     = UIColor { t in
+        btn.titleLabel?.font = .inter(ofSize: 13, weight: .medium)
+        btn.tintColor = DayPinDesign.accent
+        btn.backgroundColor = UIColor { t in
             t.userInterfaceStyle == .dark
                 ? DayPinDesign.accent.withAlphaComponent(0.12)
                 : DayPinDesign.accent.withAlphaComponent(0.08)
         }
-        btn.layer.cornerRadius  = 10
+        btn.layer.cornerRadius = 10
         btn.addTarget(self, action: action, for: .touchUpInside)
         return btn
     }
@@ -266,22 +250,22 @@ final class FolderEditorViewController: UIViewController {
         let base = UIColor(hex: selectedHex) ?? DayPinDesign.accent
         previewGradient.setColors(base: base)
         DayPinDesign.applyCardShadow(to: previewGradient.layer)
-        previewGradient.layer.shadowColor   = base.cgColor
+        previewGradient.layer.shadowColor = base.cgColor
         previewGradient.layer.shadowOpacity = 0.35
 
         if let data = selectedImageData, let img = UIImage(data: data) {
-            previewPhoto.image        = img
-            previewPhoto.isHidden     = false
-            previewEmoji.isHidden     = true
+            previewPhoto.image = img
+            previewPhoto.isHidden = false
+            previewEmoji.isHidden = true
             previewFolderIcon.isHidden = true
         } else if let emoji = selectedEmoji, !emoji.isEmpty {
-            previewEmoji.text          = emoji
-            previewPhoto.isHidden      = true
-            previewEmoji.isHidden      = false
+            previewEmoji.text = emoji
+            previewPhoto.isHidden = true
+            previewEmoji.isHidden = false
             previewFolderIcon.isHidden = true
         } else {
-            previewPhoto.isHidden      = true
-            previewEmoji.isHidden      = true
+            previewPhoto.isHidden = true
+            previewEmoji.isHidden = true
             previewFolderIcon.isHidden = false
         }
     }
@@ -294,12 +278,11 @@ final class FolderEditorViewController: UIViewController {
                 ? UIColor.white.cgColor
                 : UIColor.clear.cgColor
             colorDots[i].layer.borderWidth = selected ? 2.5 : 0
-            // Маленькое кольцо-обёртка вместо transform
-            colorDots[i].layer.shadowColor   = selected
+            colorDots[i].layer.shadowColor = selected
                 ? (UIColor(hex: hex) ?? .clear).cgColor : UIColor.clear.cgColor
             colorDots[i].layer.shadowOpacity = selected ? 0.5 : 0
-            colorDots[i].layer.shadowRadius  = selected ? 4 : 0
-            colorDots[i].layer.shadowOffset  = .zero
+            colorDots[i].layer.shadowRadius = selected ? 4 : 0
+            colorDots[i].layer.shadowOffset = .zero
         }
     }
 
@@ -308,8 +291,8 @@ final class FolderEditorViewController: UIViewController {
     @objc private func pickEmoji() {
         let alert = UIAlertController(title: L10n.chooseEmoji, message: L10n.emojiHint, preferredStyle: .alert)
         alert.addTextField { tf in
-            tf.placeholder  = "😊"
-            tf.font         = .inter(ofSize: 30)
+            tf.placeholder = "😊"
+            tf.font = .inter(ofSize: 30)
             tf.textAlignment = .center
             if #available(iOS 16.0, *) {
                 tf.keyboardType = .default
@@ -319,9 +302,8 @@ final class FolderEditorViewController: UIViewController {
             guard let text = alert?.textFields?.first?.text,
                   let first = text.unicodeScalars.first,
                   first.properties.isEmoji else { return }
-            // Берём первый «полный» эмодзи (может быть многобайтным: 👨‍💻)
             let emoji = String(text.prefix(2)).trimmingCharacters(in: .whitespaces)
-            self?.selectedEmoji     = String(text.unicodeScalars.prefix(2))
+            self?.selectedEmoji = String(text.unicodeScalars.prefix(2))
             self?.selectedImageData = nil
             self?.updatePreview()
         })
@@ -339,7 +321,7 @@ final class FolderEditorViewController: UIViewController {
     }
 
     @objc private func resetIcon() {
-        selectedEmoji     = nil
+        selectedEmoji = nil
         selectedImageData = nil
         updatePreview()
     }
@@ -351,9 +333,9 @@ final class FolderEditorViewController: UIViewController {
     @objc private func save() {
         let name = (nameField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { nameField.shake(); return }
-        folder.name          = name
-        folder.colorHex      = selectedHex
-        folder.emojiIcon     = selectedEmoji
+        folder.name = name
+        folder.colorHex = selectedHex
+        folder.emojiIcon = selectedEmoji
         folder.iconImageData = selectedImageData
         onSave?(folder)
         dismiss(animated: true)
@@ -378,14 +360,14 @@ extension FolderEditorViewController: PHPickerViewControllerDelegate {
             let data = image.jpegData(compressionQuality: 0.7)
             DispatchQueue.main.async {
                 self?.selectedImageData = data
-                self?.selectedEmoji     = nil
+                self?.selectedEmoji = nil
                 self?.updatePreview()
             }
         }
     }
 }
 
-// MARK: - GradientPreviewView (self-managed gradient layer)
+// MARK: - GradientPreviewView
 
 private final class GradientPreviewView: UIView {
 
@@ -394,7 +376,7 @@ private final class GradientPreviewView: UIView {
     init() {
         super.init(frame: .zero)
         gradLayer.startPoint = CGPoint(x: 0, y: 0)
-        gradLayer.endPoint   = CGPoint(x: 1, y: 1)
+        gradLayer.endPoint = CGPoint(x: 1, y: 1)
         layer.insertSublayer(gradLayer, at: 0)
     }
 

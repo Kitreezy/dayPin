@@ -49,9 +49,7 @@ final class LinkWebBottomSheetViewController: UIViewController {
             name: .dayPinColorSchemeChanged, object: nil)
     }
 
-    @objc private func onLanguageChanged() {
-        // title is the URL host — no L10n text on this screen
-    }
+    @objc private func onLanguageChanged() {}
 
     @objc private func onColorSchemeChanged() {
         view.backgroundColor = DayPinDesign.background

@@ -19,13 +19,9 @@ class NoteCard: Identifiable, ObservableObject {
     var createdAt: Date
     var dayDate: Date
     var folderID: UUID?
-    /// Optional per-card color override (hex string). Nil = use type-based theme tint.
     var colorHex: String?
-    /// IDs of tags attached to this card.
     var tagIDs: [UUID] = []
-    /// Scheduled reminder date, if any.
     var reminderDate: Date?
-    /// UNUserNotification identifier used to cancel the scheduled notification.
     var reminderNotificationID: String?
 
     init(id: UUID = UUID(), type: CardType, title: String, comment: String = "", dayDate: Date) {
@@ -70,7 +66,7 @@ final class LinkCard: NoteCard {
 // MARK: - Text Card
 
 final class TextCard: NoteCard {
-    /// RTF-encoded attributed comment. When set, `comment` is kept as plain-text fallback for search.
+    // RTF-encoded body; `comment` is kept in sync as a plain-text fallback for search.
     var rtfData: Data?
 
     init(id: UUID = UUID(), title: String, comment: String = "", dayDate: Date) {
@@ -99,12 +95,10 @@ final class TextCard: NoteCard {
 
 struct ImageAnnotation: Identifiable, Codable {
     let id: UUID
-    /// Normalized coordinates 0...1
-    var x: Double
+    var x: Double  // normalized 0...1
     var y: Double
     var title: String
     var text: String
-    /// Hex color string, e.g. "#007AFF". Default = systemBlue.
     var colorHex: String
 
     init(id: UUID = UUID(), x: Double, y: Double, title: String = "", text: String, colorHex: String = "#007AFF") {
@@ -122,11 +116,11 @@ struct ImageAnnotation: Identifiable, Codable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id       = try c.decode(UUID.self, forKey: .id)
-        x        = try c.decode(Double.self, forKey: .x)
-        y        = try c.decode(Double.self, forKey: .y)
-        title    = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
-        text     = try c.decode(String.self, forKey: .text)
+        id = try c.decode(UUID.self, forKey: .id)
+        x = try c.decode(Double.self, forKey: .x)
+        y = try c.decode(Double.self, forKey: .y)
+        title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        text = try c.decode(String.self, forKey: .text)
         colorHex = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? "#007AFF"
     }
 

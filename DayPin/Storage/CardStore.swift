@@ -1,21 +1,20 @@
 import Foundation
 import WidgetKit
 
-/// In-memory + UserDefaults persistence store for NoteCards.
 final class CardStore {
 
     static let shared = CardStore()
     private init() {
         migrateFromStandardIfNeeded()
         load()
-        purgeExpiredDeleted()   // при старте сносим то, что висит больше 30 дней
+        purgeExpiredDeleted()
     }
 
     private var storage: [NoteCardDTO] = []
     private let key = "daypin.cards"
     private let defaults = AppGroup.defaults
 
-    // MARK: - Публичные запросы (только живые карточки)
+    // MARK: - Queries
 
     func cards(for date: Date) -> [NoteCard] {
         let day = Calendar.current.startOfDay(for: date)
@@ -40,12 +39,12 @@ final class CardStore {
             .compactMap { $0.toModel() }
     }
 
-    // MARK: - Сохранение
+    // MARK: - Save
 
     func save(card: NoteCard) {
         if let idx = storage.firstIndex(where: { $0.id == card.id }) {
             var dto = NoteCardDTO(from: card)
-            dto.deletedAt = nil   // восстанавливаем, если была в корзине
+            dto.deletedAt = nil
             storage[idx] = dto
         } else {
             storage.append(NoteCardDTO(from: card))
@@ -53,7 +52,7 @@ final class CardStore {
         persist()
     }
 
-    // MARK: - Мягкое удаление (в корзину)
+    // MARK: - Delete
 
     func delete(card: NoteCard) {
         ReminderManager.shared.cancel(for: card)
@@ -63,9 +62,9 @@ final class CardStore {
         }
     }
 
-    // MARK: - Корзина
+    // MARK: - Trash
 
-    /// Возвращает карточки в корзине (в пределах 30 дней), сортировка по дате удаления.
+    /// Cards deleted within the last 30 days, sorted by deletion date.
     func recentlyDeleted() -> [NoteCard] {
         let cutoff = Date().addingTimeInterval(-30 * 24 * 3600)
         return storage
@@ -77,12 +76,10 @@ final class CardStore {
             .compactMap { $0.toModel() }
     }
 
-    /// Дата удаления для конкретной карточки.
     func deletedAt(for id: UUID) -> Date? {
         storage.first { $0.id == id }?.deletedAt
     }
 
-    /// Восстановить из корзины.
     func restoreFromTrash(card: NoteCard) {
         if let idx = storage.firstIndex(where: { $0.id == card.id }) {
             storage[idx].deletedAt = nil
@@ -90,19 +87,17 @@ final class CardStore {
         }
     }
 
-    /// Удалить навсегда.
     func permanentlyDelete(card: NoteCard) {
         storage.removeAll { $0.id == card.id }
         persist()
     }
 
-    /// Очистить всю корзину.
     func emptyTrash() {
         storage.removeAll { $0.deletedAt != nil }
         persist()
     }
 
-    // MARK: - Служебные
+    // MARK: - Misc
 
     func removeFolder(_ folderID: UUID) {
         for idx in storage.indices where storage[idx].folderID == folderID {
@@ -132,8 +127,7 @@ final class CardStore {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    /// Writes a lightweight snapshot (no binary blobs) to App Group for the widget.
-    /// Stays well under the 4 MB NSUserDefaults limit even with many cards.
+    /// Lightweight snapshot (no image data) written to App Group for the widget.
     private func persistWidgetSnapshot() {
         let slim = storage.map { WidgetCardSlim(from: $0) }
         guard let data = try? JSONEncoder().encode(slim) else { return }
@@ -149,9 +143,8 @@ final class CardStore {
     // MARK: - One-time migration: UserDefaults.standard → App Group
 
     private func migrateFromStandardIfNeeded() {
-        // v2 — bumped because v1 could set the flag prematurely when
-        // App Group wasn't yet configured (fallback to .standard made it
-        // look like data was already there).
+        // v2 key: v1 could set the flag prematurely when App Group wasn't configured yet,
+        // making .standard data look like it was already migrated.
         let migrationKey = "daypin.migrated_to_appgroup_v2"
         guard !AppGroup.defaults.bool(forKey: migrationKey) else { return }
 
@@ -175,14 +168,12 @@ final class CardStore {
 
         print("[CardStore] Migration v2: standard=\(standardCards.count) cards, appGroup=\(groupCards.count) cards")
 
-        // Restore from standard only if it has more data than the group container
         if standardCards.count > groupCards.count,
            let standardData = UserDefaults.standard.data(forKey: key) {
             AppGroup.defaults.set(standardData, forKey: key)
             print("[CardStore] Migration v2: copied \(standardCards.count) cards from standard → App Group")
         }
 
-        // Write lightweight widget snapshot and ping WidgetKit
         persistWidgetSnapshot()
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -204,7 +195,7 @@ struct NoteCardDTO: Codable {
     var comment: String
     var createdAt: Date
     var dayDate: Date
-    var deletedAt: Date?        // nil = живая, Date = в корзине
+    var deletedAt: Date?
     // TextCard
     var rtfData: Data?
     // ImageCard
@@ -225,30 +216,30 @@ struct NoteCardDTO: Codable {
     var reminderNotificationID: String?
 
     init(from card: NoteCard) {
-        id                      = card.id
-        type                    = card.type
-        title                   = card.title
-        comment                 = card.comment
-        createdAt               = card.createdAt
-        dayDate                 = card.dayDate
-        folderID                = card.folderID
-        colorHex                = card.colorHex
-        tagIDs                  = card.tagIDs
-        reminderDate            = card.reminderDate
-        reminderNotificationID  = card.reminderNotificationID
-        deletedAt               = nil
+        id = card.id
+        type = card.type
+        title = card.title
+        comment = card.comment
+        createdAt = card.createdAt
+        dayDate = card.dayDate
+        folderID = card.folderID
+        colorHex = card.colorHex
+        tagIDs = card.tagIDs
+        reminderDate = card.reminderDate
+        reminderNotificationID = card.reminderNotificationID
+        deletedAt = nil
 
         if let text = card as? TextCard { rtfData = text.rtfData }
-        if let img  = card as? ImageCard {
-            imageData   = img.imageData
+        if let img = card as? ImageCard {
+            imageData = img.imageData
             annotations = img.annotations
         }
         if let link = card as? LinkCard {
-            urlString          = link.url.absoluteString
-            extraURLStrings    = link.extraURLs.map(\.absoluteString)
-            previewTitle       = link.previewTitle
+            urlString = link.url.absoluteString
+            extraURLStrings = link.extraURLs.map(\.absoluteString)
+            previewTitle = link.previewTitle
             previewDescription = link.previewDescription
-            previewImageData   = link.previewImageData
+            previewImageData = link.previewImageData
         }
     }
 
@@ -256,46 +247,45 @@ struct NoteCardDTO: Codable {
         switch type {
         case .text:
             let c = TextCard(id: id, title: title, comment: comment, dayDate: dayDate)
-            c.rtfData                  = rtfData
-            c.createdAt                = createdAt
-            c.folderID                 = folderID
-            c.colorHex                 = colorHex
-            c.tagIDs                   = tagIDs ?? []
-            c.reminderDate             = reminderDate
-            c.reminderNotificationID   = reminderNotificationID
+            c.rtfData = rtfData
+            c.createdAt = createdAt
+            c.folderID = folderID
+            c.colorHex = colorHex
+            c.tagIDs = tagIDs ?? []
+            c.reminderDate = reminderDate
+            c.reminderNotificationID = reminderNotificationID
             return c
         case .image:
             let c = ImageCard(id: id, title: title, comment: comment, dayDate: dayDate,
                               imageData: imageData, annotations: annotations ?? [])
-            c.createdAt                = createdAt
-            c.folderID                 = folderID
-            c.colorHex                 = colorHex
-            c.tagIDs                   = tagIDs ?? []
-            c.reminderDate             = reminderDate
-            c.reminderNotificationID   = reminderNotificationID
+            c.createdAt = createdAt
+            c.folderID = folderID
+            c.colorHex = colorHex
+            c.tagIDs = tagIDs ?? []
+            c.reminderDate = reminderDate
+            c.reminderNotificationID = reminderNotificationID
             return c
         case .link:
             guard let urlStr = urlString, let url = URL(string: urlStr) else { return nil }
             let extra = (extraURLStrings ?? []).compactMap(URL.init(string:))
             let c = LinkCard(id: id, title: title, comment: comment, dayDate: dayDate,
                              url: url, extraURLs: extra)
-            c.previewTitle             = previewTitle
-            c.previewDescription       = previewDescription
-            c.previewImageData         = previewImageData
-            c.createdAt                = createdAt
-            c.folderID                 = folderID
-            c.colorHex                 = colorHex
-            c.tagIDs                   = tagIDs ?? []
-            c.reminderDate             = reminderDate
-            c.reminderNotificationID   = reminderNotificationID
+            c.previewTitle = previewTitle
+            c.previewDescription = previewDescription
+            c.previewImageData = previewImageData
+            c.createdAt = createdAt
+            c.folderID = folderID
+            c.colorHex = colorHex
+            c.tagIDs = tagIDs ?? []
+            c.reminderDate = reminderDate
+            c.reminderNotificationID = reminderNotificationID
             return c
         }
     }
 }
 
 // MARK: - Widget Slim DTO
-// Only text fields — no imageData, rtfData, previewImageData.
-// Stays well under the 4 MB App Group NSUserDefaults limit.
+// Text-only snapshot for the widget — no image blobs, stays under the 4 MB App Group limit.
 
 struct WidgetCardSlim: Codable {
     let id: UUID
@@ -308,13 +298,13 @@ struct WidgetCardSlim: Codable {
     let reminderDate: Date?
 
     init(from dto: NoteCardDTO) {
-        id           = dto.id
-        type         = dto.type.rawValue
-        title        = dto.title
-        comment      = dto.comment
-        createdAt    = dto.createdAt
-        dayDate      = dto.dayDate
-        deletedAt    = dto.deletedAt
+        id = dto.id
+        type = dto.type.rawValue
+        title = dto.title
+        comment = dto.comment
+        createdAt = dto.createdAt
+        dayDate = dto.dayDate
+        deletedAt = dto.deletedAt
         reminderDate = dto.reminderDate
     }
 }

@@ -45,8 +45,8 @@ final class ImageCardEditorViewController: UIViewController {
     private let dayDate: Date
     private let existingCard: ImageCard?
 
-    private let titleField     = UITextField()
-    private let tagsInputView  = TagsInputView()
+    private let titleField = UITextField()
+    private let tagsInputView = TagsInputView()
     private let zoomScrollView = UIScrollView()
     private let annotationView = ImageAnnotationView()
     private var annotations: [ImageAnnotation] = []
@@ -58,8 +58,8 @@ final class ImageCardEditorViewController: UIViewController {
 
     init(imageData: Data?, dayDate: Date, existingCard: ImageCard?) {
         self.currentImageData = imageData ?? existingCard?.imageData
-        self.dayDate          = dayDate
-        self.existingCard     = existingCard
+        self.dayDate = dayDate
+        self.existingCard = existingCard
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -69,7 +69,7 @@ final class ImageCardEditorViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Extend view behind nav bar so photo fills edge-to-edge
+        // Photo extends edge-to-edge behind the nav bar.
         edgesForExtendedLayout = .all
         extendedLayoutIncludesOpaqueBars = true
         view.backgroundColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .black : .black }
@@ -79,6 +79,7 @@ final class ImageCardEditorViewController: UIViewController {
         stripContainer?.isHidden = false
         loadRecentPhotosIfAuthorized()
         observeNotifications()
+        addKeyboardDismissGesture()
     }
 
     deinit {
@@ -88,14 +89,13 @@ final class ImageCardEditorViewController: UIViewController {
     // MARK: - Nav
 
     private func setupNav() {
-        // Transparent nav bar for this screen (image overlay - white always readable on photo)
         let navColor = UIColor { t in t.userInterfaceStyle == .dark ? .white : .white }
         let appearance = UINavigationBarAppearance()
         appearance.configureWithTransparentBackground()
         appearance.titleTextAttributes = [.foregroundColor: navColor]
-        navigationItem.standardAppearance   = appearance
+        navigationItem.standardAppearance = appearance
         navigationItem.scrollEdgeAppearance = appearance
-        navigationItem.compactAppearance    = appearance
+        navigationItem.compactAppearance = appearance
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "xmark"),
@@ -129,12 +129,11 @@ final class ImageCardEditorViewController: UIViewController {
     // MARK: - UI
 
     private func setupUI() {
-        // ── Zoom scroll view — full screen ──────────────────────
         zoomScrollView.translatesAutoresizingMaskIntoConstraints = false
         zoomScrollView.minimumZoomScale = 1
         zoomScrollView.maximumZoomScale = 4
         zoomScrollView.delegate = self
-        zoomScrollView.showsVerticalScrollIndicator   = false
+        zoomScrollView.showsVerticalScrollIndicator = false
         zoomScrollView.showsHorizontalScrollIndicator = false
         zoomScrollView.contentInsetAdjustmentBehavior = .never
         view.addSubview(zoomScrollView)
@@ -162,7 +161,6 @@ final class ImageCardEditorViewController: UIViewController {
             annotationView.heightAnchor.constraint(equalTo: zoomScrollView.frameLayoutGuide.heightAnchor)
         ])
 
-        // ── Title overlay pill — just below nav bar ─────────────
         let titleBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
         titleBlur.layer.cornerRadius = 12
         titleBlur.clipsToBounds = true
@@ -177,8 +175,8 @@ final class ImageCardEditorViewController: UIViewController {
                     : UIColor.white.withAlphaComponent(0.4)
             }]
         )
-        titleField.font        = .inter(ofSize: 15, weight: .medium)
-        titleField.textColor   = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
+        titleField.font = .inter(ofSize: 15, weight: .medium)
+        titleField.textColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         titleField.borderStyle = .none
         titleField.translatesAutoresizingMaskIntoConstraints = false
         titleBlur.contentView.addSubview(titleField)
@@ -210,7 +208,6 @@ final class ImageCardEditorViewController: UIViewController {
             titleField.centerYAnchor.constraint(equalTo: titleBlur.contentView.centerYAnchor)
         ])
 
-        // ── Tags row — floating blur pill above strip ─────────────
         let tagsBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
         tagsBlur.layer.cornerRadius = 12
         tagsBlur.clipsToBounds = true
@@ -226,27 +223,23 @@ final class ImageCardEditorViewController: UIViewController {
             tagsInputView.bottomAnchor.constraint(equalTo: tagsBlur.contentView.bottomAnchor, constant: -4)
         ])
 
-        // ── Combined bottom panel: hint + photo strip ────────────
         let bottomPanel = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
         bottomPanel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(bottomPanel)
         stripContainer = bottomPanel
 
-        // Top separator line
         let sep = UIView()
         sep.backgroundColor = UIColor { trait in UIColor.white.withAlphaComponent(0.10) }
         sep.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(sep)
 
-        // Hint label
         let hintLabel = UILabel()
-        hintLabel.text      = L10n.annotationHint
-        hintLabel.font      = .inter(ofSize: 11, weight: .regular)
+        hintLabel.text = L10n.annotationHint
+        hintLabel.font = .inter(ofSize: 11, weight: .regular)
         hintLabel.textColor = UIColor { trait in UIColor.white.withAlphaComponent(0.50) }
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(hintLabel)
 
-        // "Все фото" button — fixed on the right
         let allPhotosBtn = UIButton(type: .system)
         let allCfg = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
         allPhotosBtn.setImage(UIImage(systemName: "photo.stack", withConfiguration: allCfg), for: .normal)
@@ -255,13 +248,11 @@ final class ImageCardEditorViewController: UIViewController {
         allPhotosBtn.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(allPhotosBtn)
 
-        // Strip divider (vertical, between strip and "Все фото" button)
         let vSep = UIView()
         vSep.backgroundColor = UIColor { trait in UIColor.white.withAlphaComponent(0.10) }
         vSep.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(vSep)
 
-        // Horizontal photo strip
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
         layout.itemSize = CGSize(width: 66, height: 66)
@@ -273,46 +264,39 @@ final class ImageCardEditorViewController: UIViewController {
         collectionView.showsHorizontalScrollIndicator = false
         collectionView.register(PhotoThumbCell.self, forCellWithReuseIdentifier: PhotoThumbCell.reuseID)
         collectionView.dataSource = self
-        collectionView.delegate   = self
+        collectionView.delegate = self
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         bottomPanel.contentView.addSubview(collectionView)
         stripCollection = collectionView
 
         NSLayoutConstraint.activate([
-            // Tags row — just above bottom panel
             tagsBlur.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             tagsBlur.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             tagsBlur.bottomAnchor.constraint(equalTo: bottomPanel.topAnchor, constant: -8),
             tagsBlur.heightAnchor.constraint(equalToConstant: 44),
 
-            // Panel sits just above the home indicator area
             bottomPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomPanel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            // Top separator
             sep.topAnchor.constraint(equalTo: bottomPanel.contentView.topAnchor),
             sep.leadingAnchor.constraint(equalTo: bottomPanel.contentView.leadingAnchor),
             sep.trailingAnchor.constraint(equalTo: bottomPanel.contentView.trailingAnchor),
             sep.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // Hint label — top of panel
             hintLabel.topAnchor.constraint(equalTo: sep.bottomAnchor, constant: 8),
             hintLabel.centerXAnchor.constraint(equalTo: bottomPanel.contentView.centerXAnchor),
 
-            // "Все фото" — fixed right, vertically centered in strip row
             allPhotosBtn.trailingAnchor.constraint(equalTo: bottomPanel.contentView.trailingAnchor),
             allPhotosBtn.widthAnchor.constraint(equalToConstant: 52),
             allPhotosBtn.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 6),
             allPhotosBtn.heightAnchor.constraint(equalToConstant: 66),
 
-            // Vertical divider
             vSep.topAnchor.constraint(equalTo: allPhotosBtn.topAnchor, constant: 8),
             vSep.bottomAnchor.constraint(equalTo: allPhotosBtn.bottomAnchor, constant: -8),
             vSep.trailingAnchor.constraint(equalTo: allPhotosBtn.leadingAnchor),
             vSep.widthAnchor.constraint(equalToConstant: 0.5),
 
-            // Strip collection
             collectionView.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 6),
             collectionView.leadingAnchor.constraint(equalTo: bottomPanel.contentView.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: vSep.leadingAnchor),
@@ -402,7 +386,7 @@ final class ImageCardEditorViewController: UIViewController {
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
         let picker = UIImagePickerController()
         picker.sourceType = .camera
-        picker.delegate   = self
+        picker.delegate = self
         present(picker, animated: true)
     }
 
@@ -412,10 +396,10 @@ final class ImageCardEditorViewController: UIViewController {
         let title = (titleField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let finalTitle = title.isEmpty ? L10n.newPhoto : title
         let saved = existingCard ?? ImageCard(title: finalTitle, dayDate: dayDate)
-        saved.title       = finalTitle
-        saved.imageData   = currentImageData
+        saved.title = finalTitle
+        saved.imageData = currentImageData
         saved.annotations = annotations
-        saved.tagIDs      = tagsInputView.selectedTagIDs
+        saved.tagIDs = tagsInputView.selectedTagIDs
         onSave?(saved)
         dismiss(animated: true)
     }

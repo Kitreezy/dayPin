@@ -37,7 +37,6 @@ final class CardDetailViewController: UIViewController {
     }
 
     @objc private func onLanguageChanged() {
-        // Rebuild nav buttons so menu action titles update through L10n
         setupNav()
     }
 
@@ -67,7 +66,7 @@ final class CardDetailViewController: UIViewController {
             ? DayPinDesign.accent : nil
         bellButton = bell
 
-        let shareAction  = UIAction(title: L10n.share,    image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.share() }
+        let shareAction = UIAction(title: L10n.share,    image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.share() }
         let folderAction = UIAction(title: L10n.inFolder, image: UIImage(systemName: "folder.badge.plus"))  { [weak self] _ in self?.addToFolder() }
         let menu = UIMenu(children: [shareAction, folderAction])
         let moreBtn = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"),

@@ -3,14 +3,14 @@ import UIKit
 // MARK: - Color Scheme ID
 
 enum ColorSchemeID: Int, CaseIterable, Codable {
-    case violet  = 0
-    case ocean   = 1
-    case nature  = 2
+    case violet = 0
+    case ocean = 1
+    case nature = 2
     case healing = 3
-    case retro   = 4
-    case spring  = 5
+    case retro = 4
+    case spring = 5
     case vintage = 6
-    case garden  = 7
+    case garden = 7
 
     var scheme: AppColorScheme {
         switch self {

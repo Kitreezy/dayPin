@@ -18,10 +18,10 @@ final class FilterChipsView: UIView {
     private(set) var selectedFilter: Filter = .all
 
     private let scrollView = UIScrollView()
-    private let stack      = UIStackView()
-    private let indicator  = UIView()
+    private let stack = UIStackView()
+    private let indicator = UIView()
     private var buttons: [Filter: UIButton] = [:]
-    private var counts:  [Filter: Int]      = [:]
+    private var counts:  [Filter: Int] = [:]
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -56,7 +56,7 @@ final class FilterChipsView: UIView {
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        stack.axis    = .horizontal
+        stack.axis = .horizontal
         stack.spacing = 22
         stack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(stack)
@@ -141,9 +141,9 @@ final class FilterChipsView: UIView {
     private func refreshButton(_ filter: Filter) {
         guard let btn = buttons[filter] else { return }
         let isSelected = filter == selectedFilter
-        let count      = counts[filter] ?? 0
+        let count = counts[filter] ?? 0
         let weight: UIFont.Weight = isSelected ? .semibold : .regular
-        let titleColor: UIColor   = isSelected ? .label : .secondaryLabel
+        let titleColor: UIColor = isSelected ? .label : .secondaryLabel
 
         if count > 0 {
             let str = NSMutableAttributedString(

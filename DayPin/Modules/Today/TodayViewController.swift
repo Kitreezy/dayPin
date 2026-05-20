@@ -17,7 +17,7 @@ final class TodayViewController: UIViewController {
     // MARK: - Multi-select state
 
     private var isSelectMode = false
-    private var selectedIDs  = Set<UUID>()
+    private var selectedIDs = Set<UUID>()
 
     // MARK: - Undo state
 
@@ -25,32 +25,31 @@ final class TodayViewController: UIViewController {
     private var undoTimer: Timer?
     private let undoToast = UndoToastView()
 
-    // MARK: - Folder context state
-    // Set from add-notification userInfo when the grid is opened from a folder.
+    // Set from add-notification userInfo when opened from a folder context.
     // Carried through multi-step flows (camera, photo picker) where it can't be passed directly.
     private var pendingAddFolderID: UUID?
 
     // MARK: - Search state
 
-    private var isSearchOpen  = false
-    private var searchQuery   = ""
+    private var isSearchOpen = false
+    private var searchQuery = ""
 
     // MARK: - UI: Header
 
-    private let headerContainer  = UIView()
-    private let titleLabel       = UILabel()
-    private let dateLabel        = UILabel()
-    private let searchBtn        = UIButton(type: .system)
-    private let moreBtn          = UIButton(type: .system)
+    private let headerContainer = UIView()
+    private let titleLabel = UILabel()
+    private let dateLabel = UILabel()
+    private let searchBtn = UIButton(type: .system)
+    private let moreBtn = UIButton(type: .system)
 
-    // Search overlay — slides in over the header when search is active
-    private let searchContainer  = UIView()
-    private let searchBar        = UISearchBar()
+    // Slides in over the header when search is active
+    private let searchContainer = UIView()
+    private let searchBar = UISearchBar()
 
     // MARK: - UI: Content
 
-    private let weekStrip    = WeekCalendarView()
-    private let filterChips  = FilterChipsView()
+    private let weekStrip = WeekCalendarView()
+    private let filterChips = FilterChipsView()
     private let stripSeparator: UIView = {
         let v = UIView()
         v.backgroundColor = UIColor.separator.withAlphaComponent(0.35)
@@ -67,11 +66,11 @@ final class TodayViewController: UIViewController {
                 ? UIColor(white: 0.12, alpha: 0.95)
                 : UIColor(white: 0.98, alpha: 0.95)
         }
-        bar.layer.cornerRadius  = 18
-        bar.layer.shadowColor   = UIColor.black.cgColor
+        bar.layer.cornerRadius = 18
+        bar.layer.shadowColor = UIColor.black.cgColor
         bar.layer.shadowOpacity = 0.15
-        bar.layer.shadowRadius  = 12
-        bar.layer.shadowOffset  = CGSize(width: 0, height: 4)
+        bar.layer.shadowRadius = 12
+        bar.layer.shadowOffset = CGSize(width: 0, height: 4)
         bar.translatesAutoresizingMaskIntoConstraints = false
         bar.isHidden = true
 
@@ -82,7 +81,7 @@ final class TodayViewController: UIViewController {
         copyBtn.tintColor = DayPinDesign.accent
         copyBtn.addTarget(self, action: #selector(copySelectedTapped), for: .touchUpInside)
 
-        selectionCountLabel.font      = .inter(ofSize: 13, weight: .medium)
+        selectionCountLabel.font = .inter(ofSize: 13, weight: .medium)
         selectionCountLabel.textColor = .secondaryLabel
         selectionCountLabel.textAlignment = .center
 
@@ -97,9 +96,9 @@ final class TodayViewController: UIViewController {
         deleteBtn.addTarget(self, action: #selector(deleteSelectedTapped), for: .touchUpInside)
 
         let stack = UIStackView(arrangedSubviews: [copyBtn, selectionCountLabel, folderBtn, deleteBtn])
-        stack.axis         = .horizontal
+        stack.axis = .horizontal
         stack.distribution = .equalSpacing
-        stack.alignment    = .center
+        stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         bar.addSubview(stack)
         NSLayoutConstraint.activate([
@@ -126,8 +125,6 @@ final class TodayViewController: UIViewController {
         cv.register(EmptyCardCell.self, forCellWithReuseIdentifier: EmptyCardCell.reuseID)
         return cv
     }()
-
-    // addButton removed — add actions now come from the global grid in MainContainerViewController
 
     // MARK: - Lifecycle
 
@@ -160,7 +157,6 @@ final class TodayViewController: UIViewController {
             name: .dayPinLanguageChanged,
             object: nil
         )
-        // Typed add-note notifications from the global action grid
         NotificationCenter.default.addObserver(self, selector: #selector(onAddText),   name: .dayPinAddText,   object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onAddPhoto),  name: .dayPinAddPhoto,  object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onAddCamera), name: .dayPinAddCamera, object: nil)
@@ -217,54 +213,48 @@ final class TodayViewController: UIViewController {
 
     private func refreshButtonColors() {
         let accent = DayPinDesign.accent
-        searchBtn.tintColor       = accent
+        searchBtn.tintColor = accent
         searchBtn.backgroundColor = accent.withAlphaComponent(0.12)
         searchBtn.layer.borderColor = accent.withAlphaComponent(0.3).cgColor
 
         // moreBtn uses neutral surface color from the system so it adapts automatically
-        moreBtn.tintColor         = .secondaryLabel
-        moreBtn.backgroundColor   = UIColor.secondarySystemFill
+        moreBtn.tintColor = .secondaryLabel
+        moreBtn.backgroundColor = UIColor.secondarySystemFill
         moreBtn.layer.borderColor = UIColor.separator.cgColor
     }
 
     // MARK: - Setup
 
     private func setupUI() {
-        // Gradient background (shared helper)
         addStandardBackground()
 
-        // Header container
         headerContainer.backgroundColor = .clear
         headerContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(headerContainer)
 
-        // Title — large bold, matches design
         titleLabel.font = .inter(ofSize: 34, weight: .bold)
         titleLabel.textColor = .label
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        // Date subtitle
         dateLabel.font = .inter(ofSize: 13, weight: .regular)
         dateLabel.textColor = .secondaryLabel
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
         updateDateLabels()
 
-        // Search button — accent-tinted glass circle
         let btnSymbolCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
         searchBtn.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: btnSymbolCfg), for: .normal)
         searchBtn.layer.cornerRadius = 17
-        searchBtn.layer.borderWidth  = 0.5
+        searchBtn.layer.borderWidth = 0.5
         searchBtn.translatesAutoresizingMaskIntoConstraints = false
         searchBtn.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
 
-        // More (···) button — neutral glass circle
         moreBtn.setImage(UIImage(systemName: "ellipsis", withConfiguration: btnSymbolCfg), for: .normal)
         moreBtn.layer.cornerRadius = 17
-        moreBtn.layer.borderWidth  = 0.5
+        moreBtn.layer.borderWidth = 0.5
         moreBtn.showsMenuAsPrimaryAction = true
         moreBtn.translatesAutoresizingMaskIntoConstraints = false
 
-        refreshButtonColors()  // sets tint/bg/border from current scheme
+        refreshButtonColors()
         rebuildMoreMenu()
 
         headerContainer.addSubview(titleLabel)
@@ -295,7 +285,6 @@ final class TodayViewController: UIViewController {
 
         setupSearchOverlay()
 
-        // Week strip and filter chips
         weekStrip.translatesAutoresizingMaskIntoConstraints = false
         weekStrip.onDaySelected = { [weak self] date in
             guard let self else { return }
@@ -326,7 +315,6 @@ final class TodayViewController: UIViewController {
             weekStrip.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             weekStrip.heightAnchor.constraint(equalToConstant: 106),
 
-            // Separator between week strip and filter chips
             stripSeparator.topAnchor.constraint(equalTo: weekStrip.bottomAnchor),
             stripSeparator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             stripSeparator.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -348,9 +336,8 @@ final class TodayViewController: UIViewController {
         ])
 
         collectionView.dataSource = self
-        collectionView.delegate   = self
+        collectionView.delegate = self
 
-        // Undo toast - floats above the pill bar (safeArea already includes the 70pt inset)
         undoToast.translatesAutoresizingMaskIntoConstraints = false
         undoToast.alpha = 0
         undoToast.isUserInteractionEnabled = false
@@ -366,25 +353,21 @@ final class TodayViewController: UIViewController {
     // MARK: - Search overlay setup
 
     private func setupSearchOverlay() {
-        // Transparent container — matches headerContainer height exactly so week strip
-        // stays flush. No background: the search field floats directly over the gradient.
-        searchContainer.backgroundColor        = .clear
-        searchContainer.clipsToBounds          = true
-        searchContainer.alpha                  = 0
+        // No background so the field floats directly over the gradient
+        searchContainer.backgroundColor = .clear
+        searchContainer.clipsToBounds = true
+        searchContainer.alpha = 0
         searchContainer.isUserInteractionEnabled = false
         searchContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        searchBar.placeholder    = L10n.searchPlaceholder
+        searchBar.placeholder = L10n.searchPlaceholder
         searchBar.searchBarStyle = .minimal
-        searchBar.tintColor      = DayPinDesign.accent
+        searchBar.tintColor = DayPinDesign.accent
         searchBar.setShowsCancelButton(true, animated: false)
-        searchBar.delegate       = self
-        // Strip the default opaque bar so only the inner rounded text field is visible
+        searchBar.delegate = self
         searchBar.backgroundImage = UIImage()
-        // Localised "Cancel" / "Отмена"
         searchBar.setValue(L10n.cancel, forKey: "cancelButtonText")
-        // Larger text inside the field
-        searchBar.searchTextField.font            = .inter(ofSize: 16, weight: .regular)
+        searchBar.searchTextField.font = .inter(ofSize: 16, weight: .regular)
         searchBar.searchTextField.layer.cornerRadius = 12
         searchBar.searchTextField.layer.masksToBounds = true
         searchBar.translatesAutoresizingMaskIntoConstraints = false
@@ -444,7 +427,6 @@ final class TodayViewController: UIViewController {
         swipeRight.direction = .right
         view.addGestureRecognizer(swipeRight)
 
-        // Tap anywhere on background: close search if open, otherwise dismiss keyboard
         let bgTap = UITapGestureRecognizer(target: self, action: #selector(handleBackgroundTap))
         bgTap.cancelsTouchesInView = false
         view.addGestureRecognizer(bgTap)
@@ -482,7 +464,6 @@ final class TodayViewController: UIViewController {
         guard !isSearchOpen else { return }
         isSearchOpen = true
         searchContainer.isUserInteractionEnabled = true
-        // Start search bar slightly above its final position for a natural drop-in feel
         searchContainer.transform = CGAffineTransform(translationX: 0, y: -8)
         searchContainer.alpha = 0
         UIView.animate(withDuration: 0.28, delay: 0,
@@ -497,7 +478,7 @@ final class TodayViewController: UIViewController {
 
     private func closeSearch() {
         isSearchOpen = false
-        searchQuery  = ""
+        searchQuery = ""
         searchBar.text = nil
         searchBar.resignFirstResponder()
         searchContainer.isUserInteractionEnabled = false
@@ -527,7 +508,7 @@ final class TodayViewController: UIViewController {
         dismissUndoToast()
 
         let outX = CGFloat(direction) * (-view.bounds.width * 0.35)
-        let inX  = CGFloat(direction) * (view.bounds.width * 0.35)
+        let inX = CGFloat(direction) * (view.bounds.width * 0.35)
 
         UIView.animate(withDuration: 0.18, delay: 0, options: .curveEaseIn) {
             self.collectionView.transform = CGAffineTransform(translationX: outX, y: 0)
@@ -550,12 +531,12 @@ final class TodayViewController: UIViewController {
 
     func loadCards() {
         allCards = CardStore.shared.cards(for: currentDate)
-        weekStrip.refreshNoteDots()   // keep note dots in sync
+        weekStrip.refreshNoteDots()
         applyFilters()
     }
 
     private func applyFilters(animated: Bool = false) {
-        // When searching: scan ALL cards across all dates (global search)
+        // Global search across all dates when the search bar is active
         if isSearchOpen && !searchQuery.isEmpty {
             let q = searchQuery.lowercased()
             flatCards = CardStore.shared.allCards().filter {
@@ -574,10 +555,9 @@ final class TodayViewController: UIViewController {
             return
         }
 
-        // Normal per-day filtering
-        let textCards  = allCards.filter { $0.type == .text }
+        let textCards = allCards.filter { $0.type == .text }
         let imageCards = allCards.filter { $0.type == .image }
-        let linkCards  = allCards.filter { $0.type == .link }
+        let linkCards = allCards.filter { $0.type == .link }
 
         filterChips.updateCounts(text: textCards.count, image: imageCards.count, link: linkCards.count)
 
@@ -607,22 +587,22 @@ final class TodayViewController: UIViewController {
             guard let self else { return nil }
 
             if self.flatCards.isEmpty {
-                let size  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(120))
-                let item  = NSCollectionLayoutItem(layoutSize: size)
+                let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(120))
+                let item = NSCollectionLayoutItem(layoutSize: size)
                 let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
-                let sec   = NSCollectionLayoutSection(group: group)
+                let sec = NSCollectionLayoutSection(group: group)
                 sec.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 24, trailing: 16)
                 return sec
             }
 
-            let itemSize  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
-            let item      = NSCollectionLayoutItem(layoutSize: itemSize)
+            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .absolute(160))
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
             item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 5)
             let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(160))
-            let group     = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
+            let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
 
             let sec = NSCollectionLayoutSection(group: group)
-            sec.contentInsets    = NSDirectionalEdgeInsets(top: 4, leading: 11, bottom: 16, trailing: 11)
+            sec.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 11, bottom: 16, trailing: 11)
             sec.interGroupSpacing = 10
             return sec
         }
@@ -632,10 +612,9 @@ final class TodayViewController: UIViewController {
 
     private func enterSelectMode(initialCard: NoteCard? = nil) {
         isSelectMode = true
-        selectedIDs  = []
+        selectedIDs = []
         if let card = initialCard { selectedIDs.insert(card.id) }
 
-        // Hide custom header buttons, show done/cancel in nav area via nav bar
         navigationController?.setNavigationBarHidden(false, animated: false)
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: L10n.cancel, style: .plain, target: self, action: #selector(exitSelectModeTapped)
@@ -655,10 +634,10 @@ final class TodayViewController: UIViewController {
 
     private func exitSelectMode() {
         isSelectMode = false
-        selectedIDs  = []
+        selectedIDs = []
 
         navigationController?.setNavigationBarHidden(true, animated: false)
-        navigationItem.leftBarButtonItem  = nil
+        navigationItem.leftBarButtonItem = nil
         navigationItem.rightBarButtonItems = []
 
         selectionBar.isHidden = true
@@ -763,7 +742,7 @@ final class TodayViewController: UIViewController {
     }
 
     private func openBackgroundPicker() {
-        let vc  = BackgroundPickerViewController()
+        let vc = BackgroundPickerViewController()
         let nav = UINavigationController(rootViewController: vc)
         nav.modalPresentationStyle = .pageSheet
         if let sheet = nav.sheetPresentationController {
@@ -798,14 +777,13 @@ final class TodayViewController: UIViewController {
         present(sheet, animated: true)
     }
 
-    // MARK: - Add action (used by widget deep-link via "daypin.triggerAdd" notification)
+    // MARK: - Add actions
 
     @objc private func addTapped() {
         presentTextEditor(card: nil)
     }
 
-    // Typed add handlers — triggered by the global action grid in MainContainerViewController
-    // userInfo may carry "folderID": UUID when triggered from a folder context.
+    // userInfo may carry "folderID": UUID when triggered from a folder context
     @objc private func onAddText(_ n: Notification)   {
         presentTextEditor(card: nil, folderID: n.folderID)
     }
@@ -899,7 +877,6 @@ final class TodayViewController: UIViewController {
     }
 
     func deleteCard(_ card: NoteCard) {
-        // Commit any pending undo before starting a new delete
         if pendingDeleteCard != nil {
             undoTimer?.invalidate()
             undoTimer = nil
@@ -921,10 +898,8 @@ final class TodayViewController: UIViewController {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         if flatCards.isEmpty {
-            // Going from last card to empty state.
-            // Skip performBatchUpdates to avoid a UICollectionView count mismatch:
-            // numberOfItemsInSection returns 1 (EmptyCardCell) but UIKit would
-            // expect 0 items remaining after the deleteItems animation.
+            // Skip performBatchUpdates: the empty state shows 1 cell (EmptyCardCell),
+            // so deleteItems would cause a count mismatch.
             UIView.transition(with: collectionView, duration: 0.25, options: .transitionCrossDissolve) {
                 self.collectionView.reloadData()
             }
@@ -1145,8 +1120,7 @@ extension TodayViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         guard !flatCards.isEmpty, !(cell is EmptyCardCell) else { return }
-        // Remove any stale gesture from cell reuse before adding a fresh one
-        cell.gestureRecognizers?
+            cell.gestureRecognizers?
             .filter { $0.name == "cardSwipe" }
             .forEach { cell.removeGestureRecognizer($0) }
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handleCardSwipe(_:)))
@@ -1246,26 +1220,22 @@ extension TodayViewController: UIGestureRecognizerDelegate {
               pan.name == "cardSwipe",
               let view = pan.view else { return true }
         let v = pan.velocity(in: view)
-        // Only activate for a clearly left-dominant horizontal pan
         return abs(v.x) > abs(v.y) && v.x < 0
     }
 
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
-    ) -> Bool {
-        // Card swipe must not fire alongside the collection view scroll
-        return false
-    }
+    ) -> Bool { false }
 }
 
-// MARK: - CardTypeSectionHeader (kept for binary compatibility)
+// MARK: - CardTypeSectionHeader
 
 final class CardTypeSectionHeader: UICollectionReusableView {
 
     static let reuseID = "CardTypeSectionHeader"
 
-    private let label    = UILabel()
+    private let label = UILabel()
     private let colorDot = UIView()
 
     override init(frame: CGRect) {

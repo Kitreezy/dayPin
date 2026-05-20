@@ -7,14 +7,14 @@ final class TextCardEditorViewController: UIViewController {
     private let card: TextCard?
     private let dayDate: Date
 
-    private let titleField           = UITextField()
-    private let commentTextView      = UITextView()
-    private let commentPlaceholder   = UILabel()
-    private let formattingBar        = FormattingToolbar()
-    private let tagsInputView        = TagsInputView()
+    private let titleField = UITextField()
+    private let commentTextView = UITextView()
+    private let commentPlaceholder = UILabel()
+    private let formattingBar = FormattingToolbar()
+    private let tagsInputView = TagsInputView()
 
     init(card: TextCard?, dayDate: Date) {
-        self.card    = card
+        self.card = card
         self.dayDate = dayDate
         super.init(nibName: nil, bundle: nil)
     }
@@ -52,10 +52,10 @@ final class TextCardEditorViewController: UIViewController {
 
     @objc private func onLanguageChanged() {
         title = card == nil ? L10n.newNote : L10n.edit
-        navigationItem.leftBarButtonItem?.title  = L10n.cancel
+        navigationItem.leftBarButtonItem?.title = L10n.cancel
         navigationItem.rightBarButtonItem?.title = L10n.save
-        titleField.placeholder       = L10n.titleOptionalPlaceholder
-        commentPlaceholder.text      = L10n.commentPlaceholder
+        titleField.placeholder = L10n.titleOptionalPlaceholder
+        commentPlaceholder.text = L10n.commentPlaceholder
     }
 
     @objc private func onColorSchemeChanged() {
@@ -70,7 +70,7 @@ final class TextCardEditorViewController: UIViewController {
     // MARK: - Nav
 
     private func setupNav() {
-        navigationItem.leftBarButtonItem  = UIBarButtonItem(title: L10n.cancel, style: .plain, target: self, action: #selector(cancel))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: L10n.cancel, style: .plain, target: self, action: #selector(cancel))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: L10n.save,   style: .done,  target: self, action: #selector(save))
     }
 
@@ -158,7 +158,6 @@ final class TextCardEditorViewController: UIViewController {
             commentTextView.resignFirstResponder(); return
         }
 
-        // List actions always operate on the paragraph, not a character range
         switch action {
         case .listBullet:    toggleListPrefix("• ");  formattingBar.updateState(for: commentTextView); return
         case .listNumbered:  toggleListPrefix(nil, numbered: true); formattingBar.updateState(for: commentTextView); return
@@ -189,7 +188,7 @@ final class TextCardEditorViewController: UIViewController {
 
         let sel = commentTextView.selectedRange
         commentTextView.attributedText = mas
-        commentTextView.selectedRange  = sel
+        commentTextView.selectedRange = sel
         if sel.location > 0, let attrText = commentTextView.attributedText {
             let idx = min(sel.location, attrText.length) - 1
             var newAttrs = attrText.attributes(at: max(0, idx), effectiveRange: nil)
@@ -201,8 +200,6 @@ final class TextCardEditorViewController: UIViewController {
         formattingBar.updateState(for: commentTextView)
     }
 
-    /// Toggles a list prefix on the current paragraph.
-    /// Pass `prefix` for bullet/dash, or `numbered: true` for numbered lists.
     private func toggleListPrefix(_ prefix: String?, numbered: Bool = false) {
         guard let text = commentTextView.text else { return }
         let nsText = text as NSString
@@ -210,7 +207,6 @@ final class TextCardEditorViewController: UIViewController {
         let paraRange = nsText.paragraphRange(for: NSRange(location: min(cursorPos, max(0, nsText.length - 1)), length: 0))
         let para = nsText.substring(with: paraRange)
 
-        // Detect existing prefix to toggle off
         let existingPrefix: String?
         if para.hasPrefix("• ") { existingPrefix = "• " }
         else if para.hasPrefix("- ") { existingPrefix = "- " }
@@ -221,12 +217,10 @@ final class TextCardEditorViewController: UIViewController {
         let insertAt = paraRange.location
 
         if let existing = existingPrefix {
-            // Remove existing prefix
             let removeRange = NSRange(location: insertAt, length: existing.count)
             if insertAt + existing.count <= mas.length {
                 mas.deleteCharacters(in: removeRange)
             }
-            // If toggling to a different type, add the new one
             let wantPrefix: String?
             if numbered {
                 wantPrefix = existingPrefix?.first?.isNumber == true ? nil : "1. "
@@ -237,10 +231,8 @@ final class TextCardEditorViewController: UIViewController {
                 mas.insert(NSAttributedString(string: wp, attributes: typingAttrs()), at: insertAt)
             }
         } else {
-            // Add prefix
             let newPrefix: String
             if numbered {
-                // Count existing numbered items above to determine next number
                 newPrefix = "1. "
             } else {
                 newPrefix = prefix ?? "• "
@@ -253,7 +245,6 @@ final class TextCardEditorViewController: UIViewController {
         commentTextView.selectedRange = NSRange(location: min(sel.location, mas.length), length: 0)
     }
 
-    /// Toggles a format on `typingAttributes` (no text selected — applies to future input).
     private func applyToTypingAttributes(_ action: FormattingToolbar.Action) {
         var attrs = commentTextView.typingAttributes
         let font = attrs[.font] as? UIFont ?? .inter(ofSize: 15)
@@ -298,7 +289,7 @@ final class TextCardEditorViewController: UIViewController {
     // MARK: - Keyboard
 
     private func observeKeyboard() {
-        // Using UIKeyboardLayoutGuide so formCard bottom constraint handles it automatically.
+        // formCard bottom constraint uses UIKeyboardLayoutGuide, nothing else needed.
     }
 
     // MARK: - Actions
@@ -307,7 +298,7 @@ final class TextCardEditorViewController: UIViewController {
 
     @objc private func save() {
         var titleText = titleField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let bodyText  = commentTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let bodyText = commentTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         if titleText.isEmpty && bodyText.isEmpty { commentTextView.shake(); return }
 
@@ -320,7 +311,7 @@ final class TextCardEditorViewController: UIViewController {
         }
 
         let saved = card ?? TextCard(title: titleText, dayDate: dayDate)
-        saved.title  = titleText
+        saved.title = titleText
         saved.tagIDs = tagsInputView.selectedTagIDs
 
         let attributed = commentTextView.attributedText ?? NSAttributedString()
@@ -354,24 +345,19 @@ extension TextCardEditorViewController: UITextViewDelegate {
         let paraRange = nsText.paragraphRange(for: NSRange(location: min(cursorPos, max(0, nsText.length - 1)), length: 0))
         let para = nsText.substring(with: paraRange)
 
-        // Detect list prefix
         let prefix: String?
         if para.hasPrefix("• ") {
             let content = para.dropFirst(2).trimmingCharacters(in: .newlines)
-            prefix = content.isEmpty ? nil : "• "    // empty item → end list
+            prefix = content.isEmpty ? nil : "• "
         } else if para.hasPrefix("- ") {
             let content = para.dropFirst(2).trimmingCharacters(in: .newlines)
             prefix = content.isEmpty ? nil : "- "
         } else if let n = formattingBar.numberedListPrefix(in: para) {
             let pfx = "\(n). "
             let content = para.dropFirst(pfx.count).trimmingCharacters(in: .newlines)
-            if content.isEmpty {
-                prefix = nil   // end list
-            } else {
-                prefix = "\(n + 1). "
-            }
+            prefix = content.isEmpty ? nil : "\(n + 1). "
         } else {
-            return true   // no list → normal newline
+            return true
         }
 
         let mas = NSMutableAttributedString(attributedString: textView.attributedText)
@@ -418,7 +404,6 @@ private extension NSAttributedString {
         mas.enumerateAttribute(.font, in: NSRange(location: 0, length: length)) { val, range, _ in
             if val == nil { mas.addAttribute(.font, value: baseFont, range: range) }
         }
-        // Apply foreground for dark mode compatibility
         mas.addAttribute(.foregroundColor, value: UIColor.label, range: NSRange(location: 0, length: length))
         return mas
     }
@@ -496,7 +481,6 @@ final class FormattingToolbar: UIInputView {
 
     var onAction: ((Action) -> Void)?
 
-    // Indices 0-3: bold, italic, underline, strikethrough
     private var formatButtons: [UIButton] = []
     private let fontSizeLabel = UILabel()
     private var headingBtn: UIButton?
@@ -552,7 +536,6 @@ final class FormattingToolbar: UIInputView {
             stack.heightAnchor.constraint(equalTo: scroll.heightAnchor)
         ])
 
-        // Font-size group: [A−] [15] [A+]
         stack.addArrangedSubview(makeToolButton(systemName: "textformat.size.smaller", action: .fontSmaller, isFormat: false))
 
         fontSizeLabel.text = "15"
@@ -565,7 +548,6 @@ final class FormattingToolbar: UIInputView {
         stack.addArrangedSubview(makeToolButton(systemName: "textformat.size.larger", action: .fontLarger, isFormat: false))
         stack.addArrangedSubview(makeSeparator())
 
-        // Inline formatting: B I U S
         let formatSpecs: [(String, Action)] = [
             ("bold",          .bold),
             ("italic",        .italic),
@@ -579,7 +561,6 @@ final class FormattingToolbar: UIInputView {
         }
         stack.addArrangedSubview(makeSeparator())
 
-        // Paragraph: [H] [list▾]
         let hBtn = makeToolButton(systemName: "h.square", action: .heading, isFormat: true)
         headingBtn = hBtn
         stack.addArrangedSubview(hBtn)
@@ -646,7 +627,6 @@ final class FormattingToolbar: UIInputView {
 
         let range = textView.selectedRange
 
-        // Font size label — use cursor/selection start character or typing attrs
         let displayFont: UIFont
         if range.length > 0, let attrText = textView.attributedText, attrText.length > 0 {
             let idx = min(range.location, attrText.length - 1)
@@ -657,7 +637,6 @@ final class FormattingToolbar: UIInputView {
         }
         fontSizeLabel.text = "\(Int(displayFont.pointSize))"
 
-        // Inline formatting
         if range.length > 0, let attrText = textView.attributedText {
             func allHaveTrait(_ trait: UIFontDescriptor.SymbolicTraits) -> Bool {
                 var ok = true
@@ -678,11 +657,10 @@ final class FormattingToolbar: UIInputView {
             formatButtons[2].backgroundColor = allHaveInt(.underlineStyle)     ? activeColor : .clear
             formatButtons[3].backgroundColor = allHaveInt(.strikethroughStyle) ? activeColor : .clear
 
-            // Heading active state — check if font size ≥ 20
             headingBtn?.backgroundColor = displayFont.pointSize >= 20 ? activeColor : .clear
         } else {
             let typing = textView.typingAttributes
-            let font   = typing[.font] as? UIFont ?? .inter(ofSize: 15)
+            let font = typing[.font] as? UIFont ?? .inter(ofSize: 15)
             formatButtons[0].backgroundColor = font.fontDescriptor.symbolicTraits.contains(.traitBold)   ? activeColor : .clear
             formatButtons[1].backgroundColor = font.fontDescriptor.symbolicTraits.contains(.traitItalic) ? activeColor : .clear
             formatButtons[2].backgroundColor = (typing[.underlineStyle]     as? Int ?? 0) != 0 ? activeColor : .clear
@@ -690,7 +668,6 @@ final class FormattingToolbar: UIInputView {
             headingBtn?.backgroundColor = font.pointSize >= 20 ? activeColor : .clear
         }
 
-        // List button — detect list prefix of current paragraph
         guard let text = textView.text else { return }
         let nsText = text as NSString
         let cursorPos = range.location
@@ -714,7 +691,6 @@ final class FormattingToolbar: UIInputView {
         }
     }
 
-    // Detects "N. " at the start of a paragraph, returns the number.
     func numberedListPrefix(in paragraph: String) -> Int? {
         let trimmed = paragraph
         var i = trimmed.startIndex

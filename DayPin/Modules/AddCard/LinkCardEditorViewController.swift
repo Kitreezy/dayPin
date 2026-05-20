@@ -14,37 +14,30 @@ final class LinkCardEditorViewController: UIViewController {
     private var clipboardURL: URL?
     private var cardsRevealed = false
 
-    /// Image from LP metadata (async-loaded)
     private var fetchedPreviewImage: UIImage?
-    /// User-chosen custom cover (overrides metadata image)
     private var customCoverImage: UIImage?
 
     // MARK: - UI
 
-    private let scrollView   = UIScrollView()
+    private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
 
-    // URL row
-    private let urlCard          = GlassCardView(style: .card)
-    private let urlField         = UITextField()
+    private let urlCard = GlassCardView(style: .card)
+    private let urlField = UITextField()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
 
-    // Clipboard suggestion
     private let clipboardBtn = UIButton(type: .system)
 
-    // Preview card
-    private let previewCard      = GlassCardView(style: .card)
+    private let previewCard = GlassCardView(style: .card)
     private let spinnerContainer = UIView()
     private var lpView: LPLinkView?
 
-    // Details card
-    private let detailsCard        = GlassCardView(style: .card)
-    private let titleField         = UITextField()
-    private let commentTextView    = UITextView()
+    private let detailsCard = GlassCardView(style: .card)
+    private let titleField = UITextField()
+    private let commentTextView = UITextView()
     private let commentPlaceholder = UILabel()
-    private let tagsInputView      = TagsInputView()
+    private let tagsInputView = TagsInputView()
 
-    // Cover button (shown after metadata fetched)
     private let coverCard = GlassCardView(style: .card)
     private let coverImageView = UIImageView()
     private let coverPlaceholderIcon = UIImageView(image: UIImage(systemName: "photo.badge.plus"))
@@ -53,7 +46,7 @@ final class LinkCardEditorViewController: UIViewController {
     // MARK: - Init
 
     init(card: LinkCard?, dayDate: Date) {
-        self.card    = card
+        self.card = card
         self.dayDate = dayDate
         super.init(nibName: nil, bundle: nil)
     }
@@ -88,12 +81,12 @@ final class LinkCardEditorViewController: UIViewController {
 
     @objc private func onLanguageChanged() {
         title = card == nil ? L10n.newLink : L10n.edit
-        navigationItem.leftBarButtonItem?.title  = L10n.cancel
+        navigationItem.leftBarButtonItem?.title = L10n.cancel
         navigationItem.rightBarButtonItem?.title = L10n.save
-        urlField.placeholder         = L10n.urlPastePlaceholder
-        titleField.placeholder       = L10n.linkNameLabel
-        commentPlaceholder.text      = L10n.commentPlaceholder
-        coverPlaceholderLabel.text   = L10n.addCover
+        urlField.placeholder = L10n.urlPastePlaceholder
+        titleField.placeholder = L10n.linkNameLabel
+        commentPlaceholder.text = L10n.commentPlaceholder
+        coverPlaceholderLabel.text = L10n.addCover
     }
 
     @objc private func onColorSchemeChanged() {
@@ -114,11 +107,11 @@ final class LinkCardEditorViewController: UIViewController {
     // MARK: - Nav
 
     private func setupNav() {
-        navigationItem.leftBarButtonItem  = UIBarButtonItem(title: L10n.cancel, style: .plain,  target: self, action: #selector(cancel))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: L10n.cancel, style: .plain,  target: self, action: #selector(cancel))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: L10n.save,   style: .done,   target: self, action: #selector(save))
     }
 
-    // MARK: - UI Setup
+    // MARK: - UI
 
     private func setupUI() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -126,7 +119,7 @@ final class LinkCardEditorViewController: UIViewController {
         scrollView.alwaysBounceVertical = true
         view.addSubview(scrollView)
 
-        contentStack.axis    = .vertical
+        contentStack.axis = .vertical
         contentStack.spacing = 12
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStack)
@@ -157,29 +150,29 @@ final class LinkCardEditorViewController: UIViewController {
         contentStack.addArrangedSubview(coverCard)
 
         clipboardBtn.isHidden = true
-        previewCard.isHidden  = true
-        previewCard.alpha     = 0
-        detailsCard.isHidden  = true
-        detailsCard.alpha     = 0
-        coverCard.isHidden    = true
-        coverCard.alpha       = 0
+        previewCard.isHidden = true
+        previewCard.alpha = 0
+        detailsCard.isHidden = true
+        detailsCard.alpha = 0
+        coverCard.isHidden = true
+        coverCard.alpha = 0
     }
 
     private func buildURLCard() {
-        let iconCfg  = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
         let linkIcon = UIImageView(image: UIImage(systemName: "link", withConfiguration: iconCfg))
         linkIcon.tintColor = DayPinDesign.accent
         linkIcon.setContentHuggingPriority(.required, for: .horizontal)
 
-        urlField.placeholder            = L10n.urlPastePlaceholder
-        urlField.font                   = .inter(ofSize: 15)
-        urlField.borderStyle            = .none
-        urlField.keyboardType           = .URL
+        urlField.placeholder = L10n.urlPastePlaceholder
+        urlField.font = .inter(ofSize: 15)
+        urlField.borderStyle = .none
+        urlField.keyboardType = .URL
         urlField.autocapitalizationType = .none
-        urlField.autocorrectionType     = .no
-        urlField.returnKeyType          = .go
-        urlField.clearButtonMode        = .whileEditing
-        urlField.delegate               = self
+        urlField.autocorrectionType = .no
+        urlField.returnKeyType = .go
+        urlField.clearButtonMode = .whileEditing
+        urlField.delegate = self
         urlField.addTarget(self, action: #selector(urlFieldChanged), for: .editingChanged)
 
         loadingIndicator.hidesWhenStopped = true
@@ -187,8 +180,8 @@ final class LinkCardEditorViewController: UIViewController {
         loadingIndicator.setContentHuggingPriority(.required, for: .horizontal)
 
         let row = UIStackView(arrangedSubviews: [linkIcon, urlField, loadingIndicator])
-        row.axis      = .horizontal
-        row.spacing   = 10
+        row.axis = .horizontal
+        row.spacing = 10
         row.alignment = .center
         row.heightAnchor.constraint(equalToConstant: 48).isActive = true
         urlCard.stackView.addArrangedSubview(row)
@@ -218,7 +211,7 @@ final class LinkCardEditorViewController: UIViewController {
 
     private func buildDetailsCard() {
         titleField.placeholder = L10n.linkNameLabel
-        titleField.font        = .inter(ofSize: 15)
+        titleField.font = .inter(ofSize: 15)
         titleField.borderStyle = .none
         titleField.heightAnchor.constraint(equalToConstant: 44).isActive = true
 
@@ -226,14 +219,14 @@ final class LinkCardEditorViewController: UIViewController {
         divider.backgroundColor = .separator
         divider.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
 
-        commentTextView.font            = .inter(ofSize: 15)
+        commentTextView.font = .inter(ofSize: 15)
         commentTextView.backgroundColor = .clear
         commentTextView.isScrollEnabled = false
-        commentTextView.delegate        = self
+        commentTextView.delegate = self
         commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
 
-        commentPlaceholder.text      = L10n.commentPlaceholder
-        commentPlaceholder.font      = .inter(ofSize: 15)
+        commentPlaceholder.text = L10n.commentPlaceholder
+        commentPlaceholder.font = .inter(ofSize: 15)
         commentPlaceholder.textColor = .placeholderText
         commentPlaceholder.translatesAutoresizingMaskIntoConstraints = false
         commentTextView.addSubview(commentPlaceholder)
@@ -257,12 +250,10 @@ final class LinkCardEditorViewController: UIViewController {
     }
 
     private func buildCoverCard() {
-        // Tap gesture to pick cover
         let tap = UITapGestureRecognizer(target: self, action: #selector(coverTapped))
         coverCard.addGestureRecognizer(tap)
         coverCard.isUserInteractionEnabled = true
 
-        // Image preview (hidden until image selected)
         coverImageView.contentMode = .scaleAspectFill
         coverImageView.layer.cornerRadius = 10
         coverImageView.layer.masksToBounds = true
@@ -270,7 +261,6 @@ final class LinkCardEditorViewController: UIViewController {
         coverImageView.translatesAutoresizingMaskIntoConstraints = false
         coverImageView.heightAnchor.constraint(equalToConstant: 110).isActive = true
 
-        // Placeholder
         coverPlaceholderIcon.tintColor = .tertiaryLabel
         coverPlaceholderIcon.contentMode = .scaleAspectFit
         coverPlaceholderIcon.translatesAutoresizingMaskIntoConstraints = false
@@ -300,7 +290,7 @@ final class LinkCardEditorViewController: UIViewController {
     // MARK: - Clipboard
 
     private func detectClipboard() {
-        let pb  = UIPasteboard.general
+        let pb = UIPasteboard.general
         let str = (pb.url?.absoluteString ?? pb.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !str.isEmpty else { return }
         let normalized = str.hasPrefix("http") ? str : "https://\(str)"
@@ -314,7 +304,7 @@ final class LinkCardEditorViewController: UIViewController {
     @objc private func pasteClipboard() {
         guard let url = clipboardURL else { return }
         urlField.text = url.absoluteString
-        resolvedURL   = url
+        resolvedURL = url
         UIView.animate(withDuration: 0.15) { self.clipboardBtn.isHidden = true }
         fetchAndReveal(url: url)
     }
@@ -331,7 +321,7 @@ final class LinkCardEditorViewController: UIViewController {
     private func fetchAndReveal(url: URL) {
         metadataTask?.cancel()
         metadataTask = nil
-        resolvedURL  = url
+        resolvedURL = url
 
         revealCards()
         loadingIndicator.startAnimating()
@@ -353,15 +343,15 @@ final class LinkCardEditorViewController: UIViewController {
 
         let cards = [previewCard, detailsCard, coverCard]
         cards.forEach {
-            $0.isHidden  = false
-            $0.alpha     = 0
+            $0.isHidden = false
+            $0.alpha = 0
             $0.transform = CGAffineTransform(translationX: 0, y: 16)
         }
         for (i, card) in cards.enumerated() {
             let delay = Double(i) * 0.08
             UIView.animate(withDuration: 0.45, delay: delay,
                            usingSpringWithDamping: 0.78, initialSpringVelocity: 0.2) {
-                card.alpha     = 1
+                card.alpha = 1
                 card.transform = .identity
             }
         }
@@ -385,7 +375,7 @@ final class LinkCardEditorViewController: UIViewController {
 
         UIView.animate(withDuration: 0.2) { self.view.layoutIfNeeded() }
 
-        // Async-load thumbnail from metadata (only if user hasn't picked a custom cover)
+        // Only apply metadata thumbnail if user hasn't picked a custom cover.
         meta.imageProvider?.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
             guard let self, self.customCoverImage == nil, let image = object as? UIImage else { return }
             DispatchQueue.main.async {
@@ -396,9 +386,8 @@ final class LinkCardEditorViewController: UIViewController {
     }
 
     private func showCoverPreview(_ image: UIImage) {
-        coverImageView.image   = image
+        coverImageView.image = image
         coverImageView.isHidden = false
-        // Hide placeholder text when image is present
         coverCard.stackView.arrangedSubviews.last?.isHidden = true
     }
 
@@ -416,17 +405,16 @@ final class LinkCardEditorViewController: UIViewController {
     // MARK: - Fill for editing
 
     private func fillForEditing(_ card: LinkCard) {
-        urlField.text        = card.url.absoluteString
-        titleField.text      = card.title
+        urlField.text = card.url.absoluteString
+        titleField.text = card.title
         commentTextView.text = card.comment
         commentPlaceholder.isHidden = !card.comment.isEmpty
         tagsInputView.tagIDs = card.tagIDs
-        resolvedURL   = card.url
+        resolvedURL = card.url
         cardsRevealed = true
 
         [previewCard, detailsCard, coverCard].forEach { $0.isHidden = false; $0.alpha = 1 }
 
-        // Show existing preview image if available
         if let data = card.previewImageData, let image = UIImage(data: data) {
             fetchedPreviewImage = image
             showCoverPreview(image)
@@ -447,18 +435,18 @@ final class LinkCardEditorViewController: UIViewController {
         }
 
         let rawTitle = titleField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let title    = rawTitle.isEmpty ? (url.host ?? urlText) : rawTitle
+        let title = rawTitle.isEmpty ? (url.host ?? urlText) : rawTitle
 
         let saved = card ?? LinkCard(title: title, dayDate: dayDate, url: url)
-        saved.title              = title
-        saved.comment            = commentTextView.text ?? ""
-        saved.url                = url
-        saved.extraURLs          = card?.extraURLs ?? []
-        saved.previewTitle       = fetchedMetadata?.title ?? card?.previewTitle
+        saved.title = title
+        saved.comment = commentTextView.text ?? ""
+        saved.url = url
+        saved.extraURLs = card?.extraURLs ?? []
+        saved.previewTitle = fetchedMetadata?.title ?? card?.previewTitle
         saved.previewDescription = card?.previewDescription
-        saved.tagIDs             = tagsInputView.selectedTagIDs
+        saved.tagIDs = tagsInputView.selectedTagIDs
 
-        // Priority: custom cover > fetched metadata image > existing saved image
+        // Custom cover takes priority over fetched metadata image.
         let coverImage = customCoverImage ?? fetchedPreviewImage
         saved.previewImageData = coverImage?.jpegData(compressionQuality: 0.72) ?? card?.previewImageData
 

@@ -10,9 +10,9 @@ struct Tag: Codable, Identifiable {
     var createdAt: Date
 
     init(id: UUID = UUID(), name: String, colorHex: String, createdAt: Date = Date()) {
-        self.id        = id
-        self.name      = name
-        self.colorHex  = colorHex
+        self.id = id
+        self.name = name
+        self.colorHex = colorHex
         self.createdAt = createdAt
     }
 
@@ -87,7 +87,6 @@ extension Notification.Name {
 // MARK: - Tag Color Palette
 
 extension TagStore {
-    /// Cycles through a small palette when auto-assigning colors to new tags.
     static let palette: [String] = [
         "#A184E5",
         "#E57373",
@@ -99,11 +98,7 @@ extension TagStore {
 
     func nextPaletteColor() -> String {
         let usedColors = tags.map(\.colorHex)
-        // Prefer an unused color from the palette
-        for color in TagStore.palette where !usedColors.contains(color) {
-            return color
-        }
-        // Cycle by count if all are used
+        for color in TagStore.palette where !usedColors.contains(color) { return color }
         return TagStore.palette[tags.count % TagStore.palette.count]
     }
 }

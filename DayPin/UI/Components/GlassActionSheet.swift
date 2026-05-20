@@ -213,34 +213,34 @@ final class GlassActionSheet: UIView {
             cancelCard.isHidden = true
 
             // Switch mainCard to frame-based layout
-            mainCardBottomConstraint.isActive   = false
-            mainCardLeadingConstraint.isActive  = false
+            mainCardBottomConstraint.isActive = false
+            mainCardLeadingConstraint.isActive = false
             mainCard.translatesAutoresizingMaskIntoConstraints = true
 
-            let srcFrame   = sv.convert(sv.bounds, to: window)
+            let srcFrame = sv.convert(sv.bounds, to: window)
             let cardHeight = titleHeight + CGFloat(regularActions.count) * 44
-            let cardX      = max(12, min(srcFrame.maxX - cardWidth, window.bounds.width - cardWidth - 12))
-            let cardY      = srcFrame.minY - cardHeight - 10
+            let cardX = max(12, min(srcFrame.maxX - cardWidth, window.bounds.width - cardWidth - 12))
+            let cardY = srcFrame.minY - cardHeight - 10
 
             mainCard.frame = CGRect(x: cardX, y: cardY, width: cardWidth, height: cardHeight)
 
             // Anchor bottom-right → scale from button position
             mainCard.layer.anchorPoint = CGPoint(x: 1.0, y: 1.0)
-            mainCard.layer.position    = CGPoint(x: cardX + cardWidth, y: cardY + cardHeight)
-            mainCard.transform         = CGAffineTransform(scaleX: 0.05, y: 0.05)
-            mainCard.alpha             = 0
+            mainCard.layer.position = CGPoint(x: cardX + cardWidth, y: cardY + cardHeight)
+            mainCard.transform = CGAffineTransform(scaleX: 0.05, y: 0.05)
+            mainCard.alpha = 0
 
             UIView.animate(withDuration: 0.36, delay: 0, usingSpringWithDamping: 0.72, initialSpringVelocity: 0.2) {
-                self.dimView.alpha      = 1
+                self.dimView.alpha = 1
                 self.mainCard.transform = .identity
-                self.mainCard.alpha     = 1
+                self.mainCard.alpha = 1
             }
         } else {
             // ── Sheet mode: slide up from bottom ────────────────────────────
             let safeBottom = parentWindow?.safeAreaInsets.bottom ?? 0
-            let bottomPad  = max(safeBottom, 12)
+            let bottomPad = max(safeBottom, 12)
 
-            mainCardBottomConstraint.constant   = -(bottomPad + 44 + 8 + 12)
+            mainCardBottomConstraint.constant = -(bottomPad + 44 + 8 + 12)
             cancelCardBottomConstraint.constant = -(bottomPad + 12)
 
             UIView.animate(withDuration: 0.44, delay: 0, usingSpringWithDamping: 0.78, initialSpringVelocity: 0.1) {
@@ -255,15 +255,15 @@ final class GlassActionSheet: UIView {
         if sourceView != nil {
             // Collapse back toward anchor
             UIView.animate(withDuration: 0.22, delay: 0, options: .curveEaseIn) {
-                self.dimView.alpha      = 0
+                self.dimView.alpha = 0
                 self.mainCard.transform = CGAffineTransform(scaleX: 0.05, y: 0.05)
-                self.mainCard.alpha     = 0
+                self.mainCard.alpha = 0
             } completion: { _ in self.removeFromSuperview() }
             return
         }
 
         let safeBottom = parentWindow?.safeAreaInsets.bottom ?? 0
-        mainCardBottomConstraint.constant   = 300 + safeBottom
+        mainCardBottomConstraint.constant = 300 + safeBottom
         cancelCardBottomConstraint.constant = 200 + safeBottom
 
         UIView.animate(withDuration: 0.28, delay: 0, options: .curveEaseIn) {
@@ -313,16 +313,16 @@ final class AddNoteMenuSheet: UIView {
 
     private let dimView = UIView()
     /// Solid surface card — avoids UIVisualEffectView vibrancy that kills badge colours
-    private let card    = UIView()
+    private let card = UIView()
 
-    private let cardWidth: CGFloat    = min(260, UIScreen.main.bounds.width * 0.70)
-    private let rowHeight: CGFloat    = 52
+    private let cardWidth: CGFloat = min(260, UIScreen.main.bounds.width * 0.70)
+    private let rowHeight: CGFloat = 52
     private let headerHeight: CGFloat = 34
 
     private init(title: String, actions: [AddNoteAction], sourceView: UIView?, window: UIWindow) {
-        self.menuTitle    = title
-        self.actions      = actions
-        self.sourceView   = sourceView
+        self.menuTitle = title
+        self.actions = actions
+        self.sourceView = sourceView
         self.parentWindow = window
         super.init(frame: .zero)
         setup()
@@ -351,11 +351,11 @@ final class AddNoteMenuSheet: UIView {
         dimView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(animateOut)))
 
         // Card — opaque surface so badge colours render faithfully
-        card.backgroundColor     = DayPinDesign.cardSurface
-        card.layer.cornerRadius  = 16
+        card.backgroundColor = DayPinDesign.cardSurface
+        card.layer.cornerRadius = 16
         card.layer.masksToBounds = true
-        card.layer.borderWidth   = 0.5
-        card.layer.borderColor   = UIColor.separator.withAlphaComponent(0.45).cgColor
+        card.layer.borderWidth = 0.5
+        card.layer.borderColor = UIColor.separator.withAlphaComponent(0.45).cgColor
         addSubview(card)
 
         buildCardContent()
@@ -366,9 +366,9 @@ final class AddNoteMenuSheet: UIView {
 
         // Section header
         let hdr = UILabel()
-        hdr.text          = menuTitle
-        hdr.font          = .inter(ofSize: 12, weight: .medium)
-        hdr.textColor     = .secondaryLabel
+        hdr.text = menuTitle
+        hdr.font = .inter(ofSize: 12, weight: .medium)
+        hdr.textColor = .secondaryLabel
         hdr.translatesAutoresizingMaskIntoConstraints = false
         cv.addSubview(hdr)
         NSLayoutConstraint.activate([
@@ -390,7 +390,7 @@ final class AddNoteMenuSheet: UIView {
         // Action rows
         for (idx, action) in actions.enumerated() {
             let rowY = headerHeight + CGFloat(idx) * rowHeight
-            let row  = makeActionRow(action: action)
+            let row = makeActionRow(action: action)
             cv.addSubview(row)
             NSLayoutConstraint.activate([
                 row.leadingAnchor.constraint(equalTo: cv.leadingAnchor),
@@ -427,16 +427,16 @@ final class AddNoteMenuSheet: UIView {
 
         // Badge
         let badge = UIView()
-        badge.backgroundColor      = action.badgeColor
-        badge.layer.cornerRadius   = 9
-        badge.layer.masksToBounds  = true
+        badge.backgroundColor = action.badgeColor
+        badge.layer.cornerRadius = 9
+        badge.layer.masksToBounds = true
         badge.isUserInteractionEnabled = false
         badge.translatesAutoresizingMaskIntoConstraints = false
 
         let iconCfg = UIImage.SymbolConfiguration(pointSize: 13, weight: .medium)
         let iconView = UIImageView(image: UIImage(systemName: action.icon, withConfiguration: iconCfg))
-        iconView.tintColor    = UIColor(dynamicProvider: { _ in UIColor.white })
-        iconView.contentMode  = .scaleAspectFit
+        iconView.tintColor = UIColor(dynamicProvider: { _ in UIColor.white })
+        iconView.contentMode = .scaleAspectFit
         iconView.isUserInteractionEnabled = false
         iconView.translatesAutoresizingMaskIntoConstraints = false
         badge.addSubview(iconView)
@@ -449,9 +449,9 @@ final class AddNoteMenuSheet: UIView {
 
         // Title
         let label = UILabel()
-        label.text          = action.title
-        label.font          = .inter(ofSize: 14, weight: .medium)
-        label.textColor     = .label
+        label.text = action.title
+        label.font = .inter(ofSize: 14, weight: .medium)
+        label.textColor = .label
         label.isUserInteractionEnabled = false
         label.translatesAutoresizingMaskIntoConstraints = false
 
@@ -498,31 +498,31 @@ final class AddNoteMenuSheet: UIView {
     private func animateIn() {
         guard let sv = sourceView, let window = parentWindow else { return }
 
-        let srcFrame   = sv.convert(sv.bounds, to: window)
+        let srcFrame = sv.convert(sv.bounds, to: window)
         let cardHeight = headerHeight + CGFloat(actions.count) * rowHeight
-        let cardX      = max(12, min(srcFrame.maxX - cardWidth, window.bounds.width - cardWidth - 12))
-        let cardY      = max(8, srcFrame.minY - cardHeight - 10)
+        let cardX = max(12, min(srcFrame.maxX - cardWidth, window.bounds.width - cardWidth - 12))
+        let cardY = max(8, srcFrame.minY - cardHeight - 10)
 
         card.frame = CGRect(x: cardX, y: cardY, width: cardWidth, height: cardHeight)
 
         // Scale from bottom-right corner (near FAB)
         card.layer.anchorPoint = CGPoint(x: 1.0, y: 1.0)
-        card.layer.position    = CGPoint(x: cardX + cardWidth, y: cardY + cardHeight)
-        card.transform         = CGAffineTransform(scaleX: 0.05, y: 0.05)
-        card.alpha             = 0
+        card.layer.position = CGPoint(x: cardX + cardWidth, y: cardY + cardHeight)
+        card.transform = CGAffineTransform(scaleX: 0.05, y: 0.05)
+        card.alpha = 0
 
         UIView.animate(withDuration: 0.38, delay: 0, usingSpringWithDamping: 0.72, initialSpringVelocity: 0.2) {
-            self.dimView.alpha  = 1
+            self.dimView.alpha = 1
             self.card.transform = .identity
-            self.card.alpha     = 1
+            self.card.alpha = 1
         }
     }
 
     @objc private func animateOut() {
         UIView.animate(withDuration: 0.22, delay: 0, options: .curveEaseIn) {
-            self.dimView.alpha  = 0
+            self.dimView.alpha = 0
             self.card.transform = CGAffineTransform(scaleX: 0.05, y: 0.05)
-            self.card.alpha     = 0
+            self.card.alpha = 0
         } completion: { _ in self.removeFromSuperview() }
     }
 }

@@ -1,15 +1,9 @@
 import UIKit
 
-// MARK: - ImageCardOverviewViewController
-
 final class ImageCardOverviewViewController: UIViewController {
-
-    // MARK: - Model
 
     private let card: ImageCard
     private var annotations: [ImageAnnotation]
-
-    // MARK: - State
 
     private var activePinID: UUID? { didSet { syncActivePin(deactivating: oldValue) } }
     private var isPlacingPin = false
@@ -26,57 +20,57 @@ final class ImageCardOverviewViewController: UIViewController {
 
     // MARK: - Custom nav bar
 
-    private let navBarView    = UIView()
-    private let backButton    = UIButton(type: .system)
+    private let navBarView = UIView()
+    private let backButton = UIButton(type: .system)
     private let navTitleLabel = UILabel()
-    private let bellNavBtn    = UIButton(type: .system)
-    private let editNavBtn    = UIButton(type: .system)
+    private let bellNavBtn = UIButton(type: .system)
+    private let editNavBtn = UIButton(type: .system)
 
     // MARK: - Photo zone
 
-    private let photoContainer  = UIView()
-    private let photoImageView  = UIImageView()
+    private let photoContainer = UIView()
+
+    private let photoImageView = UIImageView()
     private var photoGradient:  CAGradientLayer?
     private var pinDotViews:    [UUID: OverviewPinDotView] = [:]
     private var photoHeightConstraint: NSLayoutConstraint?
 
-    private let pinCountBadge   = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-    private let pinCountLabel   = UILabel()
-    private let tapHintBadge    = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+    private let pinCountBadge = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+    private let pinCountLabel = UILabel()
+    private let tapHintBadge = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
     private let placingHintBadge = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-    // Crosshair cursor — frame-based, moves with finger
-    private let placingCursor   = UIView()
+    // Frame-based crosshair cursor — moves freely with `.center = pt`, no constraint conflicts.
+    private let placingCursor = UIView()
 
     // MARK: - Scroll + content
 
-    private let scrollView      = UIScrollView()
-    private let contentView     = UIView()
+    private let scrollView = UIScrollView()
+    private let contentView = UIView()
 
-    // Note card — always visible, editable
-    private let noteCardGlass       = GlassCardView(style: .thinLight)
+    private let noteCardGlass = GlassCardView(style: .thinLight)
     private let noteNormalContainer = UIView()
-    private let noteEditContainer   = UIView()
-    private let noteCommentLabel    = UILabel()
-    private let noteTextView        = UITextView()
+    private let noteEditContainer = UIView()
+    private let noteCommentLabel = UILabel()
+    private let noteTextView = UITextView()
 
     // Pins section
-    private let pinsHeaderView  = UIView()
-    private let pinsCountLabel  = UILabel()
-    private let pinCardsStack   = UIStackView()
+    private let pinsHeaderView = UIView()
+    private let pinsCountLabel = UILabel()
+    private let pinCardsStack = UIStackView()
     private var pinCardViews:   [UUID: PinCardView] = [:]
 
     // MARK: - Fixed bottom button
 
-    private let addPinButton                = UIButton(type: .system)
-    private var addPinPillView: UIView?          // outer floating pill (shadow + dash border)
+    private let addPinButton = UIButton(type: .system)
+    private var addPinPillView: UIView?
     private var scrollViewBottomConstraint: NSLayoutConstraint?
-    private var baseScrollInset: CGFloat = 0     // content inset that clears the floating button
-    private var isKeyboardVisible        = false // guards against layout resetting keyboard inset
+    private var baseScrollInset: CGFloat = 0
+    private var isKeyboardVisible = false
 
     // MARK: - Init
 
     init(card: ImageCard) {
-        self.card        = card
+        self.card = card
         self.annotations = card.annotations
         super.init(nibName: nil, bundle: nil)
     }
@@ -96,7 +90,6 @@ final class ImageCardOverviewViewController: UIViewController {
         observeKeyboard()
         observeNotifications()
 
-        // Tap anywhere on the scroll content → dismiss keyboard
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         dismissTap.cancelsTouchesInView = false
         scrollView.addGestureRecognizer(dismissTap)
@@ -108,7 +101,7 @@ final class ImageCardOverviewViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // Fix 5 (navBar): hide system bar without animation to prevent "navbar slides in" glitch
+        // Hide without animation to prevent the "navbar slides in" glitch.
         navigationController?.setNavigationBarHidden(true, animated: false)
         annotations = card.annotations
         loadAnnotations()
@@ -131,15 +124,13 @@ final class ImageCardOverviewViewController: UIViewController {
     }
 
     @objc private func keyboardWillShow(_ n: Notification) {
-        guard let info    = n.userInfo,
+        guard let info = n.userInfo,
               let kbFrame = (info[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue,
               let duration = info[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double
         else { return }
         isKeyboardVisible = true
 
-        // Shrink the scrollView so its bottom edge is flush with the keyboard top.
-        // Unlike contentInset, this physically reduces the visible area, which means
-        // scrollRectToVisible always has room to work regardless of content length.
+        // Shrink scrollView to keyboard top so scrollRectToVisible always has room to work.
         scrollViewBottomConstraint?.isActive = false
         scrollViewBottomConstraint = scrollView.bottomAnchor.constraint(
             equalTo: view.bottomAnchor, constant: -kbFrame.height)
@@ -156,8 +147,6 @@ final class ImageCardOverviewViewController: UIViewController {
         guard let duration = (n.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double)
         else { return }
         isKeyboardVisible = false
-
-        // Restore scrollView to full height
         scrollViewBottomConstraint?.isActive = false
         scrollViewBottomConstraint = scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         scrollViewBottomConstraint?.isActive = true
@@ -167,7 +156,6 @@ final class ImageCardOverviewViewController: UIViewController {
         }
     }
 
-    /// Walk the contentView hierarchy to find the active input and scroll to it.
     private func scrollToActiveInput() {
         func findFirstResponder(in view: UIView) -> UIView? {
             if view.isFirstResponder { return view }
@@ -177,7 +165,6 @@ final class ImageCardOverviewViewController: UIViewController {
             return nil
         }
         guard let responder = findFirstResponder(in: contentView) else { return }
-        // 20 pt breathing room so the field isn't flush with the keyboard edge
         let rect = responder.convert(responder.bounds, to: scrollView).insetBy(dx: 0, dy: -20)
         scrollView.scrollRectToVisible(rect, animated: true)
     }
@@ -211,7 +198,7 @@ final class ImageCardOverviewViewController: UIViewController {
         refreshBell()
     }
 
-    // MARK: - Custom nav bar (above photo, standard colors)
+    // MARK: - Custom nav bar
 
     private func buildCustomNavBar() {
         navBarView.translatesAutoresizingMaskIntoConstraints = false
@@ -223,7 +210,6 @@ final class ImageCardOverviewViewController: UIViewController {
             navBarView.heightAnchor.constraint(equalToConstant: 50)
         ])
 
-        // Back button
         let chevronCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
         backButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: chevronCfg), for: .normal)
         backButton.setTitle(" \(L10n.back)", for: .normal)
@@ -233,15 +219,13 @@ final class ImageCardOverviewViewController: UIViewController {
         backButton.translatesAutoresizingMaskIntoConstraints = false
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
 
-        // Title
         let displayTitle = card.title.isEmpty ? L10n.cardTypePhoto : card.title
-        navTitleLabel.text          = displayTitle
-        navTitleLabel.font          = .inter(ofSize: 17, weight: .semibold)
-        navTitleLabel.textColor     = .label
+        navTitleLabel.text = displayTitle
+        navTitleLabel.font = .inter(ofSize: 17, weight: .semibold)
+        navTitleLabel.textColor = .label
         navTitleLabel.textAlignment = .center
         navTitleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        // Right buttons
         let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
         let hasReminder = card.reminderDate.map { $0 > Date() } ?? false
         bellNavBtn.setImage(UIImage(systemName: hasReminder ? "bell.fill" : "bell",
@@ -280,7 +264,6 @@ final class ImageCardOverviewViewController: UIViewController {
             bellNavBtn.heightAnchor.constraint(equalToConstant: 36)
         ])
 
-        // Separator below navBar
         let sep = UIView()
         sep.backgroundColor = UIColor.separator.withAlphaComponent(0.3)
         sep.translatesAutoresizingMaskIntoConstraints = false
@@ -303,29 +286,26 @@ final class ImageCardOverviewViewController: UIViewController {
     // MARK: - Photo zone
 
     private func buildPhotoZone() {
-        // Fix 1: black background prevents white flash while image loads
+        // Black background prevents white flash while image loads.
         photoContainer.backgroundColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .black : .black }
-        photoContainer.clipsToBounds   = true
+        photoContainer.clipsToBounds = true
         photoContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(photoContainer)
 
-        photoImageView.contentMode   = .scaleAspectFill
+        photoImageView.contentMode = .scaleAspectFill
         photoImageView.clipsToBounds = true
-        // Fix 1: set placeholder color
         photoImageView.backgroundColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .black : .black }
         photoImageView.image = card.imageData.flatMap { UIImage(data: $0) }
-        // Low compression resistance so container constraints always win
+        // Low compression resistance so container constraints always win.
         photoImageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         photoImageView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         photoImageView.translatesAutoresizingMaskIntoConstraints = false
         photoContainer.addSubview(photoImageView)
 
         let photoH = computedPhotoHeight()
-        // Fix 6: dynamic height based on image aspect ratio
         let hc = photoContainer.heightAnchor.constraint(equalToConstant: photoH)
         photoHeightConstraint = hc
         NSLayoutConstraint.activate([
-            // Fix 2: photo starts BELOW navBar (not behind it)
             photoContainer.topAnchor.constraint(equalTo: navBarView.bottomAnchor),
             photoContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             photoContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -337,11 +317,10 @@ final class ImageCardOverviewViewController: UIViewController {
             photoImageView.bottomAnchor.constraint(equalTo: photoContainer.bottomAnchor)
         ])
 
-        // Bottom gradient — blends photo into scroll content
         let grad = CAGradientLayer()
-        grad.colors     = [UIColor.clear.cgColor, UIColor { trait in UIColor.black.withAlphaComponent(0.55) }.cgColor]
+        grad.colors = [UIColor.clear.cgColor, UIColor { trait in UIColor.black.withAlphaComponent(0.55) }.cgColor]
         grad.startPoint = CGPoint(x: 0.5, y: 0.45)
-        grad.endPoint   = CGPoint(x: 0.5, y: 1.0)
+        grad.endPoint = CGPoint(x: 0.5, y: 1.0)
         photoContainer.layer.addSublayer(grad)
         photoGradient = grad
 
@@ -356,19 +335,15 @@ final class ImageCardOverviewViewController: UIViewController {
 
         buildPlacingCursor()
 
-        // Regular tap: dot activation + lightbox. Works always when long-press is disabled.
         let tap = UITapGestureRecognizer(target: self, action: #selector(photoTapped(_:)))
         photoContainer.addGestureRecognizer(tap)
-
-        // Placing-mode touch tracker — starts disabled, enabled only in startPlacingMode()
         photoContainer.addGestureRecognizer(placingLongPress)
     }
 
-    // Compute photo height: natural aspect ratio capped so content below always fits.
     private func computedPhotoHeight() -> CGFloat {
         guard let data = card.imageData,
-              let img  = UIImage(data: data), img.size.width > 0 else { return 200 }
-        let w     = UIScreen.main.bounds.width
+              let img = UIImage(data: data), img.size.width > 0 else { return 200 }
+        let w = UIScreen.main.bounds.width
         let ratio = img.size.height / img.size.width
         if ratio >= 1 {
             // Portrait / square — cap at 55% of width so scroll content is always visible
@@ -381,11 +356,11 @@ final class ImageCardOverviewViewController: UIViewController {
 
     private func buildPinCountBadge() {
         pinCountBadge.layer.cornerRadius = 14
-        pinCountBadge.clipsToBounds      = true
+        pinCountBadge.clipsToBounds = true
         pinCountBadge.translatesAutoresizingMaskIntoConstraints = false
 
         let dot = makeDot(size: 8, color: DayPinDesign.accent)
-        pinCountLabel.font      = .inter(ofSize: 12, weight: .semibold)
+        pinCountLabel.font = .inter(ofSize: 12, weight: .semibold)
         pinCountLabel.textColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
         pinCountLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -432,10 +407,7 @@ final class ImageCardOverviewViewController: UIViewController {
         ])
     }
 
-    // Fix 5: frame-based cursor — can be moved freely with `.center = pt`
     private func buildPlacingCursor() {
-        // NOTE: intentionally NOT using translatesAutoresizingMaskIntoConstraints = false
-        // so we can control center directly without constraint conflicts.
         placingCursor.isUserInteractionEnabled = false
         placingCursor.alpha = 0
         placingCursor.bounds = CGRect(origin: .zero, size: CGSize(width: 50, height: 50))
@@ -443,8 +415,8 @@ final class ImageCardOverviewViewController: UIViewController {
         photoContainer.addSubview(placingCursor)
 
         let ring = UIView()
-        ring.layer.borderColor  = UIColor { trait in UIColor.white.withAlphaComponent(0.9) }.cgColor
-        ring.layer.borderWidth  = 1.5
+        ring.layer.borderColor = UIColor { trait in UIColor.white.withAlphaComponent(0.9) }.cgColor
+        ring.layer.borderWidth = 1.5
         ring.layer.cornerRadius = 25
         ring.frame = placingCursor.bounds
         ring.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -464,12 +436,10 @@ final class ImageCardOverviewViewController: UIViewController {
     // MARK: - Photo gestures
 
     @objc private func photoTapped(_ gr: UITapGestureRecognizer) {
-        // Fix 5: when placing, long-press gesture handles everything
         guard !isPlacingPin else { return }
 
         let pt = gr.location(in: photoContainer)
 
-        // Hit-test pin dot pills (use frame.insetBy for easier tap)
         for (id, dot) in pinDotViews where !dot.isHidden {
             if dot.frame.insetBy(dx: -10, dy: -10).contains(pt) {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -485,20 +455,18 @@ final class ImageCardOverviewViewController: UIViewController {
         }
     }
 
-    // Fix 5: long-press tracks finger → moves crosshair → places pin on lift
     @objc private func placingGesture(_ gr: UILongPressGestureRecognizer) {
         guard isPlacingPin else { return }
 
         let pt = gr.location(in: photoContainer)
         switch gr.state {
         case .began, .changed:
-            // Move cursor with finger — no animation for instantaneous response
             placingCursor.center = pt
 
         case .ended:
             endPlacingMode()
             guard photoImageContentFrame.contains(pt) else { return }
-            let norm     = normalizedPoint(from: pt)
+            let norm = normalizedPoint(from: pt)
             let windowPt = photoContainer.convert(pt, to: view.window)
             showPinPlacedIndicator(at: pt)
             presentPinInput(at: norm, windowPoint: windowPt)
@@ -513,12 +481,12 @@ final class ImageCardOverviewViewController: UIViewController {
     private func showPinPlacedIndicator(at pt: CGPoint) {
         let sz: CGFloat = 18
         let flash = UIView()
-        flash.backgroundColor    = UIColor { trait in UIColor.white.withAlphaComponent(0.6) }
+        flash.backgroundColor = UIColor { trait in UIColor.white.withAlphaComponent(0.6) }
         flash.layer.cornerRadius = sz / 2
         flash.frame = CGRect(x: pt.x - sz/2, y: pt.y - sz/2, width: sz, height: sz)
         photoContainer.addSubview(flash)
         UIView.animate(withDuration: 0.45, delay: 0.05, options: .curveEaseOut) {
-            flash.alpha     = 0
+            flash.alpha = 0
             flash.transform = CGAffineTransform(scaleX: 2.2, y: 2.2)
         } completion: { _ in flash.removeFromSuperview() }
     }
@@ -527,26 +495,26 @@ final class ImageCardOverviewViewController: UIViewController {
 
     private func startPlacingMode() {
         isPlacingPin = true
-        placingLongPress.isEnabled = true    // allow cursor tracking
+        placingLongPress.isEnabled = true
         // Reset cursor to photo center
         placingCursor.center = CGPoint(x: photoContainer.bounds.midX, y: photoContainer.bounds.midY)
         photoContainer.bringSubviewToFront(placingCursor)
         photoContainer.bringSubviewToFront(placingHintBadge)
         UIView.animate(withDuration: 0.2) {
-            self.tapHintBadge.alpha     = 0
+            self.tapHintBadge.alpha = 0
             self.placingHintBadge.alpha = 1
-            self.placingCursor.alpha    = 1
+            self.placingCursor.alpha = 1
         }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     private func endPlacingMode() {
         isPlacingPin = false
-        placingLongPress.isEnabled = false   // restore normal tap behaviour
+        placingLongPress.isEnabled = false
         UIView.animate(withDuration: 0.2) {
-            self.tapHintBadge.alpha     = 1
+            self.tapHintBadge.alpha = 1
             self.placingHintBadge.alpha = 0
-            self.placingCursor.alpha    = 0
+            self.placingCursor.alpha = 0
         }
     }
 
@@ -619,7 +587,7 @@ final class ImageCardOverviewViewController: UIViewController {
         updatePinCountBadge()
 
         if let id = activePinID {
-            pinDotViews[id]?.isActive  = true
+            pinDotViews[id]?.isActive = true
             pinCardViews[id]?.isActive = true
         }
     }
@@ -636,11 +604,11 @@ final class ImageCardOverviewViewController: UIViewController {
     private func repositionPinDots() {
         for ann in annotations {
             guard let dot = pinDotViews[ann.id] else { continue }
-            let center  = screenPt(for: ann)
-            let size    = OverviewPinDotView.pillSize(for: ann)
+            let center = screenPt(for: ann)
+            let size = OverviewPinDotView.pillSize(for: ann)
             let anchorX = OverviewPinDotView.dotCenterXInPill
-            let pillX   = center.x - anchorX
-            let pillY   = center.y - size.height / 2
+            let pillX = center.x - anchorX
+            let pillY = center.y - size.height / 2
             let clamped = CGRect(
                 x: max(2, min(photoContainer.bounds.width  - size.width  - 2, pillX)),
                 y: max(2, min(photoContainer.bounds.height - size.height - 2, pillY)),
@@ -652,9 +620,9 @@ final class ImageCardOverviewViewController: UIViewController {
 
     private func updatePinCountBadge() {
         let n = annotations.count
-        pinCountLabel.text     = L10n.annotationCount(n)
+        pinCountLabel.text = L10n.annotationCount(n)
         pinCountBadge.isHidden = (n == 0)
-        pinsCountLabel.text    = "\(n)"
+        pinsCountLabel.text = "\(n)"
     }
 
     // MARK: - Active pin sync
@@ -662,7 +630,7 @@ final class ImageCardOverviewViewController: UIViewController {
     private func syncActivePin(deactivating old: UUID?) {
         if let old { pinDotViews[old]?.isActive = false; pinCardViews[old]?.isActive = false }
         if let id = activePinID {
-            pinDotViews[id]?.isActive  = true
+            pinDotViews[id]?.isActive = true
             pinCardViews[id]?.isActive = true
             if let cv = pinCardViews[id] {
                 DispatchQueue.main.async {
@@ -690,13 +658,12 @@ final class ImageCardOverviewViewController: UIViewController {
     // MARK: - Scroll content
 
     private func buildScrollContent() {
-        scrollView.translatesAutoresizingMaskIntoConstraints  = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsVerticalScrollIndicator = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
 
-        // Temporary bottom constraint — will be replaced in buildFixedAddPinButton
         let scrollBottom = scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         scrollViewBottomConstraint = scrollBottom
 
@@ -717,29 +684,24 @@ final class ImageCardOverviewViewController: UIViewController {
         buildPinsSection()
     }
 
-    // Floating glass "Add pin" pill — hovers above scroll content, no rectangular background
     private func buildFixedAddPinButton() {
-        // ── Outer pill ───────────────────────────────────────────────────
-        // Does NOT clip so shadow and dashed border are fully visible.
+        // Shadow on outer pill, not clipped, so shadow and dashed border render outside.
         let pill = UIView()
-        pill.layer.cornerRadius  = 22
-        pill.layer.shadowColor   = UIColor.black.cgColor
+        pill.layer.cornerRadius = 22
+        pill.layer.shadowColor = UIColor.black.cgColor
         pill.layer.shadowOpacity = 0.18
-        pill.layer.shadowRadius  = 10
-        pill.layer.shadowOffset  = CGSize(width: 0, height: 4)
+        pill.layer.shadowRadius = 10
+        pill.layer.shadowOffset = CGSize(width: 0, height: 4)
         pill.translatesAutoresizingMaskIntoConstraints = false
 
-        // Dashed accent border lives on the outer pill layer (not clipped)
         let dash = CAShapeLayer()
-        dash.strokeColor     = DayPinDesign.accent.withAlphaComponent(0.5).cgColor
-        dash.fillColor       = UIColor.clear.cgColor
-        dash.lineWidth       = 1.5
+        dash.strokeColor = DayPinDesign.accent.withAlphaComponent(0.5).cgColor
+        dash.fillColor = UIColor.clear.cgColor
+        dash.lineWidth = 1.5
         dash.lineDashPattern = [6, 4]
         dash.name = "dashBorder"
         pill.layer.addSublayer(dash)
 
-        // ── Inner glass ──────────────────────────────────────────────────
-        // UIBlurEffect with cornerRadius + clipsToBounds gives the frosted look.
         let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
         glass.layer.cornerRadius = 22
         glass.clipsToBounds = true
@@ -752,7 +714,6 @@ final class ImageCardOverviewViewController: UIViewController {
             glass.bottomAnchor.constraint(equalTo: pill.bottomAnchor)
         ])
 
-        // ── Button inside glass ──────────────────────────────────────────
         addPinButton.setTitle(L10n.addPinButton, for: .normal)
         addPinButton.titleLabel?.font = .inter(ofSize: 15, weight: .semibold)
         addPinButton.setTitleColor(DayPinDesign.accent, for: .normal)
@@ -776,8 +737,6 @@ final class ImageCardOverviewViewController: UIViewController {
         ])
 
         addPinPillView = pill
-
-        // ScrollView goes full height; content inset is set in viewDidLayoutSubviews
         scrollViewBottomConstraint?.isActive = false
         scrollViewBottomConstraint = scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         scrollViewBottomConstraint?.isActive = true
@@ -786,22 +745,19 @@ final class ImageCardOverviewViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
-        // Update dashed border path on the floating pill
         if let pill = addPinPillView,
-           let dash  = pill.layer.sublayers?.first(where: { $0.name == "dashBorder" }) as? CAShapeLayer {
+           let dash = pill.layer.sublayers?.first(where: { $0.name == "dashBorder" }) as? CAShapeLayer {
             dash.frame = pill.bounds
-            dash.path  = UIBezierPath(roundedRect: pill.bounds,
+            dash.path = UIBezierPath(roundedRect: pill.bounds,
                                       cornerRadius: pill.layer.cornerRadius).cgPath
         }
 
-        // Keep the content inset in sync with the floating pill position so the last
-        // pin card is never hidden behind it. Keyboard avoidance is now frame-based
-        // (scrollViewBottomConstraint), so contentInset is only for the pill.
+        // Keep contentInset in sync with the floating pill; keyboard avoidance uses scrollViewBottomConstraint.
         if let pill = addPinPillView {
             let newInset = max(view.bounds.height - pill.frame.minY + 8, 0)
             if abs(newInset - baseScrollInset) > 1 {
                 baseScrollInset = newInset
-                scrollView.contentInset.bottom            = baseScrollInset
+                scrollView.contentInset.bottom = baseScrollInset
                 scrollView.verticalScrollIndicatorInsets.bottom = baseScrollInset
             }
         }
@@ -813,7 +769,7 @@ final class ImageCardOverviewViewController: UIViewController {
         }
     }
 
-    // MARK: - Note card (always shown, editable)
+    // MARK: - Note card
 
     private func buildNoteCard() {
         noteCardGlass.cornerRadius = 14
@@ -822,7 +778,6 @@ final class ImageCardOverviewViewController: UIViewController {
 
         let cv = noteCardGlass.glass.contentView
 
-        // ── Normal container ─────────────────────────────────────────
         noteNormalContainer.translatesAutoresizingMaskIntoConstraints = false
         cv.addSubview(noteNormalContainer)
         NSLayoutConstraint.activate([
@@ -835,11 +790,11 @@ final class ImageCardOverviewViewController: UIViewController {
         let sectionLbl = makeCaptionLabel(L10n.noteSection)
 
         let isEmpty = card.comment.isEmpty
-        noteCommentLabel.text          = isEmpty
+        noteCommentLabel.text = isEmpty
             ? L10n.tapToAddNote
             : card.comment
-        noteCommentLabel.font          = .inter(ofSize: 14)
-        noteCommentLabel.textColor     = isEmpty ? .tertiaryLabel : .secondaryLabel
+        noteCommentLabel.font = .inter(ofSize: 14)
+        noteCommentLabel.textColor = isEmpty ? .tertiaryLabel : .secondaryLabel
         noteCommentLabel.numberOfLines = 0
         noteCommentLabel.translatesAutoresizingMaskIntoConstraints = false
 
@@ -869,7 +824,6 @@ final class ImageCardOverviewViewController: UIViewController {
             noteCommentLabel.bottomAnchor.constraint(equalTo: noteNormalContainer.bottomAnchor,      constant: -14)
         ])
 
-        // ── Edit container ───────────────────────────────────────────
         noteEditContainer.translatesAutoresizingMaskIntoConstraints = false
         noteEditContainer.isHidden = true
         cv.addSubview(noteEditContainer)
@@ -882,11 +836,11 @@ final class ImageCardOverviewViewController: UIViewController {
 
         let editCaption = makeCaptionLabel(L10n.noteSection)
 
-        noteTextView.text               = card.comment
-        noteTextView.font               = .inter(ofSize: 14)
-        noteTextView.textColor          = .label
-        noteTextView.backgroundColor    = .clear
-        noteTextView.isScrollEnabled    = false
+        noteTextView.text = card.comment
+        noteTextView.font = .inter(ofSize: 14)
+        noteTextView.textColor = .label
+        noteTextView.backgroundColor = .clear
+        noteTextView.isScrollEnabled = false
         noteTextView.textContainerInset = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
         noteTextView.translatesAutoresizingMaskIntoConstraints = false
 
@@ -894,8 +848,8 @@ final class ImageCardOverviewViewController: UIViewController {
 
         let saveBtn = UIButton(type: .system)
         saveBtn.setTitle(L10n.save, for: .normal)
-        saveBtn.titleLabel?.font  = .inter(ofSize: 13, weight: .semibold)
-        saveBtn.backgroundColor   = DayPinDesign.accent
+        saveBtn.titleLabel?.font = .inter(ofSize: 13, weight: .semibold)
+        saveBtn.backgroundColor = DayPinDesign.accent
         saveBtn.setTitleColor(UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }, for: .normal)
         saveBtn.layer.cornerRadius = 8
         saveBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -949,7 +903,7 @@ final class ImageCardOverviewViewController: UIViewController {
         UIView.transition(with: noteCardGlass.glass.contentView, duration: 0.2,
                           options: .transitionCrossDissolve) {
             self.noteNormalContainer.isHidden = true
-            self.noteEditContainer.isHidden   = false
+            self.noteEditContainer.isHidden = false
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.noteTextView.becomeFirstResponder() }
     }
@@ -960,14 +914,14 @@ final class ImageCardOverviewViewController: UIViewController {
         card.comment = newText
         CardStore.shared.save(card: card)
         let isEmpty = newText.isEmpty
-        noteCommentLabel.text      = isEmpty
+        noteCommentLabel.text = isEmpty
             ? L10n.tapToAddNote
             : newText
         noteCommentLabel.textColor = isEmpty ? .tertiaryLabel : .secondaryLabel
         UIView.transition(with: noteCardGlass.glass.contentView, duration: 0.2,
                           options: .transitionCrossDissolve) {
             self.noteNormalContainer.isHidden = false
-            self.noteEditContainer.isHidden   = true
+            self.noteEditContainer.isHidden = true
         }
     }
 
@@ -976,7 +930,7 @@ final class ImageCardOverviewViewController: UIViewController {
         UIView.transition(with: noteCardGlass.glass.contentView, duration: 0.2,
                           options: .transitionCrossDissolve) {
             self.noteNormalContainer.isHidden = false
-            self.noteEditContainer.isHidden   = true
+            self.noteEditContainer.isHidden = true
         }
     }
 
@@ -986,7 +940,7 @@ final class ImageCardOverviewViewController: UIViewController {
         pinsHeaderView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(pinsHeaderView)
 
-        let accentDot    = makeDot(size: 10, color: DayPinDesign.accent)
+        let accentDot = makeDot(size: 10, color: DayPinDesign.accent)
         let pinsTitleLbl = UILabel()
         pinsTitleLbl.attributedText = NSAttributedString(
             string: L10n.pinsSection,
@@ -994,7 +948,7 @@ final class ImageCardOverviewViewController: UIViewController {
                          .foregroundColor: UIColor.secondaryLabel, .kern: 0.5])
 
         let countBg = UIView()
-        countBg.backgroundColor    = DayPinDesign.accent
+        countBg.backgroundColor = DayPinDesign.accent
         countBg.layer.cornerRadius = 6
         countBg.translatesAutoresizingMaskIntoConstraints = false
 
@@ -1009,7 +963,7 @@ final class ImageCardOverviewViewController: UIViewController {
             pinsCountLabel.bottomAnchor.constraint(equalTo: countBg.bottomAnchor, constant: -2)
         ])
 
-        let spacer    = UIView()
+        let spacer = UIView()
         let headerRow = UIStackView(arrangedSubviews: [accentDot, pinsTitleLbl, countBg, spacer])
         headerRow.axis = .horizontal; headerRow.spacing = 6; headerRow.alignment = .center
         headerRow.translatesAutoresizingMaskIntoConstraints = false
@@ -1049,8 +1003,8 @@ final class ImageCardOverviewViewController: UIViewController {
         cv.onSave = { [weak self] title, text, colorHex in
             guard let self else { return }
             if let i = self.annotations.firstIndex(where: { $0.id == ann.id }) {
-                self.annotations[i].title    = title
-                self.annotations[i].text     = text
+                self.annotations[i].title = title
+                self.annotations[i].text = text
                 self.annotations[i].colorHex = colorHex
                 self.persist()
                 self.loadAnnotations()
@@ -1084,7 +1038,7 @@ final class ImageCardOverviewViewController: UIViewController {
             guard let self else { return }
             ReminderManager.shared.schedule(for: self.card, at: date) { [weak self] id in
                 guard let self else { return }
-                self.card.reminderDate           = date
+                self.card.reminderDate = date
                 self.card.reminderNotificationID = id
                 self.persist(); self.refreshBell()
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -1109,10 +1063,10 @@ final class ImageCardOverviewViewController: UIViewController {
         let vc = ImageCardEditorViewController(imageData: card.imageData, dayDate: card.dayDate, existingCard: card)
         vc.onSave = { [weak self] saved in
             guard let self else { return }
-            self.card.title       = saved.title
-            self.card.imageData   = saved.imageData
+            self.card.title = saved.title
+            self.card.imageData = saved.imageData
             self.card.annotations = saved.annotations
-            self.annotations      = saved.annotations
+            self.annotations = saved.annotations
             self.navTitleLabel.text = saved.title
             self.photoImageView.image = saved.imageData.flatMap { UIImage(data: $0) }
             self.persist(); self.loadAnnotations()
@@ -1124,10 +1078,10 @@ final class ImageCardOverviewViewController: UIViewController {
 
     private func makeDot(size: CGFloat, color: UIColor) -> UIView {
         let v = UIView()
-        v.backgroundColor    = color
+        v.backgroundColor = color
         v.layer.cornerRadius = size / 2
         v.translatesAutoresizingMaskIntoConstraints = false
-        v.widthAnchor.constraint(equalToConstant: size).isActive  = true
+        v.widthAnchor.constraint(equalToConstant: size).isActive = true
         v.heightAnchor.constraint(equalToConstant: size).isActive = true
         return v
     }
@@ -1161,12 +1115,11 @@ private final class OverviewPinDotView: UIView {
     private let annotation: ImageAnnotation
     private let pinColor:   UIColor
 
-    private let pillBg   = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+    private let pillBg = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
     private let innerDot = UIView()
     private let pulseLayer = CAShapeLayer()
     private var hasPillBg: Bool { !annotation.title.isEmpty }
 
-    // ── Layout constants ──────────────────────────────────────────
     static let dotSize:          CGFloat = 10
     static let pillHeight:       CGFloat = 26
     static let hPad:             CGFloat = 8
@@ -1183,7 +1136,7 @@ private final class OverviewPinDotView: UIView {
 
     init(annotation: ImageAnnotation) {
         self.annotation = annotation
-        self.pinColor   = UIColor(hex: annotation.colorHex) ?? DayPinDesign.accent
+        self.pinColor = UIColor(hex: annotation.colorHex) ?? DayPinDesign.accent
         super.init(frame: .zero)
         setup()
     }
@@ -1192,18 +1145,17 @@ private final class OverviewPinDotView: UIView {
     private func setup() {
         clipsToBounds = false
 
-        // ── Dot first (title label constraints reference its anchor) ──
-        innerDot.backgroundColor    = pinColor
-        innerDot.layer.cornerRadius  = Self.dotSize / 2
-        innerDot.layer.borderWidth   = 1.5
-        innerDot.layer.borderColor   = UIColor.white.cgColor
+        innerDot.backgroundColor = pinColor
+        innerDot.layer.cornerRadius = Self.dotSize / 2
+        innerDot.layer.borderWidth = 1.5
+        innerDot.layer.borderColor = UIColor.white.cgColor
         innerDot.translatesAutoresizingMaskIntoConstraints = false
 
         if hasPillBg {
             pillBg.layer.cornerRadius = Self.pillHeight / 2
-            pillBg.clipsToBounds      = true
-            pillBg.layer.borderWidth  = 1
-            pillBg.layer.borderColor  = UIColor.white.withAlphaComponent(0.18).cgColor
+            pillBg.clipsToBounds = true
+            pillBg.layer.borderWidth = 1
+            pillBg.layer.borderColor = UIColor.white.withAlphaComponent(0.18).cgColor
             pillBg.translatesAutoresizingMaskIntoConstraints = false
             addSubview(pillBg)
             NSLayoutConstraint.activate([
@@ -1213,7 +1165,6 @@ private final class OverviewPinDotView: UIView {
                 pillBg.bottomAnchor.constraint(equalTo: bottomAnchor)
             ])
 
-            // Add dot to pill.contentView first, then set up title constraints against it
             pillBg.contentView.addSubview(innerDot)
             NSLayoutConstraint.activate([
                 innerDot.centerYAnchor.constraint(equalTo: pillBg.contentView.centerYAnchor),
@@ -1223,8 +1174,8 @@ private final class OverviewPinDotView: UIView {
             ])
 
             let titleLbl = UILabel()
-            titleLbl.text      = annotation.title
-            titleLbl.font      = .inter(ofSize: 12, weight: .semibold)
+            titleLbl.text = annotation.title
+            titleLbl.font = .inter(ofSize: 12, weight: .semibold)
             titleLbl.textColor = UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }
             titleLbl.translatesAutoresizingMaskIntoConstraints = false
             pillBg.contentView.addSubview(titleLbl)
@@ -1243,14 +1194,14 @@ private final class OverviewPinDotView: UIView {
             ])
         }
 
-        layer.shadowColor   = pinColor.cgColor
+        layer.shadowColor = pinColor.cgColor
         layer.shadowOpacity = 0.5
-        layer.shadowRadius  = 4
-        layer.shadowOffset  = .zero
+        layer.shadowRadius = 4
+        layer.shadowOffset = .zero
 
-        pulseLayer.fillColor   = UIColor.clear.cgColor
+        pulseLayer.fillColor = UIColor.clear.cgColor
         pulseLayer.strokeColor = pinColor.withAlphaComponent(0.65).cgColor
-        pulseLayer.lineWidth   = 1.5
+        pulseLayer.lineWidth = 1.5
         layer.insertSublayer(pulseLayer, at: 0)
 
         startPulse()
@@ -1258,11 +1209,11 @@ private final class OverviewPinDotView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let r  = Self.dotSize / 2
+        let r = Self.dotSize / 2
         let cx = hasPillBg ? Self.dotCenterXInPill : bounds.midX
         let cy = bounds.midY
         pulseLayer.frame = CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2)
-        pulseLayer.path  = UIBezierPath(arcCenter: CGPoint(x: r, y: r), radius: r,
+        pulseLayer.path = UIBezierPath(arcCenter: CGPoint(x: r, y: r), radius: r,
                                         startAngle: 0, endAngle: .pi * 2, clockwise: true).cgPath
     }
 
@@ -1315,29 +1266,29 @@ private final class PinCardView: UIView {
     private var annotation: ImageAnnotation
     private let pinColor: UIColor
 
-    private let cardBg          = GlassCardView(style: .thinLight)
+    private let cardBg = GlassCardView(style: .thinLight)
     private let normalContainer = UIView()
-    private let editContainer   = UIView()
+    private let editContainer = UIView()
 
     // Only one of these is active at a time — avoids the card being sized to the taller container
     private var normalBottomConstraint: NSLayoutConstraint?
     private var editBottomConstraint:   NSLayoutConstraint?
 
-    private let colorDot   = UIView()
-    private let titleLbl   = UILabel()
-    private let descLbl    = UILabel()
-    private let editBtn    = UIButton(type: .system)
+    private let colorDot = UIView()
+    private let titleLbl = UILabel()
+    private let descLbl = UILabel()
+    private let editBtn = UIButton(type: .system)
 
     private let titleField = UITextField()
-    private let descField  = UITextView()
-    private let saveBtn    = UIButton(type: .system)
-    private let cancelBtn  = UIButton(type: .system)
-    private let deleteBtn  = UIButton(type: .system)
+    private let descField = UITextView()
+    private let saveBtn = UIButton(type: .system)
+    private let cancelBtn = UIButton(type: .system)
+    private let deleteBtn = UIButton(type: .system)
 
     init(annotation: ImageAnnotation) {
-        self.annotation   = annotation
+        self.annotation = annotation
         self.annotationID = annotation.id
-        self.pinColor     = UIColor(hex: annotation.colorHex) ?? DayPinDesign.accent
+        self.pinColor = UIColor(hex: annotation.colorHex) ?? DayPinDesign.accent
         super.init(frame: .zero)
         setup()
     }
@@ -1372,8 +1323,8 @@ private final class PinCardView: UIView {
             normalContainer.trailingAnchor.constraint(equalTo: cv.trailingAnchor)
         ])
 
-        colorDot.backgroundColor    = pinColor
-        colorDot.layer.cornerRadius  = 5
+        colorDot.backgroundColor = pinColor
+        colorDot.layer.cornerRadius = 5
         colorDot.translatesAutoresizingMaskIntoConstraints = false
 
         titleLbl.text = annotation.title.isEmpty ? "-" : annotation.title
@@ -1529,7 +1480,7 @@ private final class PinCardView: UIView {
         titleField.text = annotation.title; descField.text = annotation.text
         // Swap bottom constraints so the card resizes to fit edit content
         normalBottomConstraint?.isActive = false
-        editBottomConstraint?.isActive   = true
+        editBottomConstraint?.isActive = true
         UIView.transition(with: cardBg.glass.contentView, duration: 0.2, options: .transitionCrossDissolve) {
             self.normalContainer.isHidden = true; self.editContainer.isHidden = false
         }
@@ -1538,7 +1489,7 @@ private final class PinCardView: UIView {
 
     @objc private func saveTapped() {
         let newTitle = (titleField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let newText  = descField.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newText = descField.text.trimmingCharacters(in: .whitespacesAndNewlines)
         titleField.resignFirstResponder(); descField.resignFirstResponder()
         closeEditMode(); onSave?(newTitle, newText, annotation.colorHex)
     }
@@ -1554,7 +1505,7 @@ private final class PinCardView: UIView {
 
     private func closeEditMode() {
         // Swap back so card shrinks to normal-mode height
-        editBottomConstraint?.isActive   = false
+        editBottomConstraint?.isActive = false
         normalBottomConstraint?.isActive = true
         UIView.transition(with: cardBg.glass.contentView, duration: 0.2, options: .transitionCrossDissolve) {
             self.normalContainer.isHidden = false; self.editContainer.isHidden = true

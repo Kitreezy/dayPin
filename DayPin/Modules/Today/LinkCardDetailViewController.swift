@@ -3,17 +3,13 @@ import SafariServices
 
 final class LinkCardDetailViewController: UIViewController {
 
-    // MARK: - Properties
-
     private var card: LinkCard
     private var bellButton: UIBarButtonItem?
-    private let cardView      = GlassCardView(style: .card)
-    private let titleLabel    = UILabel()
-    private let linksStack    = UIStackView()
-    private let commentLabel  = UILabel()
+    private let cardView = GlassCardView(style: .card)
+    private let titleLabel = UILabel()
+    private let linksStack = UIStackView()
+    private let commentLabel = UILabel()
     private let coverImageView = UIImageView()
-
-    // MARK: - Init
 
     init(card: LinkCard) {
         self.card = card
@@ -47,7 +43,6 @@ final class LinkCardDetailViewController: UIViewController {
     }
 
     @objc private func onLanguageChanged() {
-        // Re-render to pick up L10n.activeLocale changes in any date-formatted content
         render()
     }
 
@@ -113,7 +108,7 @@ final class LinkCardDetailViewController: UIViewController {
         present(picker, animated: true)
     }
 
-    // MARK: - UI Setup
+    // MARK: - UI
 
     private func setupUI() {
         let scroll = UIScrollView()
@@ -138,7 +133,6 @@ final class LinkCardDetailViewController: UIViewController {
             container.widthAnchor.constraint(equalTo: scroll.widthAnchor)
         ])
 
-        // Cover image (above card, full width)
         coverImageView.contentMode = .scaleAspectFill
         coverImageView.layer.cornerRadius = 16
         coverImageView.layer.masksToBounds = true
@@ -190,15 +184,13 @@ final class LinkCardDetailViewController: UIViewController {
         commentLabel.text = card.comment
         commentLabel.isHidden = card.comment.isEmpty
 
-        // Cover image
         if let data = card.previewImageData, let image = UIImage(data: data) {
-            coverImageView.image   = image
+            coverImageView.image = image
             coverImageView.isHidden = false
         } else {
             coverImageView.isHidden = true
         }
 
-        // Links
         linksStack.arrangedSubviews.forEach {
             linksStack.removeArrangedSubview($0)
             $0.removeFromSuperview()
@@ -228,7 +220,7 @@ final class LinkCardDetailViewController: UIViewController {
         guard let image = coverImageView.image else { return }
         let viewer = FullScreenImageViewController(image: image, sourceView: coverImageView)
         viewer.modalPresentationStyle = .overFullScreen
-        viewer.modalTransitionStyle   = .crossDissolve
+        viewer.modalTransitionStyle = .crossDissolve
         present(viewer, animated: false)
     }
 

@@ -1,31 +1,27 @@
 import UIKit
 
-// MARK: - DayPin Design System
-
 enum DayPinDesign {
 
-    // MARK: - Scheme-driven accent colors (computed from current theme)
+    // MARK: - Accent
 
     static var accent: UIColor      { ThemeManager.shared.colorScheme.accent }
     static var accentDeep: UIColor  { ThemeManager.shared.colorScheme.accentDeep }
     static var accentLight: UIColor { ThemeManager.shared.colorScheme.accentLight }
 
-    // MARK: - Per-card-type tints
+    // MARK: - Card tints
 
     static var textCardTint: UIColor  { ThemeManager.shared.colorScheme.textTint }
     static var imageCardTint: UIColor { ThemeManager.shared.colorScheme.imageTint }
     static var linkCardTint: UIColor  { ThemeManager.shared.colorScheme.linkTint }
 
-    // MARK: - Static colors (not scheme-dependent)
-
     static let paleGold = UIColor(hex: "#FFF4D9") ?? UIColor(red: 1.0, green: 0.957, blue: 0.851, alpha: 1)
 
-    /// Neutral base tinted ~3-4% with the current accent — adapts to light/dark and scheme.
+    /// Neutral base tinted ~3-7% with the current accent so it adapts to both themes and schemes.
     static var background: UIColor {
         UIColor { t in
             let isDark = t.userInterfaceStyle == .dark
-            let base   = isDark ? UIColor(hex: "#0D0D0D") ?? .black : UIColor(hex: "#F5F3EF") ?? .systemBackground
-            let tint   = ThemeManager.shared.colorScheme.accent
+            let base = isDark ? UIColor(hex: "#0D0D0D") ?? .black : UIColor(hex: "#F5F3EF") ?? .systemBackground
+            let tint = ThemeManager.shared.colorScheme.accent
             return base.blendedWith(tint, fraction: isDark ? 0.05 : 0.07)
         }
     }
@@ -47,47 +43,44 @@ enum DayPinDesign {
 
     // MARK: - Typography
 
-    static let fontScreenTitle   = UIFont.inter(ofSize: 34, weight: .bold)
+    static let fontScreenTitle = UIFont.inter(ofSize: 34, weight: .bold)
     static let fontSectionHeader = UIFont.inter(ofSize: 22, weight: .semibold)
-    static let fontBody          = UIFont.inter(ofSize: 17, weight: .regular)
-    static let fontButton        = UIFont.inter(ofSize: 17, weight: .semibold)
-    static let fontCaption       = UIFont.inter(ofSize: 12, weight: .medium)
+    static let fontBody = UIFont.inter(ofSize: 17, weight: .regular)
+    static let fontButton = UIFont.inter(ofSize: 17, weight: .semibold)
+    static let fontCaption = UIFont.inter(ofSize: 12, weight: .medium)
 
     // MARK: - Gradient
 
     static func accentGradientLayer(frame: CGRect,
                                     cornerRadius: CGFloat = 12) -> CAGradientLayer {
         let g = CAGradientLayer()
-        g.colors      = [accentDeep.cgColor, accentLight.cgColor]
-        g.startPoint  = CGPoint(x: 0, y: 0)
-        g.endPoint    = CGPoint(x: 1, y: 1)
-        g.frame       = frame
+        g.colors = [accentDeep.cgColor, accentLight.cgColor]
+        g.startPoint = CGPoint(x: 0, y: 0)
+        g.endPoint = CGPoint(x: 1, y: 1)
+        g.frame = frame
         g.cornerRadius = cornerRadius
         return g
     }
 
-    // MARK: - Shadow (neutral, not accent-tinted)
+    // MARK: - Shadow
 
-    /// Pass `traitCollection` to get an appropriate shadow strength for the current appearance.
-    /// When `nil`, falls back to the conservative dark-mode strength (backward-compatible).
     static func applyCardShadow(to layer: CALayer, for traitCollection: UITraitCollection? = nil) {
         let isDark = traitCollection.map { $0.userInterfaceStyle == .dark } ?? true
-        layer.shadowColor   = UIColor.black.cgColor
+        layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = isDark ? 0.07 : 0.13
-        layer.shadowRadius  = isDark ? 12    : 8
-        layer.shadowOffset  = CGSize(width: 0, height: isDark ? 3 : 2)
+        layer.shadowRadius = isDark ? 12    : 8
+        layer.shadowOffset = CGSize(width: 0, height: isDark ? 3 : 2)
     }
 
     // MARK: - Navigation Bar Appearance
 
     static func makeNavBarAppearance() -> UINavigationBarAppearance {
         let a = UINavigationBarAppearance()
-        // Fully transparent — gradient background shows through seamlessly.
-        // Shadow and blur removed so the bar feels like part of the screen.
+        // Transparent so the gradient background shows through
         a.configureWithTransparentBackground()
         a.backgroundEffect = nil
-        a.backgroundColor  = .clear
-        a.shadowColor      = .clear
+        a.backgroundColor = .clear
+        a.shadowColor = .clear
         a.titleTextAttributes = [
             .font: UIFont.inter(ofSize: 17, weight: .semibold),
             .foregroundColor: UIColor.label
@@ -103,7 +96,7 @@ enum DayPinDesign {
         a.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
         a.backgroundColor = UIColor { t in
             let isDark = t.userInterfaceStyle == .dark
-            let base   = isDark ? UIColor(hex: "#0D0D0D") ?? .black : UIColor(hex: "#F5F5F5") ?? .systemBackground
+            let base = isDark ? UIColor(hex: "#0D0D0D") ?? .black : UIColor(hex: "#F5F5F5") ?? .systemBackground
             let tinted = base.blendedWith(ThemeManager.shared.colorScheme.accent, fraction: isDark ? 0.09 : 0.07)
             return tinted.withAlphaComponent(isDark ? 0.86 : 0.90)
         }
@@ -125,18 +118,16 @@ enum DayPinDesign {
          a.stackedLayoutAppearance,
          a.compactInlineLayoutAppearance].forEach { item in
             item.selected.titleTextAttributes = selectedAttrs
-            item.selected.iconColor           = accent
-            item.normal.titleTextAttributes   = normalAttrs
-            item.normal.iconColor             = .secondaryLabel
+            item.selected.iconColor = accent
+            item.normal.titleTextAttributes = normalAttrs
+            item.normal.iconColor = .secondaryLabel
         }
         return a
     }
 }
 
-// MARK: - UIColor helpers
-
 extension UIColor {
-    /// Linearly interpolate `fraction` of the way from self toward `other`.
+    /// Linear interpolation `fraction` of the way from self toward `other`.
     func blendedWith(_ other: UIColor, fraction f: CGFloat) -> UIColor {
         var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0
         var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0
@@ -156,12 +147,12 @@ extension UIColor {
 final class GradientButton: UIButton {
 
     private let gradientContainer = UIView()
-    private let gradientLayer     = CAGradientLayer()
+    private let gradientLayer = CAGradientLayer()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         gradientLayer.startPoint = CGPoint(x: 0, y: 0)
-        gradientLayer.endPoint   = CGPoint(x: 1, y: 1)
+        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
 
         gradientContainer.isUserInteractionEnabled = false
         gradientContainer.layer.insertSublayer(gradientLayer, at: 0)
@@ -172,15 +163,14 @@ final class GradientButton: UIButton {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        // Refresh gradient colors from current scheme on every layout pass
         gradientLayer.colors = [DayPinDesign.accentDeep.cgColor, DayPinDesign.accentLight.cgColor]
         sendSubviewToBack(gradientContainer)
         let r = layer.cornerRadius
-        gradientContainer.frame               = bounds
-        gradientContainer.layer.cornerRadius  = r
+        gradientContainer.frame = bounds
+        gradientContainer.layer.cornerRadius = r
         gradientContainer.layer.masksToBounds = true
-        gradientLayer.frame                   = gradientContainer.bounds
-        gradientLayer.cornerRadius            = r
+        gradientLayer.frame = gradientContainer.bounds
+        gradientLayer.cornerRadius = r
     }
 
     override var isHighlighted: Bool {
@@ -198,8 +188,8 @@ final class GlassFABView: UIView {
 
     var action: (() -> Void)?
 
-    private let blur       = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
-    private let overlay    = UIView()
+    private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let overlay = UIView()
     private let iconButton = UIButton(type: .system)
 
     override init(frame: CGRect) {
@@ -209,16 +199,14 @@ final class GlassFABView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func build() {
-        // Shadow on self — clipsToBounds stays false so shadow renders outside
-        layer.shadowColor   = UIColor.black.cgColor
+        layer.shadowColor = UIColor.black.cgColor
         layer.shadowOpacity = 0.15
-        layer.shadowRadius  = 14
-        layer.shadowOffset  = CGSize(width: 0, height: 4)
+        layer.shadowRadius = 14
+        layer.shadowOffset = CGSize(width: 0, height: 4)
 
-        // Blur pill
         blur.layer.cornerRadius = 26
-        blur.layer.borderWidth  = 0.5
-        blur.layer.borderColor  = UIColor.white.withAlphaComponent(0.20).cgColor
+        blur.layer.borderWidth = 0.5
+        blur.layer.borderColor = UIColor.white.withAlphaComponent(0.20).cgColor
         blur.clipsToBounds = true
         blur.translatesAutoresizingMaskIntoConstraints = false
         addSubview(blur)
@@ -229,12 +217,10 @@ final class GlassFABView: UIView {
             blur.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        // Accent tint overlay (behind icon, non-interactive)
         overlay.isUserInteractionEnabled = false
         overlay.translatesAutoresizingMaskIntoConstraints = false
         blur.contentView.addSubview(overlay)
 
-        // + icon button — fills entire pill to handle taps
         let cfg = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
         iconButton.setImage(UIImage(systemName: "plus", withConfiguration: cfg), for: .normal)
         iconButton.addTarget(self, action: #selector(tapped), for: .touchUpInside)

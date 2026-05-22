@@ -104,18 +104,16 @@ final class RecentlyDeletedViewController: UIViewController {
     @objc private func close() { dismiss(animated: true) }
 
     @objc private func emptyTrashTapped() {
-        let alert = UIAlertController(
+        GlassAlert.confirm(
+            in: self,
             title: L10n.emptyTrashTitle,
             message: L10n.emptyTrashMessage,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        alert.addAction(UIAlertAction(title: L10n.emptyTrashConfirm, style: .destructive) { [weak self] _ in
+            confirmTitle: L10n.emptyTrashConfirm
+        ) { [weak self] in
             CardStore.shared.emptyTrash()
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             self?.loadItems()
-        })
-        present(alert, animated: true)
+        }
     }
 
     private func restore(_ card: NoteCard, at indexPath: IndexPath) {

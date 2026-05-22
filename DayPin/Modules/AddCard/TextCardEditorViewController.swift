@@ -7,11 +7,31 @@ final class TextCardEditorViewController: UIViewController {
     private let card: TextCard?
     private let dayDate: Date
 
-    private let titleField = UITextField()
-    private let commentTextView = UITextView()
-    private let commentPlaceholder = UILabel()
-    private let formattingBar = FormattingToolbar()
+    // MARK: - Scroll content
+
+    private let scrollView = UIScrollView()
+    private let contentView = UIView()
+    private let dateLabel = UILabel()
+
+    // Single unified text view: first line = title (bold 24pt), rest = body (16pt)
+    private let noteTextView = UITextView()
+    private let notePlaceholder = UILabel()
+
+    // MARK: - Control panel (floats above keyboard)
+
+    private let controlContainer = UIView()
+    private let formattingStrip = NoteFormattingStrip()
+    private var stripHeightConstraint: NSLayoutConstraint!
+    private let panelSeparator = UIView()
+    private let bottomBar = UIView()
+    private let tagPill = UIButton(type: .system)
+    private let aaButton = UIButton(type: .system)
     private let tagsInputView = TagsInputView()
+    private var tagPanelHeightConstraint: NSLayoutConstraint!
+    private var stripVisible = false
+    private var tagPanelVisible = false
+
+    // MARK: - Init
 
     init(card: TextCard?, dayDate: Date) {
         self.card = card
@@ -25,16 +45,22 @@ final class TextCardEditorViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = card == nil ? L10n.newNote : L10n.edit
         view.backgroundColor = DayPinDesign.background
         setupNav()
-        setupUI()
-        fillIfEditing()
-        addKeyboardDismissGesture()
-        observeKeyboard()
+        setupScrollContent()
+        setupControlPanel()
+        fillContent()
         observeNotifications()
 
-        formattingBar.onAction = { [weak self] action in self?.applyFormat(action) }
+        formattingStrip.onAction = { [weak self] action in self?.applyFormat(action) }
+        presentationController?.delegate = self
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        noteTextView.becomeFirstResponder()
+        // Place cursor at end
+        noteTextView.selectedRange = NSRange(location: noteTextView.text.count, length: 0)
     }
 
     deinit {
@@ -51,204 +77,404 @@ final class TextCardEditorViewController: UIViewController {
     }
 
     @objc private func onLanguageChanged() {
-        title = card == nil ? L10n.newNote : L10n.edit
         navigationItem.leftBarButtonItem?.title = L10n.cancel
         navigationItem.rightBarButtonItem?.title = L10n.save
-        titleField.placeholder = L10n.titleOptionalPlaceholder
-        commentPlaceholder.text = L10n.commentPlaceholder
+        notePlaceholder.text = L10n.titleOptionalPlaceholder
+        refreshTagPill()
     }
 
     @objc private func onColorSchemeChanged() {
         navigationItem.rightBarButtonItem?.tintColor = DayPinDesign.accent
     }
 
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        commentTextView.becomeFirstResponder()
-    }
-
     // MARK: - Nav
 
     private func setupNav() {
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: L10n.cancel, style: .plain, target: self, action: #selector(cancel))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: L10n.save,   style: .done,  target: self, action: #selector(save))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: L10n.cancel, style: .plain, target: self, action: #selector(cancel)
+        )
+        let saveBtn = UIBarButtonItem(
+            title: L10n.save, style: .done, target: self, action: #selector(save)
+        )
+        saveBtn.tintColor = DayPinDesign.accent
+        navigationItem.rightBarButtonItem = saveBtn
     }
 
-    // MARK: - UI
+    // MARK: - Scroll content
 
-    private func setupUI() {
-        let formCard = GlassCardView(style: .card)
-        formCard.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(formCard)
+    private func setupScrollContent() {
+        scrollView.keyboardDismissMode = .interactive
+        scrollView.alwaysBounceVertical = true
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scrollView)
 
-        titleField.placeholder = L10n.titleOptionalPlaceholder
-        titleField.font = .inter(ofSize: 15, weight: .regular)
-        titleField.borderStyle = .none
-        titleField.returnKeyType = .next
-        titleField.delegate = self
-        titleField.translatesAutoresizingMaskIntoConstraints = false
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(contentView)
 
-        let divider = UIView()
-        divider.backgroundColor = .separator
-        divider.translatesAutoresizingMaskIntoConstraints = false
+        // Date label
+        let displayDate = card?.createdAt ?? Date()
+        let df = DateFormatter()
+        df.dateFormat = "d MMMM, HH:mm"
+        df.locale = L10n.activeLocale
+        dateLabel.text = df.string(from: displayDate)
+        dateLabel.font = .inter(ofSize: 13)
+        dateLabel.textColor = .tertiaryLabel
+        dateLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        commentTextView.font = .inter(ofSize: 15)
-        commentTextView.backgroundColor = .clear
-        commentTextView.isScrollEnabled = true
-        commentTextView.textContainer.lineBreakMode = .byWordWrapping
-        commentTextView.allowsEditingTextAttributes = true
-        commentTextView.translatesAutoresizingMaskIntoConstraints = false
-        commentTextView.delegate = self
-        commentTextView.inputAccessoryView = formattingBar
+        // Note text view
+        noteTextView.backgroundColor = .clear
+        noteTextView.isScrollEnabled = false
+        noteTextView.textContainerInset = .zero
+        noteTextView.textContainer.lineFragmentPadding = 0
+        noteTextView.allowsEditingTextAttributes = true
+        noteTextView.delegate = self
+        noteTextView.typingAttributes = titleTypingAttrs()
+        noteTextView.translatesAutoresizingMaskIntoConstraints = false
 
-        commentPlaceholder.text = L10n.commentPlaceholder
-        commentPlaceholder.font = .inter(ofSize: 15)
-        commentPlaceholder.textColor = .placeholderText
-        commentPlaceholder.translatesAutoresizingMaskIntoConstraints = false
+        // Placeholder
+        notePlaceholder.text = L10n.titleOptionalPlaceholder
+        notePlaceholder.font = titleFont()
+        notePlaceholder.textColor = .placeholderText
+        notePlaceholder.translatesAutoresizingMaskIntoConstraints = false
+        noteTextView.addSubview(notePlaceholder)
 
-        commentTextView.addSubview(commentPlaceholder)
-
-        let tagsDivider = UIView()
-        tagsDivider.backgroundColor = .separator
-        tagsDivider.translatesAutoresizingMaskIntoConstraints = false
-
-        tagsInputView.translatesAutoresizingMaskIntoConstraints = false
-
-        formCard.stackView.addArrangedSubview(titleField)
-        formCard.stackView.addArrangedSubview(divider)
-        formCard.stackView.addArrangedSubview(commentTextView)
-        formCard.stackView.addArrangedSubview(tagsDivider)
-        formCard.stackView.addArrangedSubview(tagsInputView)
+        contentView.addSubview(dateLabel)
+        contentView.addSubview(noteTextView)
 
         NSLayoutConstraint.activate([
-            formCard.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            formCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            formCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            formCard.bottomAnchor.constraint(lessThanOrEqualTo: view.keyboardLayoutGuide.topAnchor, constant: -12),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-            titleField.heightAnchor.constraint(equalToConstant: 44),
-            divider.heightAnchor.constraint(equalToConstant: 0.5),
-            commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 160),
-            tagsDivider.heightAnchor.constraint(equalToConstant: 0.5),
-            tagsInputView.heightAnchor.constraint(equalToConstant: 36),
+            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
 
-            commentPlaceholder.topAnchor.constraint(equalTo: commentTextView.topAnchor, constant: 8),
-            commentPlaceholder.leadingAnchor.constraint(equalTo: commentTextView.leadingAnchor, constant: 5)
+            dateLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            dateLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+
+            noteTextView.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 10),
+            noteTextView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            noteTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            noteTextView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -24),
+            noteTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
+
+            notePlaceholder.topAnchor.constraint(equalTo: noteTextView.topAnchor),
+            notePlaceholder.leadingAnchor.constraint(equalTo: noteTextView.leadingAnchor)
         ])
     }
 
-    private func fillIfEditing() {
-        guard let card else { return }
-        titleField.text = card.title
-        if let attributed = card.attributedComment {
-            commentTextView.attributedText = attributed.applying(baseFont: .inter(ofSize: 15))
+    // MARK: - Control panel
+
+    private func setupControlPanel() {
+        controlContainer.backgroundColor = .clear
+        controlContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(controlContainer)
+
+        formattingStrip.translatesAutoresizingMaskIntoConstraints = false
+        formattingStrip.clipsToBounds = true
+
+        let tagPanel = UIView()
+        tagPanel.translatesAutoresizingMaskIntoConstraints = false
+        tagPanel.clipsToBounds = true
+        tagsInputView.translatesAutoresizingMaskIntoConstraints = false
+        tagPanel.addSubview(tagsInputView)
+        NSLayoutConstraint.activate([
+            tagsInputView.topAnchor.constraint(equalTo: tagPanel.topAnchor, constant: 6),
+            tagsInputView.leadingAnchor.constraint(equalTo: tagPanel.leadingAnchor, constant: 16),
+            tagsInputView.trailingAnchor.constraint(equalTo: tagPanel.trailingAnchor, constant: -16),
+            tagsInputView.bottomAnchor.constraint(equalTo: tagPanel.bottomAnchor, constant: -6)
+        ])
+
+        panelSeparator.backgroundColor = UIColor.separator.withAlphaComponent(0.5)
+        panelSeparator.translatesAutoresizingMaskIntoConstraints = false
+
+        bottomBar.translatesAutoresizingMaskIntoConstraints = false
+        setupBottomBar()
+
+        controlContainer.addSubview(formattingStrip)
+        controlContainer.addSubview(tagPanel)
+        controlContainer.addSubview(panelSeparator)
+        controlContainer.addSubview(bottomBar)
+
+        stripHeightConstraint = formattingStrip.heightAnchor.constraint(equalToConstant: 0)
+        tagPanelHeightConstraint = tagPanel.heightAnchor.constraint(equalToConstant: 0)
+
+        NSLayoutConstraint.activate([
+            scrollView.bottomAnchor.constraint(equalTo: controlContainer.topAnchor),
+
+            controlContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            controlContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            controlContainer.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor),
+
+            formattingStrip.topAnchor.constraint(equalTo: controlContainer.topAnchor),
+            formattingStrip.leadingAnchor.constraint(equalTo: controlContainer.leadingAnchor),
+            formattingStrip.trailingAnchor.constraint(equalTo: controlContainer.trailingAnchor),
+            stripHeightConstraint,
+
+            tagPanel.topAnchor.constraint(equalTo: formattingStrip.bottomAnchor),
+            tagPanel.leadingAnchor.constraint(equalTo: controlContainer.leadingAnchor),
+            tagPanel.trailingAnchor.constraint(equalTo: controlContainer.trailingAnchor),
+            tagPanelHeightConstraint,
+
+            panelSeparator.topAnchor.constraint(equalTo: tagPanel.bottomAnchor),
+            panelSeparator.leadingAnchor.constraint(equalTo: controlContainer.leadingAnchor),
+            panelSeparator.trailingAnchor.constraint(equalTo: controlContainer.trailingAnchor),
+            panelSeparator.heightAnchor.constraint(equalToConstant: 0.5),
+
+            bottomBar.topAnchor.constraint(equalTo: panelSeparator.bottomAnchor),
+            bottomBar.leadingAnchor.constraint(equalTo: controlContainer.leadingAnchor),
+            bottomBar.trailingAnchor.constraint(equalTo: controlContainer.trailingAnchor),
+            bottomBar.bottomAnchor.constraint(equalTo: controlContainer.bottomAnchor),
+            bottomBar.heightAnchor.constraint(equalToConstant: 52)
+        ])
+    }
+
+    private func setupBottomBar() {
+        var tagCfg = UIButton.Configuration.filled()
+        tagCfg.cornerStyle = .capsule
+        tagCfg.baseBackgroundColor = DayPinDesign.accent.withAlphaComponent(0.12)
+        tagCfg.baseForegroundColor = DayPinDesign.accent
+        tagCfg.image = UIImage(systemName: "tag.fill",
+                               withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .medium))
+        tagCfg.imagePadding = 5
+        tagCfg.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12)
+        tagPill.configuration = tagCfg
+        refreshTagPill()
+        tagPill.addAction(UIAction { [weak self] _ in self?.toggleTagPanel() }, for: .touchUpInside)
+        tagPill.translatesAutoresizingMaskIntoConstraints = false
+
+        let aaCfg = UIImage.SymbolConfiguration(pointSize: 17, weight: .medium)
+        aaButton.setImage(UIImage(systemName: "textformat", withConfiguration: aaCfg), for: .normal)
+        aaButton.tintColor = .secondaryLabel
+        aaButton.addAction(UIAction { [weak self] _ in self?.toggleFormattingStrip() }, for: .touchUpInside)
+        aaButton.translatesAutoresizingMaskIntoConstraints = false
+
+        bottomBar.addSubview(tagPill)
+        bottomBar.addSubview(aaButton)
+
+        NSLayoutConstraint.activate([
+            tagPill.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 16),
+            tagPill.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            aaButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -20),
+            aaButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor)
+        ])
+
+        tagsInputView.onTagsChanged = { [weak self] _ in self?.refreshTagPill() }
+    }
+
+    // MARK: - Fill content
+
+    private func fillContent() {
+        if let card {
+            // Build attributed string: title (bold 24pt) + newline + body
+            let mas = NSMutableAttributedString()
+            mas.append(NSAttributedString(string: card.title, attributes: titleTypingAttrs()))
+
+            let hasBody: Bool
+            if let attributed = card.attributedComment, attributed.length > 0 {
+                mas.append(NSAttributedString(string: "\n", attributes: bodyTypingAttrs()))
+                let body = attributed.applying(baseColor: .label, baseFont: bodyFont())
+                mas.append(body)
+                hasBody = true
+            } else if !card.comment.isEmpty {
+                mas.append(NSAttributedString(string: "\n" + card.comment, attributes: bodyTypingAttrs()))
+                hasBody = true
+            } else {
+                hasBody = false
+            }
+
+            noteTextView.attributedText = mas
+            _ = hasBody
+            notePlaceholder.isHidden = true
+            tagsInputView.tagIDs = card.tagIDs
+            refreshTagPill()
         } else {
-            commentTextView.text = card.comment
+            // New note - empty, show placeholder
+            noteTextView.text = ""
+            noteTextView.typingAttributes = titleTypingAttrs()
+            notePlaceholder.isHidden = false
         }
-        commentPlaceholder.isHidden = !commentTextView.text.isEmpty
-        tagsInputView.tagIDs = card.tagIDs
+    }
+
+    // MARK: - Tag pill
+
+    private func refreshTagPill() {
+        let ids = tagsInputView.selectedTagIDs
+        var cfg = tagPill.configuration ?? UIButton.Configuration.filled()
+        cfg.title = ids.isEmpty ? L10n.addTag : "\(ids.count)"
+        cfg.baseBackgroundColor = ids.isEmpty
+            ? DayPinDesign.accent.withAlphaComponent(0.12)
+            : DayPinDesign.accent.withAlphaComponent(0.20)
+        tagPill.configuration = cfg
+    }
+
+    // MARK: - Toggle panels
+
+    private func toggleFormattingStrip() {
+        stripVisible.toggle()
+        if stripVisible { tagPanelVisible = false }
+        UIView.animate(withDuration: 0.28, delay: 0, options: .curveEaseInOut) {
+            self.stripHeightConstraint.constant = self.stripVisible ? 44 : 0
+            self.tagPanelHeightConstraint.constant = self.tagPanelVisible ? 52 : 0
+            self.aaButton.tintColor = self.stripVisible ? DayPinDesign.accent : .secondaryLabel
+            self.view.layoutIfNeeded()
+        }
+        if stripVisible { noteTextView.becomeFirstResponder() }
+    }
+
+    private func toggleTagPanel() {
+        tagPanelVisible.toggle()
+        if tagPanelVisible { stripVisible = false }
+        UIView.animate(withDuration: 0.28, delay: 0, options: .curveEaseInOut) {
+            self.tagPanelHeightConstraint.constant = self.tagPanelVisible ? 52 : 0
+            self.stripHeightConstraint.constant = self.stripVisible ? 44 : 0
+            self.view.layoutIfNeeded()
+        }
+    }
+
+    // MARK: - Font helpers
+
+    private func titleFont() -> UIFont { .inter(ofSize: 24, weight: .bold) }
+    private func bodyFont() -> UIFont { .inter(ofSize: 16, weight: .regular) }
+
+    private func titleTypingAttrs() -> [NSAttributedString.Key: Any] {
+        [.font: titleFont(), .foregroundColor: UIColor.label]
+    }
+    private func bodyTypingAttrs() -> [NSAttributedString.Key: Any] {
+        [.font: bodyFont(), .foregroundColor: UIColor.label]
+    }
+
+    // Whether the cursor is inside the first paragraph (title line)
+    private func cursorIsOnFirstLine() -> Bool {
+        let ns = noteTextView.text as NSString
+        guard ns.length > 0 else { return true }
+        let cursorPos = noteTextView.selectedRange.location
+        let firstParaRange = ns.paragraphRange(for: NSRange(location: 0, length: 0))
+        // Cursor is on first line if it is within or right after the first paragraph
+        return cursorPos <= firstParaRange.location + firstParaRange.length
+    }
+
+    // Re-apply title styling to the first paragraph (keeps bold even after paste)
+    private func enforceFirstLineStyle() {
+        guard let text = noteTextView.text, !text.isEmpty else { return }
+        let ns = text as NSString
+        let firstParaRange = ns.paragraphRange(for: NSRange(location: 0, length: 0))
+        // Only the title text itself (without trailing newline)
+        let titleRange = NSRange(location: firstParaRange.location,
+                                 length: max(0, firstParaRange.length - (text.hasPrefix("\n") ? 0 : (ns.substring(with: firstParaRange).hasSuffix("\n") ? 1 : 0))))
+        let mas = NSMutableAttributedString(attributedString: noteTextView.attributedText)
+        mas.addAttribute(.font, value: titleFont(), range: titleRange)
+        let sel = noteTextView.selectedRange
+        noteTextView.attributedText = mas
+        noteTextView.selectedRange = NSRange(location: min(sel.location, mas.length), length: 0)
     }
 
     // MARK: - Formatting
 
-    private func applyFormat(_ action: FormattingToolbar.Action) {
-        guard commentTextView.isFirstResponder else { return }
-
+    private func applyFormat(_ action: NoteFormattingStrip.Action) {
         if case .dismissKeyboard = action {
-            commentTextView.resignFirstResponder(); return
-        }
-
-        switch action {
-        case .listBullet:    toggleListPrefix("• ");  formattingBar.updateState(for: commentTextView); return
-        case .listNumbered:  toggleListPrefix(nil, numbered: true); formattingBar.updateState(for: commentTextView); return
-        case .listDash:      toggleListPrefix("- ");  formattingBar.updateState(for: commentTextView); return
-        default: break
-        }
-
-        let range = commentTextView.selectedRange
-
-        if range.length == 0 {
-            applyToTypingAttributes(action)
-            formattingBar.updateState(for: commentTextView)
+            view.endEditing(true)
+            stripVisible = false
+            UIView.animate(withDuration: 0.22) {
+                self.stripHeightConstraint.constant = 0
+                self.aaButton.tintColor = .secondaryLabel
+                self.view.layoutIfNeeded()
+            }
             return
         }
 
-        let mas = NSMutableAttributedString(attributedString: commentTextView.attributedText)
+        guard noteTextView.isFirstResponder else { return }
 
+        // Don't apply body formatting to the title line
+        let onTitle = cursorIsOnFirstLine()
+
+        switch action {
+        case .listBullet:
+            if !onTitle { toggleListPrefix("• "); formattingStrip.updateState(for: noteTextView) }
+            return
+        case .listNumbered:
+            if !onTitle { toggleListPrefix(nil, numbered: true); formattingStrip.updateState(for: noteTextView) }
+            return
+        case .listDash:
+            if !onTitle { toggleListPrefix("- "); formattingStrip.updateState(for: noteTextView) }
+            return
+        default: break
+        }
+
+        let range = noteTextView.selectedRange
+        if range.length == 0 {
+            applyToTypingAttributes(action)
+            formattingStrip.updateState(for: noteTextView)
+            return
+        }
+
+        let mas = NSMutableAttributedString(attributedString: noteTextView.attributedText)
         switch action {
         case .fontSmaller:   mas.adjustFontSize(by: -2, in: range, min: 10)
         case .fontLarger:    mas.adjustFontSize(by: +2, in: range, max: 36)
-        case .bold:          mas.toggleTrait(.traitBold,   in: range, baseSize: 15)
-        case .italic:        mas.toggleTrait(.traitItalic, in: range, baseSize: 15)
+        case .bold:          mas.toggleTrait(.traitBold,   in: range, baseSize: 16)
+        case .italic:        mas.toggleTrait(.traitItalic, in: range, baseSize: 16)
         case .underline:     mas.toggleUnderline(in: range)
         case .strikethrough: mas.toggleStrikethrough(in: range)
         case .heading:       mas.toggleHeading(in: range)
         default: break
         }
 
-        let sel = commentTextView.selectedRange
-        commentTextView.attributedText = mas
-        commentTextView.selectedRange = sel
-        if sel.location > 0, let attrText = commentTextView.attributedText {
-            let idx = min(sel.location, attrText.length) - 1
-            var newAttrs = attrText.attributes(at: max(0, idx), effectiveRange: nil)
-            newAttrs[.foregroundColor] = UIColor.label
-            commentTextView.typingAttributes = newAttrs
-        } else {
-            commentTextView.typingAttributes = typingAttrs()
+        let sel = noteTextView.selectedRange
+        noteTextView.attributedText = mas
+        noteTextView.selectedRange = sel
+        if sel.location > 0, let attr = noteTextView.attributedText {
+            let idx = min(sel.location, attr.length) - 1
+            var attrs = attr.attributes(at: max(0, idx), effectiveRange: nil)
+            attrs[.foregroundColor] = UIColor.label
+            noteTextView.typingAttributes = attrs
         }
-        formattingBar.updateState(for: commentTextView)
+        enforceFirstLineStyle()
+        formattingStrip.updateState(for: noteTextView)
     }
 
     private func toggleListPrefix(_ prefix: String?, numbered: Bool = false) {
-        guard let text = commentTextView.text else { return }
-        let nsText = text as NSString
-        let cursorPos = commentTextView.selectedRange.location
-        let paraRange = nsText.paragraphRange(for: NSRange(location: min(cursorPos, max(0, nsText.length - 1)), length: 0))
-        let para = nsText.substring(with: paraRange)
+        guard let text = noteTextView.text else { return }
+        let ns = text as NSString
+        let pos = noteTextView.selectedRange.location
+        let paraRange = ns.paragraphRange(for: NSRange(location: min(pos, max(0, ns.length - 1)), length: 0))
+        let para = ns.substring(with: paraRange)
 
-        let existingPrefix: String?
-        if para.hasPrefix("• ") { existingPrefix = "• " }
-        else if para.hasPrefix("- ") { existingPrefix = "- " }
-        else if let n = formattingBar.numberedListPrefix(in: para) { existingPrefix = "\(n). " }
-        else { existingPrefix = nil }
+        let existing: String?
+        if para.hasPrefix("• ") { existing = "• " }
+        else if para.hasPrefix("- ") { existing = "- " }
+        else if let n = formattingStrip.numberedListPrefix(in: para) { existing = "\(n). " }
+        else { existing = nil }
 
-        let mas = NSMutableAttributedString(attributedString: commentTextView.attributedText)
+        let mas = NSMutableAttributedString(attributedString: noteTextView.attributedText)
         let insertAt = paraRange.location
 
-        if let existing = existingPrefix {
-            let removeRange = NSRange(location: insertAt, length: existing.count)
-            if insertAt + existing.count <= mas.length {
-                mas.deleteCharacters(in: removeRange)
+        if let ex = existing {
+            if insertAt + ex.count <= mas.length {
+                mas.deleteCharacters(in: NSRange(location: insertAt, length: ex.count))
             }
-            let wantPrefix: String?
-            if numbered {
-                wantPrefix = existingPrefix?.first?.isNumber == true ? nil : "1. "
-            } else {
-                wantPrefix = (existing == prefix) ? nil : prefix
-            }
-            if let wp = wantPrefix {
-                mas.insert(NSAttributedString(string: wp, attributes: typingAttrs()), at: insertAt)
-            }
+            let want: String?
+            if numbered { want = ex.first?.isNumber == true ? nil : "1. " }
+            else { want = (ex == prefix) ? nil : prefix }
+            if let w = want { mas.insert(NSAttributedString(string: w, attributes: bodyTypingAttrs()), at: insertAt) }
         } else {
-            let newPrefix: String
-            if numbered {
-                newPrefix = "1. "
-            } else {
-                newPrefix = prefix ?? "• "
-            }
-            mas.insert(NSAttributedString(string: newPrefix, attributes: typingAttrs()), at: insertAt)
+            let newPrefix = numbered ? "1. " : (prefix ?? "• ")
+            mas.insert(NSAttributedString(string: newPrefix, attributes: bodyTypingAttrs()), at: insertAt)
         }
 
-        let sel = commentTextView.selectedRange
-        commentTextView.attributedText = mas
-        commentTextView.selectedRange = NSRange(location: min(sel.location, mas.length), length: 0)
+        let sel = noteTextView.selectedRange
+        noteTextView.attributedText = mas
+        noteTextView.selectedRange = NSRange(location: min(sel.location, mas.length), length: 0)
     }
 
-    private func applyToTypingAttributes(_ action: FormattingToolbar.Action) {
-        var attrs = commentTextView.typingAttributes
-        let font = attrs[.font] as? UIFont ?? .inter(ofSize: 15)
-
+    private func applyToTypingAttributes(_ action: NoteFormattingStrip.Action) {
+        var attrs = noteTextView.typingAttributes
+        let font = attrs[.font] as? UIFont ?? bodyFont()
         switch action {
         case .bold:
             var t = font.fontDescriptor.symbolicTraits
@@ -266,30 +492,58 @@ final class TextCardEditorViewController: UIViewController {
             attrs[.strikethroughStyle] = cur == 0 ? NSUnderlineStyle.single.rawValue : 0
         case .heading:
             let isHeading = font.pointSize >= 20
-            attrs[.font] = isHeading
-                ? UIFont.inter(ofSize: 15, weight: .regular)
-                : UIFont.inter(ofSize: 22, weight: .bold)
+            attrs[.font] = isHeading ? UIFont.inter(ofSize: 16, weight: .regular) : UIFont.inter(ofSize: 22, weight: .bold)
         case .fontSmaller:
-            let sz = max(10, font.pointSize - 2)
-            attrs[.font] = UIFont(descriptor: font.fontDescriptor, size: sz)
+            attrs[.font] = UIFont(descriptor: font.fontDescriptor, size: max(10, font.pointSize - 2))
         case .fontLarger:
-            let sz = min(36, font.pointSize + 2)
-            attrs[.font] = UIFont(descriptor: font.fontDescriptor, size: sz)
+            attrs[.font] = UIFont(descriptor: font.fontDescriptor, size: min(36, font.pointSize + 2))
         default: break
         }
-
         attrs[.foregroundColor] = UIColor.label
-        commentTextView.typingAttributes = attrs
+        noteTextView.typingAttributes = attrs
     }
 
-    private func typingAttrs() -> [NSAttributedString.Key: Any] {
-        [.font: UIFont.inter(ofSize: 15), .foregroundColor: UIColor.label]
-    }
+    // MARK: - Save logic
 
-    // MARK: - Keyboard
+    private func buildAndSave() {
+        guard let attrText = noteTextView.attributedText, attrText.length > 0 else { return }
+        let fullText = attrText.string
+        guard !fullText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
-    private func observeKeyboard() {
-        // formCard bottom constraint uses UIKeyboardLayoutGuide, nothing else needed.
+        let ns = fullText as NSString
+        let firstParaRange = ns.paragraphRange(for: NSRange(location: 0, length: 0))
+        var rawTitle = ns.substring(with: firstParaRange)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Body starts after the first paragraph
+        let bodyStart = firstParaRange.location + firstParaRange.length
+        let bodyAttr: NSAttributedString?
+        if bodyStart < attrText.length {
+            bodyAttr = attrText.attributedSubstring(from: NSRange(location: bodyStart, length: attrText.length - bodyStart))
+        } else {
+            bodyAttr = nil
+        }
+
+        if rawTitle.isEmpty, let body = bodyAttr?.string {
+            let first = body.components(separatedBy: .newlines)
+                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }?
+                .trimmingCharacters(in: .whitespaces) ?? L10n.untitledNote
+            rawTitle = first.count > 60 ? String(first.prefix(57)) + "…" : first
+        }
+        if rawTitle.isEmpty { rawTitle = L10n.untitledNote }
+
+        let saved = card ?? TextCard(title: rawTitle, dayDate: dayDate)
+        saved.title = rawTitle
+        saved.tagIDs = tagsInputView.selectedTagIDs
+
+        if let body = bodyAttr, body.length > 0 {
+            saved.setAttributedComment(body)
+        } else {
+            saved.comment = ""
+            saved.rtfData = nil
+        }
+
+        onSave?(saved)
     }
 
     // MARK: - Actions
@@ -297,53 +551,75 @@ final class TextCardEditorViewController: UIViewController {
     @objc private func cancel() { dismiss(animated: true) }
 
     @objc private func save() {
-        var titleText = titleField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let bodyText = commentTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-        if titleText.isEmpty && bodyText.isEmpty { commentTextView.shake(); return }
-
-        if titleText.isEmpty {
-            let firstLine = bodyText
-                .components(separatedBy: .newlines)
-                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }?
-                .trimmingCharacters(in: .whitespaces) ?? L10n.untitledNote
-            titleText = firstLine.count > 60 ? String(firstLine.prefix(57)) + "…" : firstLine
-        }
-
-        let saved = card ?? TextCard(title: titleText, dayDate: dayDate)
-        saved.title = titleText
-        saved.tagIDs = tagsInputView.selectedTagIDs
-
-        let attributed = commentTextView.attributedText ?? NSAttributedString()
-        if attributed.length > 0 {
-            saved.setAttributedComment(attributed)
-        } else {
-            saved.comment = commentTextView.text ?? ""
-            saved.rtfData = nil
-        }
-
-        onSave?(saved)
+        let text = noteTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if text.isEmpty { noteTextView.shake(); return }
+        buildAndSave()
         dismiss(animated: true)
     }
 }
 
-// MARK: - UITextFieldDelegate
+// MARK: - UIAdaptivePresentationControllerDelegate
 
-extension TextCardEditorViewController: UITextFieldDelegate {
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        commentTextView.becomeFirstResponder(); return false
+extension TextCardEditorViewController: UIAdaptivePresentationControllerDelegate {
+    func presentationControllerWillDismiss(_ presentationController: UIPresentationController) {
+        buildAndSave()
     }
 }
 
 // MARK: - UITextViewDelegate
 
 extension TextCardEditorViewController: UITextViewDelegate {
-    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        formattingStrip.updateState(for: textView)
+    }
+
+    func textViewDidChange(_ textView: UITextView) {
+        notePlaceholder.isHidden = !textView.text.isEmpty
+        formattingStrip.updateState(for: textView)
+    }
+
+    func textViewDidChangeSelection(_ textView: UITextView) {
+        // Adjust typing attributes based on whether cursor is on title or body line
+        let onTitle = cursorIsOnFirstLine()
+        if onTitle {
+            // Preserve bold for title line
+            var attrs = textView.typingAttributes
+            attrs[.font] = titleFont()
+            textView.typingAttributes = attrs
+        }
+        formattingStrip.updateState(for: textView)
+    }
+
+    func textView(_ textView: UITextView,
+                  shouldChangeTextIn range: NSRange,
+                  replacementText text: String) -> Bool {
         guard text == "\n" else { return true }
-        let nsText = textView.text as NSString
-        let cursorPos = range.location
-        let paraRange = nsText.paragraphRange(for: NSRange(location: min(cursorPos, max(0, nsText.length - 1)), length: 0))
-        let para = nsText.substring(with: paraRange)
+
+        let ns = textView.text as NSString
+        let pos = range.location
+        // Check if Enter is pressed while on the first line
+        let firstParaRange = ns.paragraphRange(for: NSRange(location: 0, length: 0))
+        let isOnFirstLine = pos <= firstParaRange.location + firstParaRange.length
+
+        if isOnFirstLine {
+            // Enforce first-line style then insert newline with body attrs
+            let mas = NSMutableAttributedString(attributedString: textView.attributedText)
+            let newline = NSAttributedString(string: "\n", attributes: bodyTypingAttrs())
+            mas.replaceCharacters(in: range, with: newline)
+            // Ensure title line stays bold
+            mas.addAttribute(.font, value: titleFont(), range: firstParaRange)
+            textView.attributedText = mas
+            textView.selectedRange = NSRange(location: range.location + 1, length: 0)
+            textView.typingAttributes = bodyTypingAttrs()
+            notePlaceholder.isHidden = true
+            formattingStrip.updateState(for: textView)
+            return false
+        }
+
+        // For body lines — handle list continuation
+        let paraRange = ns.paragraphRange(for: NSRange(location: min(pos, max(0, ns.length - 1)), length: 0))
+        let para = ns.substring(with: paraRange)
 
         let prefix: String?
         if para.hasPrefix("• ") {
@@ -352,7 +628,7 @@ extension TextCardEditorViewController: UITextViewDelegate {
         } else if para.hasPrefix("- ") {
             let content = para.dropFirst(2).trimmingCharacters(in: .newlines)
             prefix = content.isEmpty ? nil : "- "
-        } else if let n = formattingBar.numberedListPrefix(in: para) {
+        } else if let n = formattingStrip.numberedListPrefix(in: para) {
             let pfx = "\(n). "
             let content = para.dropFirst(pfx.count).trimmingCharacters(in: .newlines)
             prefix = content.isEmpty ? nil : "\(n + 1). "
@@ -362,64 +638,40 @@ extension TextCardEditorViewController: UITextViewDelegate {
 
         let mas = NSMutableAttributedString(attributedString: textView.attributedText)
         if let p = prefix {
-            // Insert newline + next prefix
-            let insertion = NSAttributedString(string: "\n" + p, attributes: typingAttrs())
-            mas.replaceCharacters(in: range, with: insertion)
+            let ins = NSAttributedString(string: "\n" + p, attributes: bodyTypingAttrs())
+            mas.replaceCharacters(in: range, with: ins)
             textView.attributedText = mas
-            textView.selectedRange = NSRange(location: range.location + insertion.length, length: 0)
+            textView.selectedRange = NSRange(location: range.location + ins.length, length: 0)
         } else {
-            // Empty list item → remove the prefix on this line and insert a plain newline
             let prefixLen: Int
             if para.hasPrefix("• ") || para.hasPrefix("- ") { prefixLen = 2 }
-            else if let n = formattingBar.numberedListPrefix(in: para) { prefixLen = "\(n). ".count }
+            else if let n = formattingStrip.numberedListPrefix(in: para) { prefixLen = "\(n). ".count }
             else { prefixLen = 0 }
-            // Delete the prefix characters from the current paragraph start
             if prefixLen > 0 {
-                let removeRange = NSRange(location: paraRange.location, length: prefixLen)
-                mas.deleteCharacters(in: removeRange)
+                mas.deleteCharacters(in: NSRange(location: paraRange.location, length: prefixLen))
             }
             textView.attributedText = mas
-            let newCursor = paraRange.location + (prefixLen > 0 ? 0 : 0)
-            textView.selectedRange = NSRange(location: newCursor, length: 0)
+            textView.selectedRange = NSRange(location: paraRange.location, length: 0)
         }
 
-        commentPlaceholder.isHidden = true
-        formattingBar.updateState(for: textView)
+        formattingStrip.updateState(for: textView)
         return false
     }
-
-    func textViewDidChange(_ textView: UITextView) {
-        commentPlaceholder.isHidden = !textView.text.isEmpty
-    }
-    func textViewDidChangeSelection(_ textView: UITextView) {
-        formattingBar.updateState(for: textView)
-    }
 }
 
-// MARK: - NSAttributedString helpers
+// MARK: - NSMutableAttributedString helpers
 
-private extension NSAttributedString {
-    func applying(baseFont: UIFont) -> NSAttributedString {
-        let mas = NSMutableAttributedString(attributedString: self)
-        mas.enumerateAttribute(.font, in: NSRange(location: 0, length: length)) { val, range, _ in
-            if val == nil { mas.addAttribute(.font, value: baseFont, range: range) }
-        }
-        mas.addAttribute(.foregroundColor, value: UIColor.label, range: NSRange(location: 0, length: length))
-        return mas
-    }
-}
-
-private extension NSMutableAttributedString {
+extension NSMutableAttributedString {
     func toggleTrait(_ trait: UIFontDescriptor.SymbolicTraits, in range: NSRange, baseSize: CGFloat) {
-        var allHaveTrait = true
+        var allHave = true
         enumerateAttribute(.font, in: range) { val, _, _ in
-            guard let font = val as? UIFont else { allHaveTrait = false; return }
-            if !font.fontDescriptor.symbolicTraits.contains(trait) { allHaveTrait = false }
+            guard let f = val as? UIFont else { allHave = false; return }
+            if !f.fontDescriptor.symbolicTraits.contains(trait) { allHave = false }
         }
         enumerateAttribute(.font, in: range) { val, r, _ in
             let base = (val as? UIFont) ?? .inter(ofSize: baseSize)
             var traits = base.fontDescriptor.symbolicTraits
-            if allHaveTrait { traits.remove(trait) } else { traits.insert(trait) }
+            if allHave { traits.remove(trait) } else { traits.insert(trait) }
             if let desc = base.fontDescriptor.withSymbolicTraits(traits) {
                 addAttribute(.font, value: UIFont(descriptor: desc, size: 0), range: r)
             }
@@ -442,16 +694,11 @@ private extension NSMutableAttributedString {
         addAttribute(.strikethroughStyle, value: allHave ? 0 : NSUnderlineStyle.single.rawValue, range: range)
     }
 
-    func setFont(_ font: UIFont, in range: NSRange) {
-        addAttribute(.font, value: font, range: range)
-    }
-
-    func adjustFontSize(by delta: CGFloat, in range: NSRange, min minSize: CGFloat = 10, max maxSize: CGFloat = 36) {
+    func adjustFontSize(by delta: CGFloat, in range: NSRange, min minS: CGFloat = 10, max maxS: CGFloat = 36) {
         enumerateAttribute(.font, in: range) { val, r, _ in
-            let base = (val as? UIFont) ?? .inter(ofSize: 15)
-            let newSize = min(max(base.pointSize + delta, minSize), maxSize)
-            let newFont = UIFont(descriptor: base.fontDescriptor, size: newSize)
-            addAttribute(.font, value: newFont, range: r)
+            let base = (val as? UIFont) ?? .inter(ofSize: 16)
+            let sz = Swift.min(Swift.max(base.pointSize + delta, minS), maxS)
+            addAttribute(.font, value: UIFont(descriptor: base.fontDescriptor, size: sz), range: r)
         }
     }
 
@@ -460,249 +707,9 @@ private extension NSMutableAttributedString {
         enumerateAttribute(.font, in: range) { val, _, _ in
             if let f = val as? UIFont, f.pointSize < 20 { allHeading = false }
         }
-        let targetFont: UIFont = allHeading
-            ? .inter(ofSize: 15, weight: .regular)
-            : .inter(ofSize: 22, weight: .bold)
-        addAttribute(.font, value: targetFont, range: range)
-    }
-}
-
-// MARK: - FormattingToolbar
-
-final class FormattingToolbar: UIInputView {
-
-    enum Action {
-        case bold, italic, underline, strikethrough
-        case heading
-        case listBullet, listNumbered, listDash
-        case fontSmaller, fontLarger
-        case dismissKeyboard
-    }
-
-    var onAction: ((Action) -> Void)?
-
-    private var formatButtons: [UIButton] = []
-    private let fontSizeLabel = UILabel()
-    private var headingBtn: UIButton?
-    private var listBtn: UIButton?
-
-    init() {
-        super.init(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 52),
-                   inputViewStyle: .keyboard)
-        setup()
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    private func setup() {
-        backgroundColor = UIColor { t in
-            t.userInterfaceStyle == .dark
-                ? UIColor(white: 0.16, alpha: 1)
-                : UIColor(white: 0.86, alpha: 1)
-        }
-
-        let scroll = UIScrollView()
-        scroll.showsHorizontalScrollIndicator = false
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(scroll)
-
-        let closeBtn = makeToolButton(systemName: "keyboard.chevron.compact.down", action: .dismissKeyboard, isFormat: false)
-        closeBtn.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(closeBtn)
-
-        NSLayoutConstraint.activate([
-            scroll.topAnchor.constraint(equalTo: topAnchor, constant: 6),
-            scroll.leadingAnchor.constraint(equalTo: leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: closeBtn.leadingAnchor, constant: -4),
-            scroll.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
-
-            closeBtn.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            closeBtn.centerYAnchor.constraint(equalTo: centerYAnchor),
-            closeBtn.widthAnchor.constraint(equalToConstant: 40),
-            closeBtn.heightAnchor.constraint(equalToConstant: 36)
-        ])
-
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.spacing = 2
-        stack.alignment = .center
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        scroll.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: scroll.topAnchor),
-            stack.leadingAnchor.constraint(equalTo: scroll.leadingAnchor, constant: 8),
-            stack.trailingAnchor.constraint(equalTo: scroll.trailingAnchor, constant: -8),
-            stack.bottomAnchor.constraint(equalTo: scroll.bottomAnchor),
-            stack.heightAnchor.constraint(equalTo: scroll.heightAnchor)
-        ])
-
-        stack.addArrangedSubview(makeToolButton(systemName: "textformat.size.smaller", action: .fontSmaller, isFormat: false))
-
-        fontSizeLabel.text = "15"
-        fontSizeLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-        fontSizeLabel.textAlignment = .center
-        fontSizeLabel.textColor = .label
-        fontSizeLabel.widthAnchor.constraint(equalToConstant: 26).isActive = true
-        stack.addArrangedSubview(fontSizeLabel)
-
-        stack.addArrangedSubview(makeToolButton(systemName: "textformat.size.larger", action: .fontLarger, isFormat: false))
-        stack.addArrangedSubview(makeSeparator())
-
-        let formatSpecs: [(String, Action)] = [
-            ("bold",          .bold),
-            ("italic",        .italic),
-            ("underline",     .underline),
-            ("strikethrough", .strikethrough)
-        ]
-        for (icon, action) in formatSpecs {
-            let btn = makeToolButton(systemName: icon, action: action, isFormat: true)
-            stack.addArrangedSubview(btn)
-            formatButtons.append(btn)
-        }
-        stack.addArrangedSubview(makeSeparator())
-
-        let hBtn = makeToolButton(systemName: "h.square", action: .heading, isFormat: true)
-        headingBtn = hBtn
-        stack.addArrangedSubview(hBtn)
-
-        let lBtn = makeListButton()
-        listBtn = lBtn
-        stack.addArrangedSubview(lBtn)
-    }
-
-    // MARK: List button with menu
-
-    private func makeListButton() -> UIButton {
-        let btn = UIButton(type: .system)
-        let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-        btn.setImage(UIImage(systemName: "list.bullet", withConfiguration: cfg), for: .normal)
-        btn.tintColor = .label
-        btn.layer.cornerRadius = 7
-        btn.widthAnchor.constraint(equalToConstant: 40).isActive = true
-        btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
-        btn.showsMenuAsPrimaryAction = true
-
-        let bulletAction = UIAction(title: L10n.listBullet,   image: UIImage(systemName: "list.bullet"))  { [weak self] _ in self?.onAction?(.listBullet) }
-        let numberedAction = UIAction(title: L10n.listNumbered, image: UIImage(systemName: "list.number")) { [weak self] _ in self?.onAction?(.listNumbered) }
-        let dashAction = UIAction(title: L10n.listDash,      image: UIImage(systemName: "list.dash"))   { [weak self] _ in self?.onAction?(.listDash) }
-        btn.menu = UIMenu(children: [bulletAction, numberedAction, dashAction])
-        return btn
-    }
-
-    // MARK: Helpers
-
-    private func makeToolButton(systemName: String, action: Action, isFormat: Bool) -> UIButton {
-        let btn = UIButton(type: .system)
-        let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-        btn.setImage(UIImage(systemName: systemName, withConfiguration: cfg), for: .normal)
-        btn.tintColor = .label
-        btn.layer.cornerRadius = 7
-        btn.widthAnchor.constraint(equalToConstant: 40).isActive = true
-        btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
-        btn.addAction(UIAction { [weak self] _ in self?.onAction?(action) }, for: .touchUpInside)
-        return btn
-    }
-
-    private func makeSeparator() -> UIView {
-        let v = UIView()
-        v.backgroundColor = UIColor { t in
-            t.userInterfaceStyle == .dark
-                ? UIColor(white: 1, alpha: 0.15)
-                : UIColor(white: 0, alpha: 0.2)
-        }
-        v.widthAnchor.constraint(equalToConstant: 1).isActive = true
-        v.heightAnchor.constraint(equalToConstant: 20).isActive = true
-        v.translatesAutoresizingMaskIntoConstraints = false
-        return v
-    }
-
-    // MARK: State update
-
-    func updateState(for textView: UITextView) {
-        let activeColor = UIColor { t in
-            t.userInterfaceStyle == .dark
-                ? UIColor(white: 1, alpha: 0.25)
-                : UIColor(white: 0, alpha: 0.15)
-        }
-
-        let range = textView.selectedRange
-
-        let displayFont: UIFont
-        if range.length > 0, let attrText = textView.attributedText, attrText.length > 0 {
-            let idx = min(range.location, attrText.length - 1)
-            displayFont = (attrText.attribute(.font, at: idx, effectiveRange: nil) as? UIFont)
-                ?? .inter(ofSize: 15)
-        } else {
-            displayFont = (textView.typingAttributes[.font] as? UIFont) ?? .inter(ofSize: 15)
-        }
-        fontSizeLabel.text = "\(Int(displayFont.pointSize))"
-
-        if range.length > 0, let attrText = textView.attributedText {
-            func allHaveTrait(_ trait: UIFontDescriptor.SymbolicTraits) -> Bool {
-                var ok = true
-                attrText.enumerateAttribute(.font, in: range) { val, _, _ in
-                    if let f = val as? UIFont, !f.fontDescriptor.symbolicTraits.contains(trait) { ok = false }
-                }
-                return ok
-            }
-            func allHaveInt(_ key: NSAttributedString.Key) -> Bool {
-                var ok = true
-                attrText.enumerateAttribute(key, in: range) { val, _, _ in
-                    if (val as? Int) == nil || (val as? Int) == 0 { ok = false }
-                }
-                return ok
-            }
-            formatButtons[0].backgroundColor = allHaveTrait(.traitBold)       ? activeColor : .clear
-            formatButtons[1].backgroundColor = allHaveTrait(.traitItalic)      ? activeColor : .clear
-            formatButtons[2].backgroundColor = allHaveInt(.underlineStyle)     ? activeColor : .clear
-            formatButtons[3].backgroundColor = allHaveInt(.strikethroughStyle) ? activeColor : .clear
-
-            headingBtn?.backgroundColor = displayFont.pointSize >= 20 ? activeColor : .clear
-        } else {
-            let typing = textView.typingAttributes
-            let font = typing[.font] as? UIFont ?? .inter(ofSize: 15)
-            formatButtons[0].backgroundColor = font.fontDescriptor.symbolicTraits.contains(.traitBold)   ? activeColor : .clear
-            formatButtons[1].backgroundColor = font.fontDescriptor.symbolicTraits.contains(.traitItalic) ? activeColor : .clear
-            formatButtons[2].backgroundColor = (typing[.underlineStyle]     as? Int ?? 0) != 0 ? activeColor : .clear
-            formatButtons[3].backgroundColor = (typing[.strikethroughStyle] as? Int ?? 0) != 0 ? activeColor : .clear
-            headingBtn?.backgroundColor = font.pointSize >= 20 ? activeColor : .clear
-        }
-
-        guard let text = textView.text else { return }
-        let nsText = text as NSString
-        let cursorPos = range.location
-        if cursorPos <= nsText.length {
-            let paraRange = nsText.paragraphRange(for: NSRange(location: cursorPos, length: 0))
-            let para = nsText.substring(with: paraRange)
-            let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-            if para.hasPrefix("• ") {
-                listBtn?.setImage(UIImage(systemName: "list.bullet", withConfiguration: cfg), for: .normal)
-                listBtn?.backgroundColor = activeColor
-            } else if para.hasPrefix("- ") {
-                listBtn?.setImage(UIImage(systemName: "list.dash", withConfiguration: cfg), for: .normal)
-                listBtn?.backgroundColor = activeColor
-            } else if let _ = numberedListPrefix(in: para) {
-                listBtn?.setImage(UIImage(systemName: "list.number", withConfiguration: cfg), for: .normal)
-                listBtn?.backgroundColor = activeColor
-            } else {
-                listBtn?.setImage(UIImage(systemName: "list.bullet", withConfiguration: cfg), for: .normal)
-                listBtn?.backgroundColor = .clear
-            }
-        }
-    }
-
-    func numberedListPrefix(in paragraph: String) -> Int? {
-        let trimmed = paragraph
-        var i = trimmed.startIndex
-        var digits = ""
-        while i < trimmed.endIndex, trimmed[i].isNumber {
-            digits.append(trimmed[i])
-            i = trimmed.index(after: i)
-        }
-        guard !digits.isEmpty,
-              i < trimmed.endIndex, trimmed[i] == ".",
-              trimmed.index(after: i) < trimmed.endIndex,
-              trimmed[trimmed.index(after: i)] == " " else { return nil }
-        return Int(digits)
+        addAttribute(.font, value: allHeading
+            ? UIFont.inter(ofSize: 16, weight: .regular)
+            : UIFont.inter(ofSize: 22, weight: .bold),
+            range: range)
     }
 }

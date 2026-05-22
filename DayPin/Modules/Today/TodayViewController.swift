@@ -663,13 +663,11 @@ final class TodayViewController: UIViewController {
     @objc private func deleteSelectedTapped() {
         guard !selectedIDs.isEmpty else { return }
         let count = selectedIDs.count
-        let alert = UIAlertController(
+        GlassAlert.confirm(
+            in: self,
             title: L10n.deleteNotesTitle(count),
-            message: nil,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
+            confirmTitle: L10n.delete
+        ) { [weak self] in
             guard let self else { return }
             let toDelete = self.flatCards.filter { self.selectedIDs.contains($0.id) }
             toDelete.forEach { CardStore.shared.delete(card: $0) }
@@ -677,19 +675,14 @@ final class TodayViewController: UIViewController {
             self.exitSelectMode()
             self.applyFilters(animated: true)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-        })
-        present(alert, animated: true)
+        }
     }
 
     @objc private func moveSelectedToFolderTapped() {
         guard !selectedIDs.isEmpty else { return }
         let folders = FolderStore.shared.all()
         guard !folders.isEmpty else {
-            let alert = UIAlertController(title: L10n.noFolders,
-                                          message: L10n.noFoldersMessage,
-                                          preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            present(alert, animated: true)
+            GlassAlert.show(in: self, title: L10n.noFolders, message: L10n.noFoldersMessage)
             return
         }
         let sheet = UIAlertController(title: L10n.chooseFolderTitle, message: nil, preferredStyle: .actionSheet)

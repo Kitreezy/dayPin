@@ -48,10 +48,8 @@ final class ImageCardOverviewViewController: UIViewController {
     private let contentView = UIView()
 
     private let noteCardGlass = GlassCardView(style: .thinLight)
-    private let noteNormalContainer = UIView()
-    private let noteEditContainer = UIView()
-    private let noteCommentLabel = UILabel()
     private let noteTextView = UITextView()
+    private var noteIsShowingPlaceholder = true
 
     // Pins section
     private let pinsHeaderView = UIView()
@@ -165,7 +163,9 @@ final class ImageCardOverviewViewController: UIViewController {
             return nil
         }
         guard let responder = findFirstResponder(in: contentView) else { return }
-        let rect = responder.convert(responder.bounds, to: scrollView).insetBy(dx: 0, dy: -20)
+        var rect = responder.convert(responder.bounds, to: scrollView).insetBy(dx: 0, dy: -20)
+        // Clamp to never scroll past the top — negative offset hides content behind the photo
+        rect.origin.y = max(0, rect.origin.y)
         scrollView.scrollRectToVisible(rect, animated: true)
     }
 
@@ -778,160 +778,31 @@ final class ImageCardOverviewViewController: UIViewController {
 
         let cv = noteCardGlass.glass.contentView
 
-        noteNormalContainer.translatesAutoresizingMaskIntoConstraints = false
-        cv.addSubview(noteNormalContainer)
-        NSLayoutConstraint.activate([
-            noteNormalContainer.topAnchor.constraint(equalTo: cv.topAnchor),
-            noteNormalContainer.leadingAnchor.constraint(equalTo: cv.leadingAnchor),
-            noteNormalContainer.trailingAnchor.constraint(equalTo: cv.trailingAnchor),
-            noteNormalContainer.bottomAnchor.constraint(equalTo: cv.bottomAnchor)
-        ])
-
-        let sectionLbl = makeCaptionLabel(L10n.noteSection)
-
-        let isEmpty = card.comment.isEmpty
-        noteCommentLabel.text = isEmpty
-            ? L10n.tapToAddNote
-            : card.comment
-        noteCommentLabel.font = .inter(ofSize: 14)
-        noteCommentLabel.textColor = isEmpty ? .tertiaryLabel : .secondaryLabel
-        noteCommentLabel.numberOfLines = 0
-        noteCommentLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let pencilCfg = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-        let pencilBtn = UIButton(type: .system)
-        pencilBtn.setImage(UIImage(systemName: "pencil", withConfiguration: pencilCfg), for: .normal)
-        pencilBtn.tintColor = .tertiaryLabel
-        pencilBtn.translatesAutoresizingMaskIntoConstraints = false
-        pencilBtn.addTarget(self, action: #selector(editNoteTapped), for: .touchUpInside)
-
-        let headerRow = UIStackView(arrangedSubviews: [sectionLbl, UIView(), pencilBtn])
-        headerRow.axis = .horizontal; headerRow.spacing = 8; headerRow.alignment = .center
-        headerRow.translatesAutoresizingMaskIntoConstraints = false
-
-        noteNormalContainer.addSubview(headerRow)
-        noteNormalContainer.addSubview(noteCommentLabel)
-        NSLayoutConstraint.activate([
-            headerRow.topAnchor.constraint(equalTo: noteNormalContainer.topAnchor,        constant: 12),
-            headerRow.leadingAnchor.constraint(equalTo: noteNormalContainer.leadingAnchor,    constant: 14),
-            headerRow.trailingAnchor.constraint(equalTo: noteNormalContainer.trailingAnchor, constant: -10),
-            pencilBtn.widthAnchor.constraint(equalToConstant: 28),
-            pencilBtn.heightAnchor.constraint(equalToConstant: 28),
-
-            noteCommentLabel.topAnchor.constraint(equalTo: headerRow.bottomAnchor,            constant: 6),
-            noteCommentLabel.leadingAnchor.constraint(equalTo: noteNormalContainer.leadingAnchor,    constant: 14),
-            noteCommentLabel.trailingAnchor.constraint(equalTo: noteNormalContainer.trailingAnchor,  constant: -14),
-            noteCommentLabel.bottomAnchor.constraint(equalTo: noteNormalContainer.bottomAnchor,      constant: -14)
-        ])
-
-        noteEditContainer.translatesAutoresizingMaskIntoConstraints = false
-        noteEditContainer.isHidden = true
-        cv.addSubview(noteEditContainer)
-        NSLayoutConstraint.activate([
-            noteEditContainer.topAnchor.constraint(equalTo: cv.topAnchor),
-            noteEditContainer.leadingAnchor.constraint(equalTo: cv.leadingAnchor),
-            noteEditContainer.trailingAnchor.constraint(equalTo: cv.trailingAnchor),
-            noteEditContainer.bottomAnchor.constraint(equalTo: cv.bottomAnchor)
-        ])
-
-        let editCaption = makeCaptionLabel(L10n.noteSection)
-
-        noteTextView.text = card.comment
+        noteIsShowingPlaceholder = card.comment.isEmpty
+        noteTextView.text = noteIsShowingPlaceholder ? L10n.tapToAddNote : card.comment
         noteTextView.font = .inter(ofSize: 14)
-        noteTextView.textColor = .label
+        noteTextView.textColor = noteIsShowingPlaceholder ? .tertiaryLabel : .label
         noteTextView.backgroundColor = .clear
         noteTextView.isScrollEnabled = false
-        noteTextView.textContainerInset = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+        noteTextView.textContainerInset = UIEdgeInsets(top: 12, left: 10, bottom: 12, right: 10)
         noteTextView.translatesAutoresizingMaskIntoConstraints = false
+        noteTextView.delegate = self
+        // Minimum height so the card is tappable even when empty
+        noteTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
 
-        let sep = makeSeparator()
-
-        let saveBtn = UIButton(type: .system)
-        saveBtn.setTitle(L10n.save, for: .normal)
-        saveBtn.titleLabel?.font = .inter(ofSize: 13, weight: .semibold)
-        saveBtn.backgroundColor = DayPinDesign.accent
-        saveBtn.setTitleColor(UIColor { trait in trait.userInterfaceStyle == .dark ? .white : .white }, for: .normal)
-        saveBtn.layer.cornerRadius = 8
-        saveBtn.translatesAutoresizingMaskIntoConstraints = false
-        saveBtn.addTarget(self, action: #selector(saveNoteTapped), for: .touchUpInside)
-
-        let cancelBtn = UIButton(type: .system)
-        cancelBtn.setTitle(L10n.cancel, for: .normal)
-        cancelBtn.titleLabel?.font = .inter(ofSize: 13)
-        cancelBtn.setTitleColor(.secondaryLabel, for: .normal)
-        cancelBtn.translatesAutoresizingMaskIntoConstraints = false
-        cancelBtn.addTarget(self, action: #selector(cancelNoteTapped), for: .touchUpInside)
-
-        let btnRow = UIStackView(arrangedSubviews: [saveBtn, cancelBtn])
-        btnRow.axis = .horizontal; btnRow.spacing = 8; btnRow.distribution = .fillEqually
-        btnRow.translatesAutoresizingMaskIntoConstraints = false
-
-        noteEditContainer.addSubview(editCaption)
-        noteEditContainer.addSubview(noteTextView)
-        noteEditContainer.addSubview(sep)
-        noteEditContainer.addSubview(btnRow)
-        noteTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 60).isActive = true
+        cv.addSubview(noteTextView)
         NSLayoutConstraint.activate([
-            editCaption.topAnchor.constraint(equalTo: noteEditContainer.topAnchor,       constant: 12),
-            editCaption.leadingAnchor.constraint(equalTo: noteEditContainer.leadingAnchor,    constant: 14),
-            editCaption.trailingAnchor.constraint(equalTo: noteEditContainer.trailingAnchor, constant: -14),
-
-            noteTextView.topAnchor.constraint(equalTo: editCaption.bottomAnchor,  constant: 6),
-            noteTextView.leadingAnchor.constraint(equalTo: noteEditContainer.leadingAnchor),
-            noteTextView.trailingAnchor.constraint(equalTo: noteEditContainer.trailingAnchor),
-
-            sep.topAnchor.constraint(equalTo: noteTextView.bottomAnchor, constant: 4),
-            sep.leadingAnchor.constraint(equalTo: noteEditContainer.leadingAnchor),
-            sep.trailingAnchor.constraint(equalTo: noteEditContainer.trailingAnchor),
-
-            btnRow.topAnchor.constraint(equalTo: sep.bottomAnchor,               constant: 8),
-            btnRow.leadingAnchor.constraint(equalTo: noteEditContainer.leadingAnchor,   constant: 12),
-            btnRow.trailingAnchor.constraint(equalTo: noteEditContainer.trailingAnchor, constant: -12),
-            btnRow.heightAnchor.constraint(equalToConstant: 34),
-            btnRow.bottomAnchor.constraint(equalTo: noteEditContainer.bottomAnchor, constant: -10)
+            noteTextView.topAnchor.constraint(equalTo: cv.topAnchor),
+            noteTextView.leadingAnchor.constraint(equalTo: cv.leadingAnchor),
+            noteTextView.trailingAnchor.constraint(equalTo: cv.trailingAnchor),
+            noteTextView.bottomAnchor.constraint(equalTo: cv.bottomAnchor)
         ])
 
         NSLayoutConstraint.activate([
-            noteCardGlass.topAnchor.constraint(equalTo: contentView.topAnchor,       constant: 14),
-            noteCardGlass.leadingAnchor.constraint(equalTo: contentView.leadingAnchor,    constant: 16),
+            noteCardGlass.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 14),
+            noteCardGlass.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             noteCardGlass.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16)
         ])
-    }
-
-    @objc private func editNoteTapped() {
-        noteTextView.text = card.comment
-        UIView.transition(with: noteCardGlass.glass.contentView, duration: 0.2,
-                          options: .transitionCrossDissolve) {
-            self.noteNormalContainer.isHidden = true
-            self.noteEditContainer.isHidden = false
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.noteTextView.becomeFirstResponder() }
-    }
-
-    @objc private func saveNoteTapped() {
-        let newText = noteTextView.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        noteTextView.resignFirstResponder()
-        card.comment = newText
-        CardStore.shared.save(card: card)
-        let isEmpty = newText.isEmpty
-        noteCommentLabel.text = isEmpty
-            ? L10n.tapToAddNote
-            : newText
-        noteCommentLabel.textColor = isEmpty ? .tertiaryLabel : .secondaryLabel
-        UIView.transition(with: noteCardGlass.glass.contentView, duration: 0.2,
-                          options: .transitionCrossDissolve) {
-            self.noteNormalContainer.isHidden = false
-            self.noteEditContainer.isHidden = true
-        }
-    }
-
-    @objc private func cancelNoteTapped() {
-        noteTextView.resignFirstResponder()
-        UIView.transition(with: noteCardGlass.glass.contentView, duration: 0.2,
-                          options: .transitionCrossDissolve) {
-            self.noteNormalContainer.isHidden = false
-            self.noteEditContainer.isHidden = true
-        }
     }
 
     // MARK: - Pins section
@@ -1102,6 +973,30 @@ final class ImageCardOverviewViewController: UIViewController {
         v.translatesAutoresizingMaskIntoConstraints = false
         v.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
         return v
+    }
+}
+
+// MARK: - UITextViewDelegate
+
+extension ImageCardOverviewViewController: UITextViewDelegate {
+
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        guard noteIsShowingPlaceholder else { return }
+        textView.text = ""
+        textView.textColor = .label
+        noteIsShowingPlaceholder = false
+    }
+
+    func textViewDidEndEditing(_ textView: UITextView) {
+        let newText = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if newText.isEmpty {
+            textView.text = L10n.tapToAddNote
+            textView.textColor = .tertiaryLabel
+            noteIsShowingPlaceholder = true
+        }
+        guard card.comment != newText else { return }
+        card.comment = newText
+        CardStore.shared.save(card: card)
     }
 }
 

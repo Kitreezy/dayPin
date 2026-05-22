@@ -138,15 +138,15 @@ final class FolderListViewController: UIViewController {
     }
 
     private func deleteFolder(_ folder: Folder) {
-        let alert = UIAlertController(title: L10n.deleteFolderTitle,
-                                      message: L10n.deleteFolderMessage,
-                                      preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        alert.addAction(UIAlertAction(title: L10n.delete, style: .destructive) { [weak self] _ in
+        GlassAlert.confirm(
+            in: self,
+            title: L10n.deleteFolderTitle,
+            message: L10n.deleteFolderMessage,
+            confirmTitle: L10n.delete
+        ) { [weak self] in
             FolderStore.shared.delete(folder)
             self?.reload()
-        })
-        present(alert, animated: true)
+        }
     }
 }
 

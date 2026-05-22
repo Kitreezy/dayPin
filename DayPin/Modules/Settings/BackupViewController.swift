@@ -132,16 +132,14 @@ final class BackupViewController: UIViewController {
         let folders = preview.folders.count
         let imgCards = preview.cards.filter { $0.imageData != nil }.count
 
-        let alert = UIAlertController(
+        GlassAlert.confirm(
+            in: self,
             title: L10n.restoreDataTitle,
             message: L10n.restoreConfirmMessage(date: dateStr, cards: cards, imgCards: imgCards, folders: folders),
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: L10n.backupRestore, style: .destructive) { [weak self] _ in
+            confirmTitle: L10n.backupRestore
+        ) { [weak self] in
             self?.performRestore(data: data)
-        })
-        alert.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        present(alert, animated: true)
+        }
     }
 
     private func performRestore(data: Data) {
@@ -152,16 +150,18 @@ final class BackupViewController: UIViewController {
                 let result = try BackupManager.shared.restore(from: data)
                 DispatchQueue.main.async {
                     spinner.dismiss(animated: false) {
-                        let alert = UIAlertController(
+                        guard let self else { return }
+                        GlassAlert.confirm(
+                            in: self,
                             title: L10n.restoreDone,
                             message: L10n.restoreSuccess(cards: result.cards, folders: result.folders),
-                            preferredStyle: .alert
-                        )
-                        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
+                            cancelTitle: L10n.cancel,
+                            confirmTitle: "OK",
+                            isDestructive: false
+                        ) { [weak self] in
                             NotificationCenter.default.post(name: .dayPinDataRestored, object: nil)
                             self?.dismiss(animated: true)
-                        })
-                        self?.present(alert, animated: true)
+                        }
                     }
                 }
             } catch {
@@ -193,9 +193,7 @@ final class BackupViewController: UIViewController {
     // MARK: - Helpers
 
     private func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        GlassAlert.show(in: self, title: title, message: message)
     }
 }
 

@@ -288,6 +288,27 @@ enum L10n {
     static var urlPastePlaceholder: String { s("Вставьте ссылку…", "Paste a link…") }
     static var untitledNote: String       { s("Заметка", "Note") }
 
+    // MARK: - Profile & CloudKit
+
+    static var profile: String               { s("Профиль", "Profile") }
+    static var iCloudAccount: String         { s("iCloud аккаунт", "iCloud Account") }
+    static var iCloudSync: String            { s("iCloud синхронизация", "iCloud Sync") }
+    static var editProfile: String           { s("Изменить фото профиля", "Change Profile Photo") }
+    static var syncNow: String               { s("Синхронизировать", "Sync Now") }
+    static var syncing: String               { s("Синхронизация...", "Syncing...") }
+    static var syncReady: String             { s("Готово к синхронизации", "Ready to sync") }
+    static func syncedAt(_ time: String) -> String { s("Синхронизировано в \(time)", "Synced at \(time)") }
+    static var disconnectICloud: String      { s("Отключить iCloud", "Disconnect iCloud") }
+    static var disconnect: String            { s("Отключить", "Disconnect") }
+    static var disconnectICloudMessage: String { s("Данные останутся на устройстве. Синхронизация будет отключена.", "Data stays on device. Sync will be disabled.") }
+    static var iCloudNotAvailable: String    { s("iCloud недоступен", "iCloud Not Available") }
+    static var iCloudNotAvailableHint: String { s("Войдите в iCloud в настройках устройства", "Sign in to iCloud in device Settings") }
+    static var notifications: String         { s("Уведомления", "Notifications") }
+    static var notifyOnChanges: String       { s("Уведомления об изменениях", "Change Notifications") }
+    static var notifyOnChangesHint: String   { s("Получать тост внутри приложения когда кто-то изменил общую заметку", "Show in-app toast when a shared note is changed") }
+    static var pushWhenAppClosed: String     { s("Push-уведомления", "Push Notifications") }
+    static var pushWhenAppClosedHint: String { s("Системное уведомление когда приложение закрыто", "System notification when the app is closed") }
+
     // MARK: - Annotation count
     static func annotationCount(_ n: Int) -> String {
         if isRussian {

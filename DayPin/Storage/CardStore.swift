@@ -45,6 +45,7 @@ final class CardStore {
         if let idx = storage.firstIndex(where: { $0.id == card.id }) {
             var dto = NoteCardDTO(from: card)
             dto.deletedAt = nil
+            dto.modifiedAt = Date()
             storage[idx] = dto
         } else {
             storage.append(NoteCardDTO(from: card))
@@ -58,6 +59,7 @@ final class CardStore {
         ReminderManager.shared.cancel(for: card)
         if let idx = storage.firstIndex(where: { $0.id == card.id }) {
             storage[idx].deletedAt = Date()
+            storage[idx].modifiedAt = Date()
             persist()
         }
     }
@@ -194,6 +196,7 @@ struct NoteCardDTO: Codable {
     var title: String
     var comment: String
     var createdAt: Date
+    var modifiedAt: Date = Date()
     var dayDate: Date
     var deletedAt: Date?
     // TextCard
@@ -214,6 +217,18 @@ struct NoteCardDTO: Codable {
     // Reminder
     var reminderDate: Date?
     var reminderNotificationID: String?
+
+    // Minimal init used by CloudKitManager when building from CKRecord
+    init(id: UUID, type: CardType, title: String, comment: String, createdAt: Date, dayDate: Date, deletedAt: Date?) {
+        self.id = id
+        self.type = type
+        self.title = title
+        self.comment = comment
+        self.createdAt = createdAt
+        self.modifiedAt = Date()
+        self.dayDate = dayDate
+        self.deletedAt = deletedAt
+    }
 
     init(from card: NoteCard) {
         id = card.id

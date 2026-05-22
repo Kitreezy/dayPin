@@ -7,6 +7,7 @@ struct Folder: Identifiable, Codable {
     var name: String
     var colorHex: String
     var createdAt: Date
+    var modifiedAt: Date = Date()
     var emojiIcon: String?
     var iconImageData: Data?
 
@@ -39,10 +40,12 @@ final class FolderStore {
     func folder(for id: UUID) -> Folder? { folders.first { $0.id == id } }
 
     func save(_ folder: Folder) {
+        var f = folder
+        f.modifiedAt = Date()
         if let idx = folders.firstIndex(where: { $0.id == folder.id }) {
-            folders[idx] = folder
+            folders[idx] = f
         } else {
-            folders.append(folder)
+            folders.append(f)
         }
         persist()
     }

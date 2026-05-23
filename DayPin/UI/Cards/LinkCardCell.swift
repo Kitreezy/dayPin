@@ -12,6 +12,7 @@ final class LinkCardCell: UICollectionViewCell {
     private let commentLabel = UILabel()
     private let glassTimeLabel = UILabel()
     private let reminderDot = UIImageView()
+    private let tagPillsView = CardTagPillsView()
 
     private let thumbnailView = UIImageView()
     private let thumbGradient = CAGradientLayer()
@@ -79,7 +80,10 @@ final class LinkCardCell: UICollectionViewCell {
         glassTimeLabel.textColor = .tertiaryLabel
         glassTimeLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let mainStack = UIStackView(arrangedSubviews: [linkIconBadge, titleLabel, urlLabel, commentLabel])
+        tagPillsView.translatesAutoresizingMaskIntoConstraints = false
+        tagPillsView.isHidden = true
+
+        let mainStack = UIStackView(arrangedSubviews: [linkIconBadge, titleLabel, urlLabel, commentLabel, tagPillsView])
         mainStack.axis = .vertical
         mainStack.spacing = 5
         mainStack.alignment = .leading
@@ -220,6 +224,7 @@ final class LinkCardCell: UICollectionViewCell {
             thumbnailView.isHidden = false
             thumbnailContentStack?.isHidden = false
             cardView.isHidden = true
+            tagPillsView.isHidden = true
 
             thumbTitle.text = card.previewTitle ?? card.title
             thumbUrl.text = card.url.host ?? card.url.absoluteString
@@ -240,6 +245,8 @@ final class LinkCardCell: UICollectionViewCell {
             linkIconImage.tintColor = tint
             linkIconBadge.backgroundColor = tint.withAlphaComponent(0.12)
             cardView.setAccentColor(tint)
+
+            tagPillsView.configure(tagIDs: card.tagIDs, style: .light)
         }
 
         setNeedsLayout()

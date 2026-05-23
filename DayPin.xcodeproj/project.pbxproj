@@ -18,6 +18,7 @@
 		19FC0DE6C76347A29F15A803 /* PinCalloutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 374A9BDC9E9CC25C8610CE2E /* PinCalloutView.swift */; };
 		1BF2F81BA6F322A94CF8999B /* ImageCardOverviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34A5C8F273063AC8AE0C9405 /* ImageCardOverviewViewController.swift */; };
 		1E295C1068A00192086AD7B3 /* UIViewController+Background.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77016B53BE93414539B50F7 /* UIViewController+Background.swift */; };
+		2A9A89F7440811229608CA46 /* CardTagPillsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C240DED4E210D5508BFB68 /* CardTagPillsView.swift */; };
 		2CCC71FF999FF37DCAA1FAFD /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAB6DB7F4618AD0280A997B /* AppGroup.swift */; };
 		2FC7C9766BF5CACF7682A585 /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A0B2C80FF4EE654B63DEC539 /* CoreData.framework */; };
 		32F83AB21A3F4D84806A7CD6 /* TodayHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 786B50B0091F91DEFA59C383 /* TodayHeaderView.swift */; };
@@ -177,6 +178,7 @@
 		96F79E403C2CEE43858B3C3C /* DayPinWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinWidgetBundle.swift; sourceTree = "<group>"; };
 		9AEB3CBCFCF80A2A154EF37A /* NoteFormattingStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteFormattingStrip.swift; sourceTree = "<group>"; };
 		A0B2C80FF4EE654B63DEC539 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		A1C240DED4E210D5508BFB68 /* CardTagPillsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTagPillsView.swift; sourceTree = "<group>"; };
 		A2AF22EB95AE7747F3A90FD3 /* UICollectionViewCell+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UICollectionViewCell+Selection.swift"; sourceTree = "<group>"; };
 		AE10EE4FDE3F272BBFDF623A /* ImageCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardCell.swift; sourceTree = "<group>"; };
 		B3F7A4831ABE54AE81968955 /* GlassActionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassActionSheet.swift; sourceTree = "<group>"; };
@@ -518,6 +520,7 @@
 		F9F293ADFAC970943A63E9D0 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				A1C240DED4E210D5508BFB68 /* CardTagPillsView.swift */,
 				E4FCBEC7DE8D63AA20EF826D /* FilterChipsView.swift */,
 				B3F7A4831ABE54AE81968955 /* GlassActionSheet.swift */,
 				47C62516C54AC25DFAD9892F /* GlassAlert.swift */,
@@ -641,6 +644,7 @@
 				0C0F02A57126691A485CFF89 /* CardDetailViewController.swift in Sources */,
 				98A375A16EBD6C7A7EBFFB58 /* CardRenderer.swift in Sources */,
 				7C69A48C083B43C8CCDCACFF /* CardStore.swift in Sources */,
+				2A9A89F7440811229608CA46 /* CardTagPillsView.swift in Sources */,
 				456D42A096E29C64F7CDCD82 /* CopyToDayViewController.swift in Sources */,
 				622B5809485F24CF32153CE9 /* DayDetailViewController.swift in Sources */,
 				CC373B9A83339D3F19750266 /* DayPinDesign.swift in Sources */,

@@ -13,6 +13,7 @@ final class TodayViewController: UIViewController {
     private var allCards:    [NoteCard] = []
     private var flatCards:   [NoteCard] = []
     private var activeFilter: FilterChipsView.Filter = .all
+    private var activeTagID: UUID? = nil
 
     // MARK: - Animation
 
@@ -303,6 +304,10 @@ final class TodayViewController: UIViewController {
             self?.activeFilter = filter
             self?.applyFilters()
         }
+        filterChips.onTagFilterChange = { [weak self] tagID in
+            self?.activeTagID = tagID
+            self?.applyFilters()
+        }
 
         view.addSubview(headerContainer)
         view.addSubview(weekStrip)
@@ -329,7 +334,6 @@ final class TodayViewController: UIViewController {
             filterChips.topAnchor.constraint(equalTo: stripSeparator.bottomAnchor, constant: 2),
             filterChips.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             filterChips.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            filterChips.heightAnchor.constraint(equalToConstant: 42),
 
             collectionView.topAnchor.constraint(equalTo: filterChips.bottomAnchor, constant: 2),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -526,6 +530,7 @@ final class TodayViewController: UIViewController {
             self.currentDate = newDate
             self.weekStrip.navigate(to: newDate)
             self.updateDateLabels()
+            self.resetFilters()
             self.loadCards()
             self.collectionView.transform = CGAffineTransform(translationX: -inX, y: 0)
             self.collectionView.alpha = 0
@@ -543,6 +548,12 @@ final class TodayViewController: UIViewController {
         animatedCardIndexPaths.removeAll()
         weekStrip.refreshNoteDots()
         applyFilters()
+    }
+
+    func resetFilters() {
+        activeFilter = .all
+        activeTagID = nil
+        filterChips.reset()
     }
 
     private func applyFilters(animated: Bool = false) {
@@ -571,11 +582,20 @@ final class TodayViewController: UIViewController {
 
         filterChips.updateCounts(text: textCards.count, image: imageCards.count, link: linkCards.count)
 
+        // Collect all unique tag IDs used by today's cards for the tag chips row
+        let usedTagIDs = Array(Set(allCards.flatMap { $0.tagIDs }))
+        filterChips.updateTags(usedTagIDs)
+
         switch activeFilter {
         case .all:   flatCards = allCards
         case .text:  flatCards = textCards
         case .image: flatCards = imageCards
         case .link:  flatCards = linkCards
+        }
+
+        // Apply tag filter on top of type filter
+        if let tagID = activeTagID {
+            flatCards = flatCards.filter { $0.tagIDs.contains(tagID) }
         }
 
         flatCards.sort { $0.createdAt > $1.createdAt }

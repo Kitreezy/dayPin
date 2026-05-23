@@ -247,32 +247,21 @@ final class DayCardsViewController: UIViewController {
     }
 
     private func presentImagePicker() {
-        var config = PHPickerConfiguration()
-        config.selectionLimit = 1
-        config.filter = .images
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = self
-        present(picker, animated: true)
+        presentCameraCard(startMode: .gallery)
     }
 
     private func presentCamera() {
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = self
-        present(picker, animated: true)
+        presentCameraCard(startMode: .camera)
     }
 
-    private func presentImageCardEditor(imageData: Data?) {
-        let vc = ImageCardEditorViewController(imageData: imageData, dayDate: date, existingCard: nil)
+    private func presentCameraCard(startMode: CameraCardViewController.StartMode, existingCard: ImageCard? = nil) {
+        let vc = CameraCardViewController(startMode: startMode, dayDate: date, existingCard: existingCard)
         vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        present(vc, animated: true)
     }
 
     private func presentImageEditor(card: ImageCard) {
-        let vc = ImageCardEditorViewController(imageData: card.imageData, dayDate: date, existingCard: card)
-        vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        presentCameraCard(startMode: .gallery, existingCard: card)
     }
 
     private func deleteCard(_ card: NoteCard, at indexPath: IndexPath) {
@@ -430,24 +419,3 @@ extension DayCardsViewController: UICollectionViewDelegate {
     }
 }
 
-// MARK: - PHPickerDelegate + UIImagePickerDelegate
-
-extension DayCardsViewController: PHPickerViewControllerDelegate {
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
-        guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
-        provider.loadObject(ofClass: UIImage.self) { [weak self] obj, _ in
-            guard let image = obj as? UIImage, let self else { return }
-            DispatchQueue.main.async { self.presentImageCardEditor(imageData: image.jpegData(compressionQuality: 0.85)) }
-        }
-    }
-}
-
-extension DayCardsViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-        picker.dismiss(animated: true)
-        let image = (info[.editedImage] ?? info[.originalImage]) as? UIImage
-        presentImageCardEditor(imageData: image?.jpegData(compressionQuality: 0.85))
-    }
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
-}

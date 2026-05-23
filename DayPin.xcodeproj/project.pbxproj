@@ -88,6 +88,7 @@
 		E3B2D65AC9E304579D35203C /* GlassView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A8C73069CB8E53AFC6BFB1E /* GlassView.swift */; };
 		E40B636E0E0AEC807A9FBD79 /* NoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1527142EE2C7F1DC149BF280 /* NoteCard.swift */; };
 		F20D82DC2A7F286EE5204A03 /* DayPinWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F79E403C2CEE43858B3C3C /* DayPinWidgetBundle.swift */; };
+		F2275C685F8E597EEE38845F /* CameraCardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A95455B71B513DDB85C15D6 /* CameraCardViewController.swift */; };
 		F2EBE1A17A79F4EF58F9DD76 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5383A449595A3EFF892A6D8A /* Assets.xcassets */; };
 		F8C6E609AC44E68B0C0588DF /* LinkCardEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE9D8070FCA5D0C95DCF6C6 /* LinkCardEditorViewController.swift */; };
 		FD36EA16A0144EDA394BB7F8 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B65E4AA4B0A333783B6B900 /* L10n.swift */; };
@@ -176,6 +177,7 @@
 		8A8C73069CB8E53AFC6BFB1E /* GlassView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassView.swift; sourceTree = "<group>"; };
 		96922C6D1A0F8B077435CF3B /* BackgroundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundManager.swift; sourceTree = "<group>"; };
 		96F79E403C2CEE43858B3C3C /* DayPinWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinWidgetBundle.swift; sourceTree = "<group>"; };
+		9A95455B71B513DDB85C15D6 /* CameraCardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCardViewController.swift; sourceTree = "<group>"; };
 		9AEB3CBCFCF80A2A154EF37A /* NoteFormattingStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteFormattingStrip.swift; sourceTree = "<group>"; };
 		A0B2C80FF4EE654B63DEC539 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		A1C240DED4E210D5508BFB68 /* CardTagPillsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTagPillsView.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 		185EBA65B19AE236779AE3A3 /* AddCard */ = {
 			isa = PBXGroup;
 			children = (
+				9A95455B71B513DDB85C15D6 /* CameraCardViewController.swift */,
 				3847EB514F49124182B1EF07 /* CopyToDayViewController.swift */,
 				D718FFF5FF6335D37905A1B7 /* ImageCardEditorViewController.swift */,
 				BEE9D8070FCA5D0C95DCF6C6 /* LinkCardEditorViewController.swift */,
@@ -641,6 +644,7 @@
 				D53DFAF042A9798705361277 /* BackupManager.swift in Sources */,
 				014A79771698E07CE29F8537 /* BackupViewController.swift in Sources */,
 				64115A7CD54D5E33BCD59772 /* CalendarViewController.swift in Sources */,
+				F2275C685F8E597EEE38845F /* CameraCardViewController.swift in Sources */,
 				0C0F02A57126691A485CFF89 /* CardDetailViewController.swift in Sources */,
 				98A375A16EBD6C7A7EBFFB58 /* CardRenderer.swift in Sources */,
 				7C69A48C083B43C8CCDCACFF /* CardStore.swift in Sources */,

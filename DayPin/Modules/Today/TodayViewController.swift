@@ -854,37 +854,17 @@ final class TodayViewController: UIViewController {
     }
 
     func presentImagePicker() {
-        let picker = RecentPhotosPickerViewController()
-        picker.onSelect = { [weak self] data in
-            self?.presentImageCardEditor(imageData: data)
-        }
-        picker.onShowAll = { [weak self] in
-            self?.presentSystemImagePicker()
-        }
-        present(picker, animated: true)
-    }
-
-    private func presentSystemImagePicker() {
-        var config = PHPickerConfiguration()
-        config.selectionLimit = 1
-        config.filter = .images
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = self
-        present(picker, animated: true)
+        presentCameraCard(startMode: .gallery)
     }
 
     func presentCamera() {
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = self
-        present(picker, animated: true)
+        presentCameraCard(startMode: .camera)
     }
 
-    func presentImageCardEditor(imageData: Data?) {
+    private func presentCameraCard(startMode: CameraCardViewController.StartMode, existingCard: ImageCard? = nil) {
         let folderID = pendingAddFolderID
         pendingAddFolderID = nil
-        let vc = ImageCardEditorViewController(imageData: imageData, dayDate: currentDate, existingCard: nil)
+        let vc = CameraCardViewController(startMode: startMode, dayDate: currentDate, existingCard: existingCard)
         vc.onSave = { [weak self] saved in
             if let fid = folderID { saved.folderID = fid }
             CardStore.shared.save(card: saved)
@@ -894,13 +874,13 @@ final class TodayViewController: UIViewController {
                 NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
             }
         }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        present(vc, animated: true)
     }
 
     func presentImageEditor(card: ImageCard) {
-        let vc = ImageCardEditorViewController(imageData: card.imageData, dayDate: currentDate, existingCard: card)
+        let vc = CameraCardViewController(startMode: .gallery, dayDate: currentDate, existingCard: card)
         vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        present(vc, animated: true)
     }
 
     func deleteCard(_ card: NoteCard) {
@@ -1223,27 +1203,6 @@ extension TodayViewController {
     }
 }
 
-// MARK: - PHPickerViewControllerDelegate
-
-extension TodayViewController: PHPickerViewControllerDelegate {
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
-        guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
-        provider.loadObject(ofClass: UIImage.self) { [weak self] obj, _ in
-            guard let image = obj as? UIImage, let self else { return }
-            DispatchQueue.main.async { self.presentImageCardEditor(imageData: image.jpegData(compressionQuality: 0.85)) }
-        }
-    }
-}
-
-extension TodayViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-        picker.dismiss(animated: true)
-        let image = (info[.editedImage] ?? info[.originalImage]) as? UIImage
-        presentImageCardEditor(imageData: image?.jpegData(compressionQuality: 0.85))
-    }
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
-}
 
 // MARK: - UIGestureRecognizerDelegate
 

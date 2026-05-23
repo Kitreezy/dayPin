@@ -18,11 +18,15 @@ final class CardStore {
 
     func cards(for date: Date) -> [NoteCard] {
         let day = Calendar.current.startOfDay(for: date)
-        return storage
-            .filter { $0.deletedAt == nil &&
-                      Calendar.current.startOfDay(for: $0.dayDate) == day }
-            .sorted { $0.createdAt > $1.createdAt }
-            .compactMap { $0.toModel() }
+        let dtos = storage.filter {
+            $0.deletedAt == nil && Calendar.current.startOfDay(for: $0.dayDate) == day
+        }
+        // If any card has a manual display order, sort by it; otherwise fall back to creation date.
+        let hasOrder = dtos.contains { $0.displayOrder != nil }
+        let sorted = hasOrder
+            ? dtos.sorted { ($0.displayOrder ?? Int.max) < ($1.displayOrder ?? Int.max) }
+            : dtos.sorted { $0.createdAt > $1.createdAt }
+        return sorted.compactMap { $0.toModel() }
     }
 
     func allCards() -> [NoteCard] {
@@ -94,6 +98,19 @@ final class CardStore {
 
     func emptyTrash() {
         storage.removeAll { $0.deletedAt != nil }
+        persist()
+    }
+
+    // MARK: - Order
+
+    /// Persists a new display order for a set of cards on the same day.
+    /// `orderedCards` must be the full ordered array for that day after the drag.
+    func updateOrder(cards orderedCards: [NoteCard]) {
+        for (idx, card) in orderedCards.enumerated() {
+            if let pos = storage.firstIndex(where: { $0.id == card.id }) {
+                storage[pos].displayOrder = idx
+            }
+        }
         persist()
     }
 
@@ -214,6 +231,8 @@ struct NoteCardDTO: Codable {
     // Reminder
     var reminderDate: Date?
     var reminderNotificationID: String?
+    // Display order (for drag-to-reorder within a day)
+    var displayOrder: Int?
 
     init(from card: NoteCard) {
         id = card.id

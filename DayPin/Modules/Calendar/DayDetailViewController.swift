@@ -91,6 +91,7 @@ final class DayCardsViewController: UIViewController {
 
     private var activeSections: [TypeSection] = []
     private var activeFilter: FilterChipsView.Filter = .all
+    private var animatedCardIndexPaths = Set<IndexPath>()
 
     // MARK: - UI
 
@@ -167,6 +168,7 @@ final class DayCardsViewController: UIViewController {
     // MARK: - Data
 
     func loadCards() {
+        animatedCardIndexPaths.removeAll()
         allCards = CardStore.shared.cards(for: date)
         applyFilter()
     }
@@ -358,6 +360,17 @@ extension DayCardsViewController: UICollectionViewDataSource {
 // MARK: - Delegate
 
 extension DayCardsViewController: UICollectionViewDelegate {
+
+    func collectionView(_ cv: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard !activeSections.isEmpty, !(cell is EmptyCardCell) else { return }
+        if !animatedCardIndexPaths.contains(indexPath) {
+            animatedCardIndexPaths.insert(indexPath)
+            // Flat index across sections for smooth stagger
+            let flatIndex = activeSections[0..<indexPath.section].reduce(0) { $0 + $1.cards.count } + indexPath.item
+            cell.animateCardAppearance(at: flatIndex)
+        }
+    }
+
     func collectionView(_ cv: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard !activeSections.isEmpty else { return }
         let card = activeSections[indexPath.section].cards[indexPath.item]

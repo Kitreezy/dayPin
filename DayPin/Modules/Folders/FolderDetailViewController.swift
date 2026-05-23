@@ -6,6 +6,7 @@ final class FolderDetailViewController: UIViewController {
 
     var contextFolderID: UUID { folder.id }
     private var cards: [NoteCard] = []
+    private var animatedCardIndexPaths = Set<IndexPath>()
 
     private lazy var collectionView: UICollectionView = {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
@@ -109,6 +110,7 @@ final class FolderDetailViewController: UIViewController {
     }
 
     private func loadCards() {
+        animatedCardIndexPaths.removeAll()
         cards = CardStore.shared.cards(inFolder: folder.id)
         collectionView.reloadData()
     }
@@ -179,6 +181,14 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
             guard let c = collectionView.dequeueReusableCell(withReuseIdentifier: LinkCardCell.reuseID, for: indexPath) as? LinkCardCell,
                   let linkCard = card as? LinkCard else { return UICollectionViewCell() }
             c.configure(with: linkCard); return c
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard !cards.isEmpty, !(cell is EmptyCardCell) else { return }
+        if !animatedCardIndexPaths.contains(indexPath) {
+            animatedCardIndexPaths.insert(indexPath)
+            cell.animateCardAppearance(at: indexPath.item)
         }
     }
 

@@ -60,6 +60,7 @@ final class TasksViewController: UIViewController {
 
     private var allSections: [(date: Date, cards: [NoteCard])] = []
     private var sections:    [(date: Date, cards: [NoteCard])] = []
+    private var animatedCardIndexPaths = Set<IndexPath>()
 
     // MARK: - Lifecycle
 
@@ -279,6 +280,7 @@ final class TasksViewController: UIViewController {
         )
 
         sections = result
+        animatedCardIndexPaths.removeAll()
         collectionView.reloadData()
     }
 
@@ -377,6 +379,14 @@ extension TasksViewController: UICollectionViewDataSource {
 // MARK: - UICollectionViewDelegate
 
 extension TasksViewController: UICollectionViewDelegate {
+
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        if !animatedCardIndexPaths.contains(indexPath) {
+            animatedCardIndexPaths.insert(indexPath)
+            let flatIndex = sections[0..<indexPath.section].reduce(0) { $0 + $1.cards.count } + indexPath.item
+            cell.animateCardAppearance(at: flatIndex)
+        }
+    }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let card = sections[indexPath.section].cards[indexPath.item]

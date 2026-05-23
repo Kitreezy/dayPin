@@ -35,6 +35,7 @@
 		48B993E645C6B1E97107B5CD /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002B3223FA9BF36D228C41B /* Extensions.swift */; };
 		4F520631F9451CEF5C3AD3AC /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 9E535E3104FAC5065C22F072 /* Lottie */; };
 		51FDB72F8BE313F3500D5D87 /* GradientBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703D373DD7B40A169F744A73 /* GradientBackgroundView.swift */; };
+		5614B8CF87077638ACDF10C5 /* UICollectionViewCell+CardAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8D959F60E19240898D154F /* UICollectionViewCell+CardAnimation.swift */; };
 		56534DD842DF2F5B6DC55366 /* Inter-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 19BAAFFED431C0B238B4B3D4 /* Inter-SemiBold.ttf */; };
 		5C52F724E6D93D5ACA7ABFCE /* UndoToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BAC70D20A18A22E6F71FEAD /* UndoToastView.swift */; };
 		5FDEF265B19207941B07742A /* BackgroundPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627BB3A609BCA96D507DAB93 /* BackgroundPickerViewController.swift */; };
@@ -119,6 +120,7 @@
 
 /* Begin PBXFileReference section */
 		08DEF84845C12C61D2FC819E /* Notification+FolderID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Notification+FolderID.swift"; sourceTree = "<group>"; };
+		0B8D959F60E19240898D154F /* UICollectionViewCell+CardAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UICollectionViewCell+CardAnimation.swift"; sourceTree = "<group>"; };
 		1527142EE2C7F1DC149BF280 /* NoteCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCard.swift; sourceTree = "<group>"; };
 		16C4E86F7D60B6BA37164A11 /* ReminderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderManager.swift; sourceTree = "<group>"; };
 		1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekCalendarView.swift; sourceTree = "<group>"; };
@@ -523,6 +525,7 @@
 				9AEB3CBCFCF80A2A154EF37A /* NoteFormattingStrip.swift */,
 				6FECEB1A71390D21A06E5E41 /* ReminderPickerViewController.swift */,
 				66E6C3BF68BFC7A5F44687D3 /* TagsInputView.swift */,
+				0B8D959F60E19240898D154F /* UICollectionViewCell+CardAnimation.swift */,
 				A2AF22EB95AE7747F3A90FD3 /* UICollectionViewCell+Selection.swift */,
 				C77016B53BE93414539B50F7 /* UIViewController+Background.swift */,
 				1D96A122F0F7F1739B2BC103 /* UIViewController+Sheet.swift */,
@@ -687,6 +690,7 @@
 				32F83AB21A3F4D84806A7CD6 /* TodayHeaderView.swift in Sources */,
 				43F0B7DCFCA71814191E5739 /* TodayViewController.swift in Sources */,
 				FDDCFEE794D1480520D9E440 /* TopTabBarView.swift in Sources */,
+				5614B8CF87077638ACDF10C5 /* UICollectionViewCell+CardAnimation.swift in Sources */,
 				B8E9C80C19C9F8B2E62C3085 /* UICollectionViewCell+Selection.swift in Sources */,
 				1E295C1068A00192086AD7B3 /* UIViewController+Background.swift in Sources */,
 				DD0BD355F2898F461E2DC411 /* UIViewController+Sheet.swift in Sources */,

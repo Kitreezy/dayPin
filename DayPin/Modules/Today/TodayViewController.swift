@@ -14,6 +14,11 @@ final class TodayViewController: UIViewController {
     private var flatCards:   [NoteCard] = []
     private var activeFilter: FilterChipsView.Filter = .all
 
+    // MARK: - Animation
+
+    /// Tracks which index paths have already been animated so we only animate once per reload.
+    private var animatedCardIndexPaths = Set<IndexPath>()
+
     // MARK: - Multi-select state
 
     private var isSelectMode = false
@@ -288,6 +293,7 @@ final class TodayViewController: UIViewController {
         weekStrip.translatesAutoresizingMaskIntoConstraints = false
         weekStrip.onDaySelected = { [weak self] date in
             guard let self else { return }
+            UISelectionFeedbackGenerator().selectionChanged()
             let forward = date > self.currentDate
             self.transitionToDate(date, direction: forward ? 1 : -1)
         }
@@ -337,6 +343,9 @@ final class TodayViewController: UIViewController {
 
         collectionView.dataSource = self
         collectionView.delegate = self
+        collectionView.dragDelegate = self
+        collectionView.dropDelegate = self
+        collectionView.dragInteractionEnabled = true
 
         undoToast.translatesAutoresizingMaskIntoConstraints = false
         undoToast.alpha = 0
@@ -531,6 +540,7 @@ final class TodayViewController: UIViewController {
 
     func loadCards() {
         allCards = CardStore.shared.cards(for: currentDate)
+        animatedCardIndexPaths.removeAll()
         weekStrip.refreshNoteDots()
         applyFilters()
     }
@@ -611,6 +621,7 @@ final class TodayViewController: UIViewController {
     // MARK: - Multi-select
 
     private func enterSelectMode(initialCard: NoteCard? = nil) {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         isSelectMode = true
         selectedIDs = []
         if let card = initialCard { selectedIDs.insert(card.id) }
@@ -799,6 +810,7 @@ final class TodayViewController: UIViewController {
         vc.onSave = { [weak self] saved in
             if let fid = folderID { saved.folderID = fid }
             CardStore.shared.save(card: saved)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             self?.loadCards()
             if folderID != nil {
                 NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
@@ -812,6 +824,7 @@ final class TodayViewController: UIViewController {
         vc.onSave = { [weak self] saved in
             if let fid = folderID { saved.folderID = fid }
             CardStore.shared.save(card: saved)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             self?.loadCards()
             if folderID != nil {
                 NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
@@ -855,6 +868,7 @@ final class TodayViewController: UIViewController {
         vc.onSave = { [weak self] saved in
             if let fid = folderID { saved.folderID = fid }
             CardStore.shared.save(card: saved)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             self?.loadCards()
             if folderID != nil {
                 NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
@@ -1113,7 +1127,14 @@ extension TodayViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         guard !flatCards.isEmpty, !(cell is EmptyCardCell) else { return }
-            cell.gestureRecognizers?
+
+        // Staggered appearance animation — only on first display after reload
+        if !animatedCardIndexPaths.contains(indexPath) {
+            animatedCardIndexPaths.insert(indexPath)
+            cell.animateCardAppearance(at: indexPath.item)
+        }
+
+        cell.gestureRecognizers?
             .filter { $0.name == "cardSwipe" }
             .forEach { cell.removeGestureRecognizer($0) }
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handleCardSwipe(_:)))
@@ -1258,5 +1279,63 @@ final class CardTypeSectionHeader: UICollectionReusableView {
     func configure(title: String, color: UIColor) {
         label.text = title
         colorDot.backgroundColor = color
+    }
+}
+
+// MARK: - Drag & Drop (reorder within the same day)
+
+extension TodayViewController: UICollectionViewDragDelegate {
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        itemsForBeginning session: UIDragSession,
+        at indexPath: IndexPath
+    ) -> [UIDragItem] {
+        // Only allow drag when not in select mode and there are real cards
+        guard !isSelectMode, !flatCards.isEmpty else { return [] }
+        let card = flatCards[indexPath.item]
+        let provider = NSItemProvider(object: card.id.uuidString as NSString)
+        let item = UIDragItem(itemProvider: provider)
+        item.localObject = indexPath
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        return [item]
+    }
+}
+
+extension TodayViewController: UICollectionViewDropDelegate {
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        dropSessionDidUpdate session: UIDropSession,
+        withDestinationIndexPath destinationIndexPath: IndexPath?
+    ) -> UICollectionViewDropProposal {
+        guard session.localDragSession != nil else {
+            return UICollectionViewDropProposal(operation: .cancel)
+        }
+        return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        performDropWith coordinator: UICollectionViewDropCoordinator
+    ) {
+        guard let destinationIndexPath = coordinator.destinationIndexPath,
+              let item = coordinator.items.first,
+              let sourceIndexPath = item.sourceIndexPath else { return }
+
+        guard sourceIndexPath != destinationIndexPath else { return }
+
+        collectionView.performBatchUpdates {
+            let moved = flatCards.remove(at: sourceIndexPath.item)
+            flatCards.insert(moved, at: destinationIndexPath.item)
+            collectionView.moveItem(at: sourceIndexPath, to: destinationIndexPath)
+        } completion: { [weak self] _ in
+            guard let self else { return }
+            // Persist new order
+            CardStore.shared.updateOrder(cards: self.flatCards)
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+
+        coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
     }
 }

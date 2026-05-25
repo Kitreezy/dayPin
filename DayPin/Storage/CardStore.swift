@@ -56,6 +56,22 @@ final class CardStore {
         persist()
     }
 
+    /// Saves multiple cards in a single pass and writes once.
+    /// Prefer this over repeated `save(card:)` calls in batch operations.
+    func saveMany(cards: [NoteCard]) {
+        guard !cards.isEmpty else { return }
+        for card in cards {
+            if let idx = storage.firstIndex(where: { $0.id == card.id }) {
+                var dto = NoteCardDTO(from: card)
+                dto.deletedAt = nil
+                storage[idx] = dto
+            } else {
+                storage.append(NoteCardDTO(from: card))
+            }
+        }
+        persist()
+    }
+
     // MARK: - Delete
 
     func delete(card: NoteCard) {
@@ -64,6 +80,20 @@ final class CardStore {
             storage[idx].deletedAt = Date()
             persist()
         }
+    }
+
+    /// Soft-deletes multiple cards in a single pass and writes once.
+    /// Prefer this over repeated `delete(card:)` calls in batch operations.
+    func deleteMany(cards: [NoteCard]) {
+        guard !cards.isEmpty else { return }
+        let now = Date()
+        for card in cards {
+            ReminderManager.shared.cancel(for: card)
+            if let idx = storage.firstIndex(where: { $0.id == card.id }) {
+                storage[idx].deletedAt = now
+            }
+        }
+        persist()
     }
 
     // MARK: - Trash
@@ -136,19 +166,27 @@ final class CardStore {
 
     private let widgetKey = "daypin.widget_cards"
 
-    private func persist() {
-        guard let data = try? JSONEncoder().encode(storage) else { return }
-        defaults.set(data, forKey: key)
-        defaults.synchronize()
-        persistWidgetSnapshot()
-        WidgetCenter.shared.reloadAllTimelines()
-    }
+    /// Serial queue for all disk I/O. Background QoS so heavy encodes never block the main thread.
+    private let persistQueue = DispatchQueue(label: "com.daypin.cardstore.persist", qos: .utility)
 
-    /// Lightweight snapshot (no image data) written to App Group for the widget.
-    private func persistWidgetSnapshot() {
-        let slim = storage.map { WidgetCardSlim(from: $0) }
-        guard let data = try? JSONEncoder().encode(slim) else { return }
-        AppGroup.defaults.set(data, forKey: widgetKey)
+    /// Snapshot `storage` (value type) on the calling thread, then encode + write on a background queue.
+    /// UI never waits for disk I/O.
+    private func persist() {
+        let snapshot = storage   // [NoteCardDTO] is a value-type copy — safe to hand off
+        persistQueue.async { [weak self] in
+            guard let self else { return }
+            guard let data = try? JSONEncoder().encode(snapshot) else { return }
+            self.defaults.set(data, forKey: self.key)
+            // Note: defaults.synchronize() is deprecated and causes a blocking stall — omitted intentionally.
+            // UserDefaults flushes to disk automatically on its own schedule.
+            let slim = snapshot.map { WidgetCardSlim(from: $0) }
+            if let slimData = try? JSONEncoder().encode(slim) {
+                AppGroup.defaults.set(slimData, forKey: self.widgetKey)
+            }
+            DispatchQueue.main.async {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+        }
     }
 
     private func load() {
@@ -191,7 +229,14 @@ final class CardStore {
             print("[CardStore] Migration v2: copied \(standardCards.count) cards from standard → App Group")
         }
 
-        persistWidgetSnapshot()
+        // Write slim widget snapshot synchronously here since storage isn't loaded yet
+        // and persist() would snapshot an empty array at this point.
+        let slim = (try? JSONDecoder().decode([NoteCardDTO].self,
+                                              from: AppGroup.defaults.data(forKey: key) ?? Data()))
+            .map { $0.map { WidgetCardSlim(from: $0) } } ?? []
+        if let slimData = try? JSONEncoder().encode(slim) {
+            AppGroup.defaults.set(slimData, forKey: widgetKey)
+        }
         WidgetCenter.shared.reloadAllTimelines()
     }
 

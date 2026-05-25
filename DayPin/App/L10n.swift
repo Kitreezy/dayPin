@@ -173,6 +173,10 @@ enum L10n {
     static var imageLabel: String        { s("Изображение", "Image") }
     static var addExisting: String       { s("Добавить существующие", "Add Existing") }
     static var removeFromFolder: String  { s("Убрать из папки", "Remove from Folder") }
+    static var noFolder: String          { s("Без папки", "No Folder") }
+    static var noFolderHint: String      { s("Открепить заметку", "Unpin from folder") }
+    static var photosAddedToFolder: String { s("Фото добавлены в папку", "Photos added to folder") }
+    static var multiPhotoGallery: String { s("Несколько фото", "Multiple Photos") }
     static var deleteFolderTitle: String { s("Удалить папку?", "Delete Folder?") }
     static var deleteFolderMessage: String { s("Заметки останутся, но будут откреплены от папки.", "Notes will remain but be detached from the folder.") }
     static var allNotesInFolder: String  { s("Все заметки уже в этой папке", "All notes are already in this folder") }

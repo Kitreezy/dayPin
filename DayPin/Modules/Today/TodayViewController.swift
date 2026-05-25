@@ -701,8 +701,11 @@ final class TodayViewController: UIViewController {
         ) { [weak self] in
             guard let self else { return }
             let toDelete = self.flatCards.filter { self.selectedIDs.contains($0.id) }
-            toDelete.forEach { CardStore.shared.delete(card: $0) }
-            self.allCards = CardStore.shared.cards(for: self.currentDate)
+            // Single persist for all deletions — no N × encode on main thread
+            CardStore.shared.deleteMany(cards: toDelete)
+            // Optimistic in-memory removal
+            let deletedIDs = Set(toDelete.map { $0.id })
+            self.allCards.removeAll { deletedIDs.contains($0.id) }
             self.exitSelectMode()
             self.applyFilters(animated: true)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -711,26 +714,34 @@ final class TodayViewController: UIViewController {
 
     @objc private func moveSelectedToFolderTapped() {
         guard !selectedIDs.isEmpty else { return }
-        let folders = FolderStore.shared.all()
-        guard !folders.isEmpty else {
+        guard !FolderStore.shared.all().isEmpty else {
             GlassAlert.show(in: self, title: L10n.noFolders, message: L10n.noFoldersMessage)
             return
         }
-        let sheet = UIAlertController(title: L10n.chooseFolderTitle, message: nil, preferredStyle: .actionSheet)
-        for folder in folders {
-            sheet.addAction(UIAlertAction(title: folder.name, style: .default) { [weak self] _ in
-                guard let self else { return }
-                let toMove = self.flatCards.filter { self.selectedIDs.contains($0.id) }
-                toMove.forEach { card in
-                    card.folderID = folder.id
-                    CardStore.shared.save(card: card)
-                }
-                self.exitSelectMode()
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            })
+        let vc = FolderPickerBottomSheet(currentFolderID: nil)
+        vc.onPick = { [weak self] folder in
+            guard let self else { return }
+            let toMove = self.flatCards.filter { self.selectedIDs.contains($0.id) }
+            toMove.forEach { $0.folderID = folder?.id }
+            // Single persist for all cards
+            CardStore.shared.saveMany(cards: toMove)
+            self.exitSelectMode()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
-        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        present(sheet, animated: true)
+        presentFolderPicker(vc)
+    }
+
+    // MARK: - Folder picker bottom sheet helper
+
+    private func presentFolderPicker(_ vc: FolderPickerBottomSheet) {
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = true
+        }
+        present(nav, animated: true)
     }
 
     // MARK: - Trash / Recently Deleted
@@ -813,7 +824,12 @@ final class TodayViewController: UIViewController {
     }
     @objc private func onAddPhoto(_ n: Notification)  {
         pendingAddFolderID = n.folderID
-        presentImagePicker()
+        if pendingAddFolderID != nil {
+            // In folder context: offer multi-photo picker
+            presentMultiPhotoPicker()
+        } else {
+            presentImagePicker()
+        }
     }
     @objc private func onAddCamera(_ n: Notification) {
         pendingAddFolderID = n.folderID
@@ -861,6 +877,16 @@ final class TodayViewController: UIViewController {
         presentCameraCard(startMode: .camera)
     }
 
+    // Multi-photo picker (folder context only)
+    private func presentMultiPhotoPicker() {
+        var config = PHPickerConfiguration()
+        config.selectionLimit = 0  // unlimited
+        config.filter = .images
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = self
+        present(picker, animated: true)
+    }
+
     private func presentCameraCard(startMode: CameraCardViewController.StartMode, existingCard: ImageCard? = nil) {
         let folderID = pendingAddFolderID
         pendingAddFolderID = nil
@@ -883,32 +909,51 @@ final class TodayViewController: UIViewController {
         present(vc, animated: true)
     }
 
-    func deleteCard(_ card: NoteCard) {
+    /// Immediately updates in-memory state then fires an async persist.
+    /// Never re-queries from store so the UI responds in one frame.
+    ///
+    /// - Parameter cellAlreadyGone: pass `true` when the cell has already been animated
+    ///   off-screen by the swipe gesture; suppresses the redundant batch-update animation.
+    func deleteCard(_ card: NoteCard, cellAlreadyGone: Bool = false) {
         if pendingDeleteCard != nil {
             undoTimer?.invalidate()
             undoTimer = nil
             pendingDeleteCard = nil
         }
 
+        // Kick off async persist immediately — no UI wait
+        CardStore.shared.delete(card: card)
+
+        // Optimistic in-memory removal (instant, no re-query)
+        allCards.removeAll { $0.id == card.id }
+
         guard let foundItem = flatCards.firstIndex(where: { $0.id == card.id }) else {
-            CardStore.shared.delete(card: card)
-            allCards = CardStore.shared.cards(for: currentDate)
+            // Card was filtered out but still in allCards — just refresh counts and filters
+            refreshFilterCounts()
             applyFilters()
             showUndoToast(for: card)
             return
         }
 
-        CardStore.shared.delete(card: card)
-        allCards = CardStore.shared.cards(for: currentDate)
         flatCards.remove(at: foundItem)
+
+        // Update filter chips immediately — counts reflect the removal right now
+        refreshFilterCounts()
 
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         if flatCards.isEmpty {
-            // Skip performBatchUpdates: the empty state shows 1 cell (EmptyCardCell),
-            // so deleteItems would cause a count mismatch.
-            UIView.transition(with: collectionView, duration: 0.25, options: .transitionCrossDissolve) {
+            // Going from N cards to empty: cross-dissolve into the empty state cell
+            UIView.transition(with: collectionView, duration: cellAlreadyGone ? 0.0 : 0.25,
+                              options: .transitionCrossDissolve) {
                 self.collectionView.reloadData()
+            }
+        } else if cellAlreadyGone {
+            // Cell already flew off screen — close the gap instantly, no second animation
+            UIView.performWithoutAnimation {
+                collectionView.performBatchUpdates {
+                    self.collectionView.deleteItems(at: [IndexPath(item: foundItem, section: 0)])
+                }
             }
         } else {
             collectionView.performBatchUpdates {
@@ -917,6 +962,15 @@ final class TodayViewController: UIViewController {
         }
 
         showUndoToast(for: card)
+    }
+
+    /// Recomputes filter chip counts from the current in-memory `allCards`.
+    /// Call after any optimistic removal so chips stay in sync without a full `applyFilters()`.
+    private func refreshFilterCounts() {
+        let text  = allCards.filter { $0.type == .text  }.count
+        let image = allCards.filter { $0.type == .image }.count
+        let link  = allCards.filter { $0.type == .link  }.count
+        filterChips.updateCounts(text: text, image: image, link: link)
     }
 
     // MARK: - Undo
@@ -1100,28 +1154,23 @@ extension TodayViewController: UICollectionViewDelegate {
                 case .link:  self?.presentLinkEditor(card: card as? LinkCard)
                 }
             }
-            let folderActions = FolderStore.shared.all().map { folder -> UIAction in
-                let isCurrent = card.folderID == folder.id
-                return UIAction(
-                    title: folder.name,
-                    image: UIImage(systemName: isCurrent ? "folder.fill" : "folder"),
-                    state: isCurrent ? .on : .off
-                ) { _ in
-                    card.folderID = isCurrent ? nil : folder.id
-                    CardStore.shared.save(card: card)
-                }
-            }
-            let folderMenu = UIMenu(
+            let folderAction = UIAction(
                 title: L10n.inFolder,
-                image: UIImage(systemName: "folder.badge.plus"),
-                children: folderActions.isEmpty
-                    ? [UIAction(title: L10n.noFolders, attributes: .disabled) { _ in }]
-                    : folderActions
-            )
+                image: UIImage(systemName: "folder.badge.plus")
+            ) { [weak self] _ in
+                guard let self else { return }
+                let picker = FolderPickerBottomSheet(currentFolderID: card.folderID)
+                picker.onPick = { [weak self] folder in
+                    card.folderID = folder?.id
+                    CardStore.shared.save(card: card)
+                    self?.applyFilters(animated: false)
+                }
+                self.presentFolderPicker(picker)
+            }
             let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 self?.deleteCard(card)
             }
-            return UIMenu(children: [select, share, copyToDay, edit, folderMenu, delete])
+            return UIMenu(children: [select, share, copyToDay, edit, folderAction, delete])
         })
     }
 
@@ -1181,7 +1230,8 @@ extension TodayViewController {
                 } completion: { _ in
                     cell.transform = .identity
                     cell.alpha = 1
-                    self.deleteCard(card)
+                    // cellAlreadyGone=true: skip the redundant batch-update animation
+                    self.deleteCard(card, cellAlreadyGone: true)
                 }
             } else {
                 UIView.animate(withDuration: 0.35, delay: 0,
@@ -1316,5 +1366,96 @@ extension TodayViewController: UICollectionViewDropDelegate {
         }
 
         coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+    }
+}
+
+// MARK: - PHPickerViewControllerDelegate (multi-photo for folder context)
+
+extension TodayViewController: PHPickerViewControllerDelegate {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard let folderID = pendingAddFolderID, !results.isEmpty else {
+            pendingAddFolderID = nil
+            return
+        }
+        pendingAddFolderID = nil
+
+        // Immediate feedback — user knows processing started
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        // Notify FolderDetailViewController to show a loading indicator right away
+        NotificationCenter.default.post(
+            name: .dayPinPhotoImportBegan,
+            object: nil,
+            userInfo: ["count": results.count]
+        )
+
+        // Phase 1: load + compress all images in parallel (background threads — no storage mutation)
+        Task.detached(priority: .userInitiated) { [weak self] in
+            var imageDatas: [Data] = []
+
+            await withTaskGroup(of: Data?.self) { group in
+                for result in results {
+                    group.addTask {
+                        return await withCheckedContinuation { continuation in
+                            result.itemProvider.loadObject(ofClass: UIImage.self) { obj, _ in
+                                guard let img = obj as? UIImage,
+                                      let data = img.compressedForStorage()
+                                else { continuation.resume(returning: nil); return }
+                                continuation.resume(returning: data)
+                            }
+                        }
+                    }
+                }
+                for await data in group {
+                    if let data { imageDatas.append(data) }
+                }
+            }
+
+            // Phase 2: batch-save on the main thread — single storage mutation, single persist
+            await MainActor.run { [weak self] in
+                guard !imageDatas.isEmpty else { return }
+                let cards: [NoteCard] = imageDatas.map { data in
+                    let card = ImageCard(title: "", dayDate: Date(), imageData: data)
+                    card.folderID = folderID
+                    return card
+                }
+                CardStore.shared.saveMany(cards: cards)
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                self?.loadCards()
+                NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
+            }
+        }
+    }
+}
+
+// MARK: - UIImage helpers
+
+private extension UIImage {
+    /// Fix orientation then downscale to max 1600px on the long edge before JPEG encoding.
+    /// Keeps file size small and makes encoding fast.
+    func compressedForStorage(maxDimension: CGFloat = 1600, quality: CGFloat = 0.82) -> Data? {
+        // Fix orientation
+        var result = self
+        if imageOrientation != .up {
+            UIGraphicsBeginImageContextWithOptions(size, false, scale)
+            draw(in: CGRect(origin: .zero, size: size))
+            result = UIGraphicsGetImageFromCurrentImageContext() ?? self
+            UIGraphicsEndImageContext()
+        }
+
+        // Downscale if needed
+        let longest = max(result.size.width, result.size.height)
+        if longest > maxDimension {
+            let scale = maxDimension / longest
+            let newSize = CGSize(width: result.size.width * scale,
+                                 height: result.size.height * scale)
+            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+            result.draw(in: CGRect(origin: .zero, size: newSize))
+            result = UIGraphicsGetImageFromCurrentImageContext() ?? result
+            UIGraphicsEndImageContext()
+        }
+
+        return result.jpegData(compressionQuality: quality)
     }
 }

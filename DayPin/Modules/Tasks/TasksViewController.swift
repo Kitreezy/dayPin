@@ -405,13 +405,27 @@ extension TasksViewController: UICollectionViewDelegate {
 
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         let card = sections[indexPath.section].cards[indexPath.item]
-        return UIContextMenuConfiguration(actionProvider: { _ in
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            guard let self else { return nil }
             let share = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
                 var items: [Any] = [card.title]
                 if !card.comment.isEmpty { items.append(card.comment) }
                 if let img = card as? ImageCard, let data = img.imageData, let image = UIImage(data: data) { items.append(image) }
                 if let link = card as? LinkCard { items.append(link.url) }
                 self?.present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
+            }
+            let folderAction = UIAction(
+                title: L10n.inFolder,
+                image: UIImage(systemName: "folder.badge.plus")
+            ) { [weak self] _ in
+                guard let self else { return }
+                let picker = FolderPickerBottomSheet(currentFolderID: card.folderID)
+                picker.onPick = { [weak self] folder in
+                    card.folderID = folder?.id
+                    CardStore.shared.save(card: card)
+                    self?.loadAll()
+                }
+                self.presentFolderPicker(picker)
             }
             let edit = UIAction(title: L10n.edit, image: UIImage(systemName: "pencil")) { [weak self] _ in
                 self?.presentEditor(for: card)
@@ -420,8 +434,19 @@ extension TasksViewController: UICollectionViewDelegate {
                 CardStore.shared.delete(card: card)
                 self?.loadAll()
             }
-            return UIMenu(children: [share, edit, delete])
+            return UIMenu(children: [share, folderAction, edit, delete])
         })
+    }
+
+    private func presentFolderPicker(_ vc: FolderPickerBottomSheet) {
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = true
+        }
+        present(nav, animated: true)
     }
 }
 

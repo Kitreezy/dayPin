@@ -8,6 +8,9 @@ final class FolderDetailViewController: UIViewController {
     private var cards: [NoteCard] = []
     private var animatedCardIndexPaths = Set<IndexPath>()
 
+    // Loading toast shown while multi-photo import is in progress
+    private let importLoadingToast = FolderImportToastView()
+
     private lazy var collectionView: UICollectionView = {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
         cv.backgroundColor = .clear
@@ -59,10 +62,18 @@ final class FolderDetailViewController: UIViewController {
             name: .dayPinColorSchemeChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onFolderNeedsRefresh),
             name: .dayPinFolderNeedsRefresh, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onPhotoImportBegan(_:)),
+            name: .dayPinPhotoImportBegan, object: nil)
     }
 
     @objc private func onFolderNeedsRefresh() {
+        importLoadingToast.hide()
         loadCards()
+    }
+
+    @objc private func onPhotoImportBegan(_ note: Notification) {
+        let count = (note.userInfo?["count"] as? Int) ?? 0
+        importLoadingToast.show(in: view, count: count)
     }
 
     @objc private func onLanguageChanged() {
@@ -96,6 +107,16 @@ final class FolderDetailViewController: UIViewController {
         ])
         collectionView.dataSource = self
         collectionView.delegate = self
+
+        // Import loading toast (hidden by default)
+        importLoadingToast.translatesAutoresizingMaskIntoConstraints = false
+        importLoadingToast.alpha = 0
+        view.addSubview(importLoadingToast)
+        NSLayoutConstraint.activate([
+            importLoadingToast.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            importLoadingToast.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            importLoadingToast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
+        ])
     }
 
     private func makeLayout() -> UICollectionViewLayout {
@@ -190,6 +211,14 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
             animatedCardIndexPaths.insert(indexPath)
             cell.animateCardAppearance(at: indexPath.item)
         }
+        // Attach swipe-to-remove gesture if not already present
+        let hasSwipe = cell.gestureRecognizers?.contains(where: { $0.name == "folderSwipe" }) ?? false
+        if !hasSwipe {
+            let pan = UIPanGestureRecognizer(target: self, action: #selector(handleCardSwipe(_:)))
+            pan.name = "folderSwipe"
+            pan.delegate = self
+            cell.addGestureRecognizer(pan)
+        }
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
@@ -234,5 +263,94 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
             }
             return UIMenu(children: [share, copy, remove])
         })
+    }
+}
+
+// MARK: - Swipe-to-remove from folder
+
+extension FolderDetailViewController: UIGestureRecognizerDelegate {
+
+    @objc private func handleCardSwipe(_ pan: UIPanGestureRecognizer) {
+        guard let cell = pan.view as? UICollectionViewCell else { return }
+        guard let indexPath = collectionView.indexPath(for: cell),
+              indexPath.item < cards.count else {
+            if pan.state == .ended || pan.state == .cancelled {
+                UIView.animate(withDuration: 0.3) { cell.transform = .identity; cell.alpha = 1 }
+            }
+            return
+        }
+
+        let card = cards[indexPath.item]
+        let translation = pan.translation(in: cell)
+
+        switch pan.state {
+        case .changed:
+            let tx = min(0, translation.x)
+            cell.transform = CGAffineTransform(translationX: tx, y: 0)
+            let progress = abs(tx) / (cell.bounds.width * 0.5)
+            cell.alpha = max(0.4, 1.0 - progress * 0.35)
+
+        case .ended:
+            let velocity = pan.velocity(in: cell)
+            let shouldRemove = translation.x < -(cell.bounds.width * 0.35) || velocity.x < -700
+            if shouldRemove {
+                UIView.animate(withDuration: 0.22, delay: 0, options: .curveEaseIn) {
+                    cell.transform = CGAffineTransform(translationX: -(cell.bounds.width + 20), y: 0)
+                    cell.alpha = 0
+                } completion: { [weak self] _ in
+                    guard let self else { return }
+                    cell.transform = .identity
+                    cell.alpha = 1
+                    self.removeCardFromFolder(card, at: indexPath.item)
+                }
+            } else {
+                UIView.animate(withDuration: 0.35, delay: 0,
+                               usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3) {
+                    cell.transform = .identity
+                    cell.alpha = 1
+                }
+            }
+
+        case .cancelled, .failed:
+            UIView.animate(withDuration: 0.3) { cell.transform = .identity; cell.alpha = 1 }
+
+        default:
+            break
+        }
+    }
+
+    private func removeCardFromFolder(_ card: NoteCard, at index: Int) {
+        card.folderID = nil
+        CardStore.shared.save(card: card)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        cards.remove(at: index)
+        animatedCardIndexPaths.removeAll()
+
+        if cards.isEmpty {
+            UIView.transition(with: collectionView, duration: 0, options: .transitionCrossDissolve) {
+                self.collectionView.reloadData()
+            }
+        } else {
+            UIView.performWithoutAnimation {
+                collectionView.performBatchUpdates {
+                    collectionView.deleteItems(at: [IndexPath(item: index, section: 0)])
+                }
+            }
+        }
+    }
+
+    func gestureRecognizerShouldBegin(_ gr: UIGestureRecognizer) -> Bool {
+        guard let pan = gr as? UIPanGestureRecognizer,
+              pan.name == "folderSwipe",
+              let view = pan.view else { return true }
+        let v = pan.velocity(in: view)
+        // Only activate for clear leftward horizontal swipes
+        return abs(v.x) > abs(v.y) && v.x < 0
+    }
+
+    func gestureRecognizer(_ gr: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+        false
     }
 }

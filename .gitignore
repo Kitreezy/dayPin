@@ -66,3 +66,4 @@ secrets.json
 # ─── Claude Code ─────────────────────────────────────────
 CLAUDE.md
 .claude/
+ios-integration.md

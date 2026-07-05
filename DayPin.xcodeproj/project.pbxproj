@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		014A79771698E07CE29F8537 /* BackupViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED95266578BDC1B77519BA90 /* BackupViewController.swift */; };
+		031F4CB29C5DC8F192631AF6 /* ProfileViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4953706D952A70434C2E9F19 /* ProfileViewController.swift */; };
 		0913520E9DE22474F47178E9 /* FullScreenImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C476DF2E0FAF4AC680C2160D /* FullScreenImageViewController.swift */; };
 		091D0EC24963764C8D143664 /* ImageCardDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77DAC93E6FD3A6C2583C46F0 /* ImageCardDetailViewController.swift */; };
 		0C0F02A57126691A485CFF89 /* CardDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A59E64560B7346557245FFA /* CardDetailViewController.swift */; };
@@ -18,6 +19,8 @@
 		19FC0DE6C76347A29F15A803 /* PinCalloutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 374A9BDC9E9CC25C8610CE2E /* PinCalloutView.swift */; };
 		1BF2F81BA6F322A94CF8999B /* ImageCardOverviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34A5C8F273063AC8AE0C9405 /* ImageCardOverviewViewController.swift */; };
 		1E295C1068A00192086AD7B3 /* UIViewController+Background.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77016B53BE93414539B50F7 /* UIViewController+Background.swift */; };
+		23B3032F7F42DE341C87B06A /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D2E3F29B8A539FFEF4EBBF /* AuthService.swift */; };
+		298EE280841C70B8ECA9D084 /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC9BAEF3960B56A895F13B1F /* SyncService.swift */; };
 		2A9A89F7440811229608CA46 /* CardTagPillsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C240DED4E210D5508BFB68 /* CardTagPillsView.swift */; };
 		2CCC71FF999FF37DCAA1FAFD /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAAB6DB7F4618AD0280A997B /* AppGroup.swift */; };
 		2FC7C9766BF5CACF7682A585 /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A0B2C80FF4EE654B63DEC539 /* CoreData.framework */; };
@@ -55,6 +58,7 @@
 		893FD16C67BA5A9A02D92F4E /* Inter-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 305599560AD81A5EF812716C /* Inter-Medium.ttf */; };
 		899F4F942DC38B00B82D3DB7 /* RecentlyDeletedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DAE7537A8E80BD3AEEB091 /* RecentlyDeletedViewController.swift */; };
 		8CE890641F6C80DF1B777C9D /* NotePickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC63688E119CDA671423987 /* NotePickerViewController.swift */; };
+		92CDE764DC7885A8720F41A0 /* ShareService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9759611C5CE7A4AC76726B7B /* ShareService.swift */; };
 		9336E195C0F6D1EBCBC84EB8 /* ImageAnnotationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71DAD05804A133CE510CA797 /* ImageAnnotationView.swift */; };
 		9509D565D1E1D6DBC329AFC8 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53F90903BC043280377D48F2 /* SwiftUI.framework */; };
 		95C4A69B4CCDC065956ED4DA /* TextCardEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60F1ADFEF2ACB76A96C5EB4 /* TextCardEditorViewController.swift */; };
@@ -77,6 +81,7 @@
 		C58E6EF08FB2DF0094E7081E /* GlassActionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3F7A4831ABE54AE81968955 /* GlassActionSheet.swift */; };
 		C5B00C6620FAB0E214A63DDC /* WeekCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */; };
 		C68183928E672A040932AC66 /* FolderEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30A914DA461A375356AC698E /* FolderEditorViewController.swift */; };
+		C8F28FBEB6C5085B2F5311EB /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA36345EC0A99F326FD54B7F /* KeychainStore.swift */; };
 		CBF583F9E49A78C93D7AC6F1 /* DayPinFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEB697C8509F146136ED38B1 /* DayPinFont.swift */; };
 		CC373B9A83339D3F19750266 /* DayPinDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8DFC0A641E91EA923710BEA /* DayPinDesign.swift */; };
 		D398F2DA1D87CB2ACE9E7F53 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DB67666ABF9AA2D0118E0EE /* WidgetKit.framework */; };
@@ -85,10 +90,13 @@
 		D94B674B87EE81D8BB0128D8 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71B8970D420311817204CD37 /* AppDelegate.swift */; };
 		D9BDBB5063B1C61A6CF841CF /* ReminderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16C4E86F7D60B6BA37164A11 /* ReminderManager.swift */; };
 		DCA00EAE4A0178BC463D7645 /* BackgroundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96922C6D1A0F8B077435CF3B /* BackgroundManager.swift */; };
+		DCA295CF0FF2010502503160 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF47CA6FC053CC10B11228B /* APIModels.swift */; };
 		DD0BD355F2898F461E2DC411 /* UIViewController+Sheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D96A122F0F7F1739B2BC103 /* UIViewController+Sheet.swift */; };
 		E3858F52B6C9FFD710F1479D /* AppColorScheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA266B97302B511D50833367 /* AppColorScheme.swift */; };
 		E3B2D65AC9E304579D35203C /* GlassView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A8C73069CB8E53AFC6BFB1E /* GlassView.swift */; };
 		E40B636E0E0AEC807A9FBD79 /* NoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1527142EE2C7F1DC149BF280 /* NoteCard.swift */; };
+		E7F0334CA63DDD3181190F13 /* SignInViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3491C0B66C16972A87064008 /* SignInViewController.swift */; };
+		EA0D7924C6016498602E949A /* SkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33AC568B2CFD22A2570C7CEB /* SkeletonView.swift */; };
 		F20D82DC2A7F286EE5204A03 /* DayPinWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F79E403C2CEE43858B3C3C /* DayPinWidgetBundle.swift */; };
 		F2275C685F8E597EEE38845F /* CameraCardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A95455B71B513DDB85C15D6 /* CameraCardViewController.swift */; };
 		F2EBE1A17A79F4EF58F9DD76 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5383A449595A3EFF892A6D8A /* Assets.xcassets */; };
@@ -96,6 +104,7 @@
 		FD36EA16A0144EDA394BB7F8 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B65E4AA4B0A333783B6B900 /* L10n.swift */; };
 		FDDCFEE794D1480520D9E440 /* TopTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B080356CFE849CF419087C7 /* TopTabBarView.swift */; };
 		FE4006D29B8BABBF107B77F2 /* TagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 656283854617633C21086122 /* TagStore.swift */; };
+		FF0FCE1DB6E3DF2F5C4C73B3 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 372CFD024296EA0AA9768A73 /* APIClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -129,6 +138,7 @@
 		16C4E86F7D60B6BA37164A11 /* ReminderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderManager.swift; sourceTree = "<group>"; };
 		1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekCalendarView.swift; sourceTree = "<group>"; };
 		19BAAFFED431C0B238B4B3D4 /* Inter-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.ttf"; sourceTree = "<group>"; };
+		19D2E3F29B8A539FFEF4EBBF /* AuthService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		1D96A122F0F7F1739B2BC103 /* UIViewController+Sheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController+Sheet.swift"; sourceTree = "<group>"; };
 		1DB67666ABF9AA2D0118E0EE /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		1FEDCDAF7D333BE6D4D2AB22 /* DayPinWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinWidget.swift; sourceTree = "<group>"; };
@@ -140,8 +150,11 @@
 		305599560AD81A5EF812716C /* Inter-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.ttf"; sourceTree = "<group>"; };
 		30A914DA461A375356AC698E /* FolderEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderEditorViewController.swift; sourceTree = "<group>"; };
 		31827B5D29FEBFD2617CF68B /* LinkWebBottomSheetViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkWebBottomSheetViewController.swift; sourceTree = "<group>"; };
+		33AC568B2CFD22A2570C7CEB /* SkeletonView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SkeletonView.swift; sourceTree = "<group>"; };
 		33D225EB970A2AB18F0C8927 /* FolderListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderListViewController.swift; sourceTree = "<group>"; };
+		3491C0B66C16972A87064008 /* SignInViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignInViewController.swift; sourceTree = "<group>"; };
 		34A5C8F273063AC8AE0C9405 /* ImageCardOverviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardOverviewViewController.swift; sourceTree = "<group>"; };
+		372CFD024296EA0AA9768A73 /* APIClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		374A9BDC9E9CC25C8610CE2E /* PinCalloutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinCalloutView.swift; sourceTree = "<group>"; };
 		3811B493D58F8359A3B89668 /* WaveBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveBackgroundView.swift; sourceTree = "<group>"; };
 		3847EB514F49124182B1EF07 /* CopyToDayViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyToDayViewController.swift; sourceTree = "<group>"; };
@@ -153,6 +166,7 @@
 		47C62516C54AC25DFAD9892F /* GlassAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassAlert.swift; sourceTree = "<group>"; };
 		47E4BD0248AB8E3A0BACB09C /* GlobalSearchViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalSearchViewController.swift; sourceTree = "<group>"; };
 		47F28155E6118FB515641044 /* RecentPhotosPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentPhotosPickerViewController.swift; sourceTree = "<group>"; };
+		4953706D952A70434C2E9F19 /* ProfileViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileViewController.swift; sourceTree = "<group>"; };
 		4B36B1E5015BA3B9506BE320 /* CalendarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarViewController.swift; sourceTree = "<group>"; };
 		4CDAC5C9200B15A2043E1D00 /* ThemePickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePickerViewController.swift; sourceTree = "<group>"; };
 		4DEE3405B5E72EBFBBE8CE25 /* TextCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCardCell.swift; sourceTree = "<group>"; };
@@ -162,6 +176,7 @@
 		59B5E44E91A76D6236C3C45F /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
 		5B65E4AA4B0A333783B6B900 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		5C0A8232A2D1A11ED7F2CD41 /* empty_cat.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = empty_cat.json; sourceTree = "<group>"; };
+		5CF47CA6FC053CC10B11228B /* APIModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
 		627BB3A609BCA96D507DAB93 /* BackgroundPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundPickerViewController.swift; sourceTree = "<group>"; };
 		656283854617633C21086122 /* TagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagStore.swift; sourceTree = "<group>"; };
 		66E6C3BF68BFC7A5F44687D3 /* TagsInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagsInputView.swift; sourceTree = "<group>"; };
@@ -180,11 +195,13 @@
 		8A8C73069CB8E53AFC6BFB1E /* GlassView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassView.swift; sourceTree = "<group>"; };
 		96922C6D1A0F8B077435CF3B /* BackgroundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundManager.swift; sourceTree = "<group>"; };
 		96F79E403C2CEE43858B3C3C /* DayPinWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinWidgetBundle.swift; sourceTree = "<group>"; };
+		9759611C5CE7A4AC76726B7B /* ShareService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareService.swift; sourceTree = "<group>"; };
 		9A95455B71B513DDB85C15D6 /* CameraCardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCardViewController.swift; sourceTree = "<group>"; };
 		9AEB3CBCFCF80A2A154EF37A /* NoteFormattingStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteFormattingStrip.swift; sourceTree = "<group>"; };
 		A0B2C80FF4EE654B63DEC539 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		A1C240DED4E210D5508BFB68 /* CardTagPillsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardTagPillsView.swift; sourceTree = "<group>"; };
 		A2AF22EB95AE7747F3A90FD3 /* UICollectionViewCell+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UICollectionViewCell+Selection.swift"; sourceTree = "<group>"; };
+		AA36345EC0A99F326FD54B7F /* KeychainStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		AE10EE4FDE3F272BBFDF623A /* ImageCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardCell.swift; sourceTree = "<group>"; };
 		B3F7A4831ABE54AE81968955 /* GlassActionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassActionSheet.swift; sourceTree = "<group>"; };
 		B5BB7279FAD69E786324076A /* PinListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinListViewController.swift; sourceTree = "<group>"; };
@@ -215,6 +232,7 @@
 		F28EEB088E806A6A4231C6AE /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
 		F60F1ADFEF2ACB76A96C5EB4 /* TextCardEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextCardEditorViewController.swift; sourceTree = "<group>"; };
 		FAAAB911A656430E1C3C645D /* DayDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailViewController.swift; sourceTree = "<group>"; };
+		FC9BAEF3960B56A895F13B1F /* SyncService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
 		FEAFB6224BB6BFC875F27185 /* FolderDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderDetailViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -281,6 +299,8 @@
 			children = (
 				40A03181568ADFCA18D282AA /* CardRenderer.swift */,
 				16C4E86F7D60B6BA37164A11 /* ReminderManager.swift */,
+				54BF3CBD8DEB4E2073EBCFDE /* API */,
+				AA36345EC0A99F326FD54B7F /* KeychainStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -325,6 +345,15 @@
 			path = GlassEffect;
 			sourceTree = "<group>";
 		};
+		46CCCA0BE96FCBABF4FE5CA8 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				3491C0B66C16972A87064008 /* SignInViewController.swift */,
+				4953706D952A70434C2E9F19 /* ProfileViewController.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
 		46DB90B41B2408202D4CA619 /* Storage */ = {
 			isa = PBXGroup;
 			children = (
@@ -334,6 +363,18 @@
 				656283854617633C21086122 /* TagStore.swift */,
 			);
 			path = Storage;
+			sourceTree = "<group>";
+		};
+		54BF3CBD8DEB4E2073EBCFDE /* API */ = {
+			isa = PBXGroup;
+			children = (
+				5CF47CA6FC053CC10B11228B /* APIModels.swift */,
+				372CFD024296EA0AA9768A73 /* APIClient.swift */,
+				19D2E3F29B8A539FFEF4EBBF /* AuthService.swift */,
+				FC9BAEF3960B56A895F13B1F /* SyncService.swift */,
+				9759611C5CE7A4AC76726B7B /* ShareService.swift */,
+			);
+			path = API;
 			sourceTree = "<group>";
 		};
 		56F3C8C638C17E05757FCF2D /* Modules */ = {
@@ -346,6 +387,7 @@
 				B47908CE79068CCBAD479C7E /* Settings */,
 				D78CD39029862957858D20A5 /* Tasks */,
 				72F1B04CA8508F9CD0ECDF81 /* Today */,
+				46CCCA0BE96FCBABF4FE5CA8 /* Profile */,
 			);
 			path = Modules;
 			sourceTree = "<group>";
@@ -544,6 +586,7 @@
 				1D96A122F0F7F1739B2BC103 /* UIViewController+Sheet.swift */,
 				3BAC70D20A18A22E6F71FEAD /* UndoToastView.swift */,
 				1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */,
+				33AC568B2CFD22A2570C7CEB /* SkeletonView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -617,6 +660,7 @@
 			packageReferences = (
 				38A5386F0D9EC2B9255B4642 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 			);
+			productRefGroup = B4545D9A2EE82FF6A091D6AF /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -721,6 +765,15 @@
 				5C52F724E6D93D5ACA7ABFCE /* UndoToastView.swift in Sources */,
 				427FA47A02CD12B7B7549C52 /* WaveBackgroundView.swift in Sources */,
 				C5B00C6620FAB0E214A63DDC /* WeekCalendarView.swift in Sources */,
+				DCA295CF0FF2010502503160 /* APIModels.swift in Sources */,
+				FF0FCE1DB6E3DF2F5C4C73B3 /* APIClient.swift in Sources */,
+				23B3032F7F42DE341C87B06A /* AuthService.swift in Sources */,
+				298EE280841C70B8ECA9D084 /* SyncService.swift in Sources */,
+				92CDE764DC7885A8720F41A0 /* ShareService.swift in Sources */,
+				C8F28FBEB6C5085B2F5311EB /* KeychainStore.swift in Sources */,
+				EA0D7924C6016498602E949A /* SkeletonView.swift in Sources */,
+				E7F0334CA63DDD3181190F13 /* SignInViewController.swift in Sources */,
+				031F4CB29C5DC8F192631AF6 /* ProfileViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

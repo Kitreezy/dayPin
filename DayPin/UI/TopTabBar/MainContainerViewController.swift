@@ -438,11 +438,18 @@ final class MainContainerViewController: UITabBarController {
     // MARK: - Tabs
 
     private func setupTabs() {
-        let today = makeNav(root: TodayViewController(),      title: L10n.tabToday)
-        let calendar = makeNav(root: CalendarViewController(),   title: L10n.tabCalendar)
-        let folders = makeNav(root: FolderListViewController(), title: L10n.tabFolders)
-        let all = makeNav(root: TasksViewController(),      title: L10n.tabAll)
-        viewControllers = [today, calendar, folders, all]
+        let today    = makeNav(root: TodayViewController(),       title: L10n.tabToday)
+        let calendar = makeNav(root: CalendarViewController(),    title: L10n.tabCalendar)
+        let folders  = makeNav(root: FolderListViewController(),  title: L10n.tabFolders)
+        let all      = makeNav(root: TasksViewController(),       title: L10n.tabAll)
+        let profile  = makeNav(root: makeProfileRoot(),           title: L10n.isRussian ? "Профиль" : "Profile")
+        viewControllers = [today, calendar, folders, all, profile]
+    }
+
+    private func makeProfileRoot() -> UIViewController {
+        // Show sign-in screen if not logged in, profile otherwise.
+        // ProfileViewController itself listens to authStateChanged and refreshes.
+        return ProfileViewController()
     }
 
     private func makeNav(root: UIViewController, title: String) -> UINavigationController {
@@ -467,10 +474,11 @@ final class MainContainerViewController: UITabBarController {
         tabBar.isHidden = true
 
         pillBar = PillTabBar(items: [
-            ("sun.max",   "sun.max.fill"),
-            ("calendar",  "calendar.fill"),
-            ("folder",    "folder.fill"),
-            ("tray.full", "tray.full.fill")
+            ("sun.max",        "sun.max.fill"),
+            ("calendar",       "calendar.fill"),
+            ("folder",         "folder.fill"),
+            ("tray.full",      "tray.full.fill"),
+            ("person.circle",  "person.circle.fill")
         ])
         pillBar.translatesAutoresizingMaskIntoConstraints = false
         pillBar.onSelect = { [weak self] index in

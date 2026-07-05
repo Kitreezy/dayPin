@@ -37,6 +37,30 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         handleURL(url)
     }
 
+    // MARK: - Background push
+    // Best-effort backup on backgrounding so a signed-in user's data isn't
+    // lost if they never remember to tap "Push" manually.
+
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        performBackgroundPush()
+    }
+
+    private func performBackgroundPush() {
+        var bgTask: UIBackgroundTaskIdentifier = .invalid
+        bgTask = UIApplication.shared.beginBackgroundTask(withName: "daypin.backgroundPush") {
+            UIApplication.shared.endBackgroundTask(bgTask)
+            bgTask = .invalid
+        }
+        Task { @MainActor in
+            defer {
+                UIApplication.shared.endBackgroundTask(bgTask)
+                bgTask = .invalid
+            }
+            guard AuthService.shared.isLoggedIn else { return }
+            _ = await SyncService.shared.push()
+        }
+    }
+
     private func handleURL(_ url: URL) {
         guard url.scheme == "daypin" else { return }
 

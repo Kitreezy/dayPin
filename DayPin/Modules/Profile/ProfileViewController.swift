@@ -51,6 +51,7 @@ final class ProfileViewController: UIViewController {
 
     // Footer
     private let signOutBtn = UIButton(type: .system)
+    private let signInPromptBtn = UIButton(type: .system)
     private let deleteAccountBtn = UIButton(type: .system)
     private let serverURLLabel = UILabel()
 
@@ -63,11 +64,12 @@ final class ProfileViewController: UIViewController {
         addStandardBackground()
         setupUI()
         observeNotifications()
-        renderUser()
+        renderAuthState()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        renderAuthState()
         loadData()
     }
 
@@ -93,12 +95,15 @@ final class ProfileViewController: UIViewController {
     }
 
     @objc private func onAuthChanged() {
-        renderUser()
+        renderAuthState()
         if AuthService.shared.isLoggedIn {
             loadData()
         } else {
             shares = []
             syncStatus = nil
+            isLoadingShares = false
+            isLoadingStatus = false
+            updateSkeletonVisibility()
             rebuildShareRows()
             updateSyncCard()
         }
@@ -118,7 +123,7 @@ final class ProfileViewController: UIViewController {
 
     @objc private func onColorSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
-        renderUser()
+        renderAuthState()
         updateSyncCard()
     }
 
@@ -391,6 +396,16 @@ final class ProfileViewController: UIViewController {
         signOutBtn.addTarget(self, action: #selector(signOutTapped), for: .touchUpInside)
         stack.addArrangedSubview(signOutBtn)
 
+        signInPromptBtn.setTitle(L10n.isRussian ? "Войти" : "Sign In", for: .normal)
+        signInPromptBtn.titleLabel?.font = .inter(ofSize: 15, weight: .semibold)
+        signInPromptBtn.tintColor = .white
+        signInPromptBtn.backgroundColor = DayPinDesign.accent
+        signInPromptBtn.layer.cornerRadius = 14
+        signInPromptBtn.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        signInPromptBtn.translatesAutoresizingMaskIntoConstraints = false
+        signInPromptBtn.addTarget(self, action: #selector(signInPromptTapped), for: .touchUpInside)
+        stack.addArrangedSubview(signInPromptBtn)
+
         deleteAccountBtn.setTitle(
             L10n.isRussian ? "Удалить аккаунт" : "Delete Account",
             for: .normal
@@ -442,17 +457,63 @@ final class ProfileViewController: UIViewController {
 
     // MARK: - Render
 
-    private func renderUser() {
-        guard let user = AuthService.shared.currentUser else { return }
+    private func renderAuthState() {
+        guard let user = AuthService.shared.currentUser else {
+            avatarLabel.text = "?"
+            avatarView.backgroundColor = .tertiarySystemFill
+            emailLabel.text = L10n.isRussian ? "Вы не авторизованы" : "Not signed in"
+            userIDLabel.text = L10n.isRussian
+                ? "Войдите, чтобы синхронизировать заметки"
+                : "Sign in to sync your notes"
+
+            signOutBtn.isHidden = true
+            deleteAccountBtn.isHidden = true
+            signInPromptBtn.isHidden = false
+
+            pushBtn.isEnabled = false
+            pullBtn.isEnabled = false
+            pushBtn.alpha = 0.5
+            pullBtn.alpha = 0.5
+
+            refreshHeaderBorderColor()
+            return
+        }
+
         let initials = user.email.prefix(2).uppercased()
         avatarLabel.text = initials
         avatarView.backgroundColor = DayPinDesign.accent
         emailLabel.text = user.email
         userIDLabel.text = "ID: \(user.id)"
+
+        signOutBtn.isHidden = false
+        deleteAccountBtn.isHidden = false
+        signInPromptBtn.isHidden = true
+
+        pushBtn.isEnabled = true
+        pullBtn.isEnabled = true
+        pushBtn.alpha = 1
+        pullBtn.alpha = 1
+
         refreshHeaderBorderColor()
     }
 
+    @objc private func signInPromptTapped() {
+        let signIn = SignInViewController()
+        let nav = UINavigationController(rootViewController: signIn)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
+    }
+
     private func updateSyncCard() {
+        guard AuthService.shared.isLoggedIn else {
+            syncInfoLabel.text = L10n.isRussian ? "Требуется вход" : "Sign in required"
+            cacheRestoreBtn.isHidden = !SyncService.shared.hasCachedBackup
+            return
+        }
         guard let status = syncStatus else {
             syncInfoLabel.text = L10n.isRussian ? "Нет данных на сервере" : "No data on server"
             cacheRestoreBtn.isHidden = !SyncService.shared.hasCachedBackup
@@ -475,9 +536,9 @@ final class ProfileViewController: UIViewController {
         sharesStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         if shares.isEmpty {
-            sharesSectionLabel.text = L10n.isRussian
-                ? "Нет активных ссылок"
-                : "No active links"
+            sharesSectionLabel.text = AuthService.shared.isLoggedIn
+                ? (L10n.isRussian ? "Нет активных ссылок" : "No active links")
+                : (L10n.isRussian ? "Войдите, чтобы видеть ссылки" : "Sign in to view your links")
             sharesSectionLabel.isHidden = false
             return
         }

@@ -48,6 +48,7 @@ final class SignInViewController: UIViewController {
         if canSkip { setupSkipButton() }
         setupUI()
         observeKeyboard()
+        setupTapToDismissKeyboard()
         NotificationCenter.default.addObserver(
             self, selector: #selector(onAuthChanged),
             name: .dayPinAuthStateChanged, object: nil
@@ -427,6 +428,16 @@ final class SignInViewController: UIViewController {
         scrollView.contentInset.bottom = 0
     }
 
+    private func setupTapToDismissKeyboard() {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
+
     // MARK: - Theming
 
     private func refreshBorderColor() {
@@ -449,6 +460,7 @@ final class SignInViewController: UIViewController {
 private final class PaddedTextField: UITextField {
 
     private let padding = UIEdgeInsets(top: 0, left: 14, bottom: 0, right: 14)
+    private var isPasswordField = false
 
     func configure(
         placeholder: String,
@@ -460,6 +472,7 @@ private final class PaddedTextField: UITextField {
         keyboardType = keyboard
         if let c = content { textContentType = c }
         isSecureTextEntry = secure
+        isPasswordField = secure
         autocapitalizationType = .none
         autocorrectionType = .no
         spellCheckingType = .no
@@ -468,12 +481,42 @@ private final class PaddedTextField: UITextField {
         layer.borderWidth = 0.5
         layer.borderColor = UIColor.separator.withAlphaComponent(0.5).cgColor
         font = .inter(ofSize: 15, weight: .regular)
+
+        if secure {
+            setupVisibilityToggle()
+        }
+    }
+
+    private func setupVisibilityToggle() {
+        let btn = UIButton(type: .system)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
+        btn.setImage(UIImage(systemName: "eye", withConfiguration: cfg), for: .normal)
+        btn.tintColor = .tertiaryLabel
+        btn.frame = CGRect(x: 0, y: 0, width: 36, height: 30)
+        btn.addTarget(self, action: #selector(toggleVisibility), for: .touchUpInside)
+        rightView = btn
+        rightViewMode = .always
+    }
+
+    @objc private func toggleVisibility() {
+        isSecureTextEntry.toggle()
+        // Re-set text to work around a UITextField caret bug when toggling secure entry.
+        if let existing = text {
+            text = nil
+            text = existing
+        }
+        let cfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
+        let name = isSecureTextEntry ? "eye" : "eye.slash"
+        (rightView as? UIButton)?.setImage(UIImage(systemName: name, withConfiguration: cfg), for: .normal)
     }
 
     override func textRect(forBounds bounds: CGRect) -> CGRect {
-        bounds.inset(by: padding)
+        isPasswordField ? bounds.inset(by: UIEdgeInsets(top: 0, left: 14, bottom: 0, right: 40)) : bounds.inset(by: padding)
     }
     override func editingRect(forBounds bounds: CGRect) -> CGRect {
-        bounds.inset(by: padding)
+        isPasswordField ? bounds.inset(by: UIEdgeInsets(top: 0, left: 14, bottom: 0, right: 40)) : bounds.inset(by: padding)
+    }
+    override func rightViewRect(forBounds bounds: CGRect) -> CGRect {
+        CGRect(x: bounds.width - 40, y: (bounds.height - 30) / 2, width: 36, height: 30)
     }
 }

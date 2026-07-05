@@ -162,7 +162,7 @@ final class SignInViewController: UIViewController {
         confirmField.configure(
             placeholder: L10n.isRussian ? "Повторите пароль" : "Confirm Password",
             keyboard: .default,
-            content: .password,
+            content: .newPassword,
             secure: true
         )
         confirmFieldWrapper.translatesAutoresizingMaskIntoConstraints = false
@@ -326,6 +326,11 @@ final class SignInViewController: UIViewController {
             ? (L10n.isRussian ? "Создать аккаунт" : "Create Account")
             : (L10n.isRussian ? "Войти" : "Sign In")
         primaryBtn.setTitle(btnTitle, for: .normal)
+
+        // .newPassword triggers iOS's "suggest strong password" + iCloud Keychain save prompt;
+        // .password is for autofilling an already-saved credential on sign in.
+        passwordField.textContentType = isRegister ? .newPassword : .password
+        confirmField.textContentType = .newPassword
 
         let change = {
             self.confirmFieldWrapper.isHidden = !isRegister

@@ -446,10 +446,35 @@ final class MainContainerViewController: UITabBarController {
         viewControllers = [today, calendar, folders, all, profile]
     }
 
+    private var hasShownAuthOnLaunch = false
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !hasShownAuthOnLaunch else { return }
+        hasShownAuthOnLaunch = true
+        Task {
+            // Give AuthService.restoreSession() time to finish
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            if !AuthService.shared.isLoggedIn {
+                presentAuthSheet()
+            }
+        }
+    }
+
+    private func presentAuthSheet() {
+        let signIn = SignInViewController()
+        signIn.canSkip = true
+        let nav = UINavigationController(rootViewController: signIn)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
+    }
+
     private func makeProfileRoot() -> UIViewController {
-        // Show sign-in screen if not logged in, profile otherwise.
-        // ProfileViewController itself listens to authStateChanged and refreshes.
-        return ProfileViewController()
+        ProfileViewController()
     }
 
     private func makeNav(root: UIViewController, title: String) -> UINavigationController {

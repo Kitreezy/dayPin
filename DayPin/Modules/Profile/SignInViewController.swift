@@ -11,6 +11,7 @@ final class SignInViewController: UIViewController {
     // MARK: - State
 
     private var mode: Mode = .signIn
+    var canSkip = false
 
     // MARK: - Views
 
@@ -44,12 +45,34 @@ final class SignInViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = DayPinDesign.background
         addStandardBackground()
+        if canSkip { setupSkipButton() }
         setupUI()
         observeKeyboard()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onAuthChanged),
+            name: .dayPinAuthStateChanged, object: nil
+        )
     }
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func onAuthChanged() {
+        if AuthService.shared.isLoggedIn { dismiss(animated: true) }
+    }
+
+    private func setupSkipButton() {
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: L10n.isRussian ? "Позже" : "Later",
+            style: .plain,
+            target: self,
+            action: #selector(skipTapped)
+        )
+    }
+
+    @objc private func skipTapped() {
+        dismiss(animated: true)
     }
 
     // MARK: - Setup

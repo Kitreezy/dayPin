@@ -52,7 +52,7 @@ final class APIClient {
     private init() {}
 
     static var baseURL: String {
-        get { UserDefaults.standard.string(forKey: "daypin.serverURL") ?? "http://localhost:8082" }
+        get { UserDefaults.standard.string(forKey: "daypin.serverURL") ?? "https://daypin-server.onrender.com" }
         set { UserDefaults.standard.set(newValue, forKey: "daypin.serverURL") }
     }
 

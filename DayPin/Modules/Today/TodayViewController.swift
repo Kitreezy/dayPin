@@ -1138,6 +1138,10 @@ extension TodayViewController: UICollectionViewDelegate {
             let share = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
                 self?.shareCard(card)
             }
+            let shareLink = UIAction(title: L10n.shareViaLink, image: UIImage(systemName: "link")) { [weak self] _ in
+                guard let self else { return }
+                ShareLinkPresenter.shareCard(card, from: self)
+            }
             let copyToDay = UIAction(title: L10n.copyToDay, image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
                 guard let self else { return }
                 let vc = CopyToDayViewController()
@@ -1170,7 +1174,7 @@ extension TodayViewController: UICollectionViewDelegate {
             let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 self?.deleteCard(card)
             }
-            return UIMenu(children: [select, share, copyToDay, edit, folderAction, delete])
+            return UIMenu(children: [select, share, shareLink, copyToDay, edit, folderAction, delete])
         })
     }
 

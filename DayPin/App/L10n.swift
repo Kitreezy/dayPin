@@ -52,6 +52,13 @@ enum L10n {
     static var done: String          { s("Готово", "Done") }
     static var openLink: String      { s("Открыть ссылку", "Open Link") }
 
+    // MARK: - Share via link
+    static var shareViaLink: String            { s("Поделиться ссылкой", "Share via Link") }
+    static var shareLinkFailedTitle: String    { s("Не удалось создать ссылку", "Couldn't Create Link") }
+    static var signInRequiredTitle: String     { s("Нужен вход в аккаунт", "Sign In Required") }
+    static var signInRequiredMessage: String   { s("Войдите в аккаунт, чтобы создавать ссылки", "Sign in to create share links") }
+    static var signIn: String                  { s("Войти", "Sign In") }
+
     // MARK: - Card types
     static var newCard: String       { s("Новая карточка", "New Card") }
     static var cardText: String      { s("Текст", "Text") }

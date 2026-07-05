@@ -92,8 +92,17 @@ final class FolderDetailViewController: UIViewController {
         )
         let editBtn = UIBarButtonItem(image: UIImage(systemName: "square.and.pencil"),
                                        style: .plain, target: self, action: #selector(editFolder))
-        let shareBtn = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"),
-                                       style: .plain, target: self, action: #selector(shareFolder))
+        let shareAction = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+            self?.shareFolder()
+        }
+        let shareLinkAction = UIAction(title: L10n.shareViaLink, image: UIImage(systemName: "link")) { [weak self] _ in
+            guard let self else { return }
+            ShareLinkPresenter.shareCollection(title: self.folder.name, cards: self.cards, folder: self.folder, from: self)
+        }
+        let shareBtn = UIBarButtonItem(
+            image: UIImage(systemName: "square.and.arrow.up"),
+            menu: UIMenu(children: [shareAction, shareLinkAction])
+        )
         navigationItem.rightBarButtonItems = [shareBtn, editBtn]
     }
 
@@ -243,6 +252,12 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
                 self.present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
             }
 
+            let shareLink = UIAction(title: L10n.shareViaLink,
+                                     image: UIImage(systemName: "link")) { [weak self] _ in
+                guard let self else { return }
+                ShareLinkPresenter.shareCard(card, from: self)
+            }
+
             let copy = UIAction(title: L10n.copyToDay,
                                 image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
                 guard let self else { return }
@@ -261,7 +276,7 @@ extension FolderDetailViewController: UICollectionViewDataSource, UICollectionVi
                 CardStore.shared.save(card: card)
                 self?.loadCards()
             }
-            return UIMenu(children: [share, copy, remove])
+            return UIMenu(children: [share, shareLink, copy, remove])
         })
     }
 }

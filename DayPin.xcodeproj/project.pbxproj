@@ -82,6 +82,7 @@
 		C5B00C6620FAB0E214A63DDC /* WeekCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */; };
 		C68183928E672A040932AC66 /* FolderEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30A914DA461A375356AC698E /* FolderEditorViewController.swift */; };
 		C8F28FBEB6C5085B2F5311EB /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA36345EC0A99F326FD54B7F /* KeychainStore.swift */; };
+		C9C7B8C4E31D8701D78ED439 /* ShareLinkPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEEB154A120832CF0593D928 /* ShareLinkPresenter.swift */; };
 		CBF583F9E49A78C93D7AC6F1 /* DayPinFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEB697C8509F146136ED38B1 /* DayPinFont.swift */; };
 		CC373B9A83339D3F19750266 /* DayPinDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8DFC0A641E91EA923710BEA /* DayPinDesign.swift */; };
 		D398F2DA1D87CB2ACE9E7F53 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DB67666ABF9AA2D0118E0EE /* WidgetKit.framework */; };
@@ -210,6 +211,7 @@
 		BC21C03C0609694D007D41FA /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
 		BEB697C8509F146136ED38B1 /* DayPinFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinFont.swift; sourceTree = "<group>"; };
 		BEE9D8070FCA5D0C95DCF6C6 /* LinkCardEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCardEditorViewController.swift; sourceTree = "<group>"; };
+		BEEB154A120832CF0593D928 /* ShareLinkPresenter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareLinkPresenter.swift; sourceTree = "<group>"; };
 		C476DF2E0FAF4AC680C2160D /* FullScreenImageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullScreenImageViewController.swift; sourceTree = "<group>"; };
 		C77016B53BE93414539B50F7 /* UIViewController+Background.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController+Background.swift"; sourceTree = "<group>"; };
 		CAAB6DB7F4618AD0280A997B /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
@@ -373,6 +375,7 @@
 				19D2E3F29B8A539FFEF4EBBF /* AuthService.swift */,
 				FC9BAEF3960B56A895F13B1F /* SyncService.swift */,
 				9759611C5CE7A4AC76726B7B /* ShareService.swift */,
+				BEEB154A120832CF0593D928 /* ShareLinkPresenter.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -774,6 +777,7 @@
 				EA0D7924C6016498602E949A /* SkeletonView.swift in Sources */,
 				E7F0334CA63DDD3181190F13 /* SignInViewController.swift in Sources */,
 				031F4CB29C5DC8F192631AF6 /* ProfileViewController.swift in Sources */,
+				C9C7B8C4E31D8701D78ED439 /* ShareLinkPresenter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

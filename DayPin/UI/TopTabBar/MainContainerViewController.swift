@@ -443,11 +443,7 @@ final class MainContainerViewController: UITabBarController {
         let folders  = makeNav(root: FolderListViewController(),  title: L10n.tabFolders)
         let all      = makeNav(root: TasksViewController(),       title: L10n.tabAll)
         let profile  = makeNav(root: makeProfileRoot(),           title: L10n.isRussian ? "Профиль" : "Profile")
-        var tabs = [today, calendar, folders, all, profile]
-        #if DEBUG
-        tabs.append(makeNav(root: NetworkLogViewController(), title: "Network"))
-        #endif
-        viewControllers = tabs
+        viewControllers = [today, calendar, folders, all, profile]
     }
 
     private var hasShownAuthOnLaunch = false
@@ -505,17 +501,13 @@ final class MainContainerViewController: UITabBarController {
     private func setupBottomBar() {
         tabBar.isHidden = true
 
-        var pillItems: [(String, String)] = [
+        pillBar = PillTabBar(items: [
             ("sun.max",        "sun.max.fill"),
             ("calendar",       "calendar.fill"),
             ("folder",         "folder.fill"),
             ("tray.full",      "tray.full.fill"),
             ("person.circle",  "person.circle.fill")
-        ]
-        #if DEBUG
-        pillItems.append(("network", "network"))
-        #endif
-        pillBar = PillTabBar(items: pillItems)
+        ])
         pillBar.translatesAutoresizingMaskIntoConstraints = false
         pillBar.onSelect = { [weak self] index in
             guard let self else { return }

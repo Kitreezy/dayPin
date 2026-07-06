@@ -38,11 +38,18 @@ final class NetworkLogDetailViewController: UIViewController {
             image: UIImage(systemName: "doc.on.doc"),
             style: .plain, target: self, action: #selector(copyTapped)
         )
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: L10n.done, style: .done, target: self, action: #selector(closeTapped)
+        )
     }
 
     @objc private func copyTapped() {
         UIPasteboard.general.string = textView.text
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    @objc private func closeTapped() {
+        dismiss(animated: true)
     }
 
     private func buildText() -> String {

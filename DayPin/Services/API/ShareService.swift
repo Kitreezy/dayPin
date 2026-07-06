@@ -42,4 +42,10 @@ final class ShareService {
     func deleteShare(id: String) async throws {
         _ = try await APIClient.shared.requestRaw(Endpoint(.delete, "/share/\(id)"))
     }
+
+    // MARK: - Fetch shared content (public, no auth)
+
+    func fetchSharedContent(id: String) async throws -> SharedContentResponse {
+        try await APIClient.shared.request(Endpoint(.get, "/s/\(id)", auth: false))
+    }
 }

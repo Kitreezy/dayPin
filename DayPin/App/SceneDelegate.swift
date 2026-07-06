@@ -30,11 +30,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 
-    // MARK: - URL scheme (widget deep links)
+    // MARK: - URL scheme (widget deep links + shared content)
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         guard let url = URLContexts.first?.url else { return }
         handleURL(url)
+    }
+
+    private func openSharedContent(shareID: String) {
+        guard let root = window?.rootViewController else { return }
+        let presenter = root.presentedViewController ?? root
+        let vc = SharedContentViewController(shareID: shareID)
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        presenter.present(nav, animated: true)
     }
 
     // MARK: - Background push
@@ -82,6 +91,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 let cardID = UUID(uuidString: cardIDStr)
             else { return }
             openCardByID(cardID)
+
+        case "s":
+            // daypin://s/<shareID> - opened from the "Open in DayPin" button
+            // on the server's share page (used instead of Universal Links,
+            // which require a paid Apple Developer account we don't have).
+            let shareID = url.lastPathComponent
+            guard !shareID.isEmpty else { return }
+            openSharedContent(shareID: shareID)
 
         default:
             break

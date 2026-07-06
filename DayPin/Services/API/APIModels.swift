@@ -102,6 +102,18 @@ struct ShareListResponse: Decodable {
     let shares: [ShareItem]
 }
 
+// MARK: - Public shared content (GET /s/:id, no auth)
+
+struct SharedContentResponse: Decodable {
+    let type: String       // "card" | "collection"
+    let title: String
+    let createdAt: Date
+    let expiresAt: Date?
+    let card: NoteCardDTO?
+    let cards: [NoteCardDTO]?
+    let folder: Folder?
+}
+
 // MARK: - Errors
 
 struct ServerErrorBody: Decodable {

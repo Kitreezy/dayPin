@@ -63,6 +63,7 @@
 		9509D565D1E1D6DBC329AFC8 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 53F90903BC043280377D48F2 /* SwiftUI.framework */; };
 		95C4A69B4CCDC065956ED4DA /* TextCardEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F60F1ADFEF2ACB76A96C5EB4 /* TextCardEditorViewController.swift */; };
 		96B8A9394E18D506D35043E7 /* GlassAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C62516C54AC25DFAD9892F /* GlassAlert.swift */; };
+		980377E620A0893B59B3BB68 /* SharedContentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC776F155B2CCC78E194147 /* SharedContentViewController.swift */; };
 		98A375A16EBD6C7A7EBFFB58 /* CardRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A03181568ADFCA18D282AA /* CardRenderer.swift */; };
 		9C6E796A7EBC8B0DDF542516 /* ReminderPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FECEB1A71390D21A06E5E41 /* ReminderPickerViewController.swift */; };
 		9F1EBAFF3D91A5E71CB648CE /* LinkCardDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A5F1E6ABECBB2FF81EAA83 /* LinkCardDetailViewController.swift */; };
@@ -218,6 +219,7 @@
 		CAB7BC20E054F1FCFA4F8978 /* empty_cat.lottie */ = {isa = PBXFileReference; lastKnownFileType = file; path = empty_cat.lottie; sourceTree = "<group>"; };
 		CB27345B79A1478C6625C834 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CBFA918314AD44DBBBA6F663 /* DayPin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DayPin.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CCC776F155B2CCC78E194147 /* SharedContentViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedContentViewController.swift; sourceTree = "<group>"; };
 		D3F87653F31E1F676C6BC02F /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		D64539BBE471B05377D8C336 /* DebugOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugOverlayManager.swift; sourceTree = "<group>"; };
 		D718FFF5FF6335D37905A1B7 /* ImageCardEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardEditorViewController.swift; sourceTree = "<group>"; };
@@ -391,6 +393,7 @@
 				D78CD39029862957858D20A5 /* Tasks */,
 				72F1B04CA8508F9CD0ECDF81 /* Today */,
 				46CCCA0BE96FCBABF4FE5CA8 /* Profile */,
+				5D3AB5BC5A5307413D5A5757 /* Share */,
 			);
 			path = Modules;
 			sourceTree = "<group>";
@@ -402,6 +405,15 @@
 				FAAAB911A656430E1C3C645D /* DayDetailViewController.swift */,
 			);
 			path = Calendar;
+			sourceTree = "<group>";
+		};
+		5D3AB5BC5A5307413D5A5757 /* Share */ = {
+			isa = PBXGroup;
+			children = (
+				CCC776F155B2CCC78E194147 /* SharedContentViewController.swift */,
+			);
+			name = Share;
+			path = Share;
 			sourceTree = "<group>";
 		};
 		72F1B04CA8508F9CD0ECDF81 /* Today */ = {
@@ -778,6 +790,7 @@
 				E7F0334CA63DDD3181190F13 /* SignInViewController.swift in Sources */,
 				031F4CB29C5DC8F192631AF6 /* ProfileViewController.swift in Sources */,
 				C9C7B8C4E31D8701D78ED439 /* ShareLinkPresenter.swift in Sources */,
+				980377E620A0893B59B3BB68 /* SharedContentViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

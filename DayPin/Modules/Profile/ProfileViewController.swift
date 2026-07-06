@@ -675,6 +675,8 @@ final class ProfileViewController: UIViewController {
                     ? "Загружено: \(summary.cards) заметок"
                     : "Pushed: \(summary.cards) cards"
                 showBanner(msg, success: true)
+            case .noChanges:
+                showBanner(L10n.isRussian ? "Уже синхронизировано" : "Already up to date", success: true)
             case .noBackup:
                 break
             case .failure(let error):
@@ -694,6 +696,8 @@ final class ProfileViewController: UIViewController {
                 showBanner(msg, success: true)
             case .noBackup:
                 showBanner(L10n.isRussian ? "Нет данных на сервере" : "Nothing to pull", success: false)
+            case .noChanges:
+                break  // pull() never returns this - only push() does
             case .failure(let error):
                 showBanner(error.localizedDescription, success: false)
             }

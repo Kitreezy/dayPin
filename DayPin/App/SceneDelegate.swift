@@ -49,7 +49,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     // MARK: - Background push
     // Best-effort backup on backgrounding so a signed-in user's data isn't
-    // lost if they never remember to tap "Push" manually.
+    // lost if they never remember to tap "Push" manually. SyncService.push()
+    // skips the network call entirely if local content hasn't changed since
+    // the last successful push, so this is cheap to call on every single
+    // backgrounding - it won't hammer the server's limited free-tier storage
+    // with redundant re-uploads of an unchanged backup.
 
     func sceneDidEnterBackground(_ scene: UIScene) {
         performBackgroundPush()

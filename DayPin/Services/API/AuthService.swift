@@ -21,6 +21,7 @@ final class AuthService {
     private(set) var state: AuthState = .loading {
         didSet {
             NotificationCenter.default.post(name: .dayPinAuthStateChanged, object: nil)
+            flushReadyContinuations()
         }
     }
 
@@ -32,6 +33,32 @@ final class AuthService {
     var currentUser: APIUser? {
         if case .signedIn(let user) = state { return user }
         return nil
+    }
+
+    // MARK: - Startup readiness
+    // Session restore (GET /auth/me) can take a while on a cold server -
+    // callers that need to know "logged in or not" before showing UI (e.g.
+    // the launch sign-in sheet) should await this instead of guessing a delay.
+
+    private var readyContinuations: [CheckedContinuation<Void, Never>] = []
+
+    var isReady: Bool {
+        if case .loading = state { return false }
+        return true
+    }
+
+    func awaitReady() async {
+        if isReady { return }
+        await withCheckedContinuation { cont in
+            readyContinuations.append(cont)
+        }
+    }
+
+    private func flushReadyContinuations() {
+        guard isReady, !readyContinuations.isEmpty else { return }
+        let conts = readyContinuations
+        readyContinuations.removeAll()
+        conts.forEach { $0.resume() }
     }
 
     // MARK: - Register

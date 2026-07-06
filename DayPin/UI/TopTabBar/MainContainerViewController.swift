@@ -443,7 +443,11 @@ final class MainContainerViewController: UITabBarController {
         let folders  = makeNav(root: FolderListViewController(),  title: L10n.tabFolders)
         let all      = makeNav(root: TasksViewController(),       title: L10n.tabAll)
         let profile  = makeNav(root: makeProfileRoot(),           title: L10n.isRussian ? "Профиль" : "Profile")
-        viewControllers = [today, calendar, folders, all, profile]
+        var tabs = [today, calendar, folders, all, profile]
+        #if DEBUG
+        tabs.append(makeNav(root: NetworkLogViewController(), title: "Network"))
+        #endif
+        viewControllers = tabs
     }
 
     private var hasShownAuthOnLaunch = false
@@ -453,8 +457,11 @@ final class MainContainerViewController: UITabBarController {
         guard !hasShownAuthOnLaunch else { return }
         hasShownAuthOnLaunch = true
         Task {
-            // Give AuthService.restoreSession() time to finish
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            // Wait for the actual GET /auth/me restore to resolve instead of
+            // guessing a fixed delay - a cold-started server can take far
+            // longer than any reasonable guess, and a short guess flashes
+            // the sign-in sheet even when the user is still logged in.
+            await AuthService.shared.awaitReady()
             if !AuthService.shared.isLoggedIn {
                 presentAuthSheet()
             }
@@ -498,13 +505,17 @@ final class MainContainerViewController: UITabBarController {
     private func setupBottomBar() {
         tabBar.isHidden = true
 
-        pillBar = PillTabBar(items: [
+        var pillItems: [(String, String)] = [
             ("sun.max",        "sun.max.fill"),
             ("calendar",       "calendar.fill"),
             ("folder",         "folder.fill"),
             ("tray.full",      "tray.full.fill"),
             ("person.circle",  "person.circle.fill")
-        ])
+        ]
+        #if DEBUG
+        pillItems.append(("network", "network"))
+        #endif
+        pillBar = PillTabBar(items: pillItems)
         pillBar.translatesAutoresizingMaskIntoConstraints = false
         pillBar.onSelect = { [weak self] index in
             guard let self else { return }

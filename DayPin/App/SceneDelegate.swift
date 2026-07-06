@@ -17,6 +17,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
         self.window = window
         ThemeManager.shared.apply()
+        _ = NetworkActivityHUD.shared
 
         NotificationCenter.default.addObserver(
             self,

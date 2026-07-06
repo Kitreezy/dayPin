@@ -55,6 +55,7 @@
 		7F9846A70998F513892C8CE2 /* DayPinWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FEDCDAF7D333BE6D4D2AB22 /* DayPinWidget.swift */; };
 		82DFB9F7C0214D4938F94885 /* FolderImportToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67C68D4272903C6E4F894DA4 /* FolderImportToastView.swift */; };
 		85DBE9AF9D1A55FBD3F39958 /* FolderPickerBottomSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7734A2130AC28F7ED06C526 /* FolderPickerBottomSheet.swift */; };
+		87D9530C5BA79BF5DB3EE325 /* NetworkLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F60F205944BE954064D30BC /* NetworkLogger.swift */; };
 		893FD16C67BA5A9A02D92F4E /* Inter-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 305599560AD81A5EF812716C /* Inter-Medium.ttf */; };
 		899F4F942DC38B00B82D3DB7 /* RecentlyDeletedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81DAE7537A8E80BD3AEEB091 /* RecentlyDeletedViewController.swift */; };
 		8CE890641F6C80DF1B777C9D /* NotePickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC63688E119CDA671423987 /* NotePickerViewController.swift */; };
@@ -94,19 +95,23 @@
 		DCA00EAE4A0178BC463D7645 /* BackgroundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96922C6D1A0F8B077435CF3B /* BackgroundManager.swift */; };
 		DCA295CF0FF2010502503160 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF47CA6FC053CC10B11228B /* APIModels.swift */; };
 		DD0BD355F2898F461E2DC411 /* UIViewController+Sheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D96A122F0F7F1739B2BC103 /* UIViewController+Sheet.swift */; };
+		E1FA29663286D8CB5BD970A3 /* NetworkLogDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668DECD3B58C0D3EB2F83F46 /* NetworkLogDetailViewController.swift */; };
 		E3858F52B6C9FFD710F1479D /* AppColorScheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA266B97302B511D50833367 /* AppColorScheme.swift */; };
 		E3B2D65AC9E304579D35203C /* GlassView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A8C73069CB8E53AFC6BFB1E /* GlassView.swift */; };
 		E40B636E0E0AEC807A9FBD79 /* NoteCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1527142EE2C7F1DC149BF280 /* NoteCard.swift */; };
+		E7E42650A96882B370D19E93 /* NetworkActivityHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C088E90FCF43500F66798B /* NetworkActivityHUD.swift */; };
 		E7F0334CA63DDD3181190F13 /* SignInViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3491C0B66C16972A87064008 /* SignInViewController.swift */; };
 		EA0D7924C6016498602E949A /* SkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33AC568B2CFD22A2570C7CEB /* SkeletonView.swift */; };
 		F20D82DC2A7F286EE5204A03 /* DayPinWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F79E403C2CEE43858B3C3C /* DayPinWidgetBundle.swift */; };
 		F2275C685F8E597EEE38845F /* CameraCardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A95455B71B513DDB85C15D6 /* CameraCardViewController.swift */; };
 		F2EBE1A17A79F4EF58F9DD76 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5383A449595A3EFF892A6D8A /* Assets.xcassets */; };
+		F620E090B4210E6F3F639027 /* NetworkLogViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 249ACCD629F31577162C7135 /* NetworkLogViewController.swift */; };
 		F8C6E609AC44E68B0C0588DF /* LinkCardEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE9D8070FCA5D0C95DCF6C6 /* LinkCardEditorViewController.swift */; };
 		FD36EA16A0144EDA394BB7F8 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B65E4AA4B0A333783B6B900 /* L10n.swift */; };
 		FDDCFEE794D1480520D9E440 /* TopTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B080356CFE849CF419087C7 /* TopTabBarView.swift */; };
 		FE4006D29B8BABBF107B77F2 /* TagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 656283854617633C21086122 /* TagStore.swift */; };
 		FF0FCE1DB6E3DF2F5C4C73B3 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 372CFD024296EA0AA9768A73 /* APIClient.swift */; };
+		FF4A240CE2CAF1DE17D4B3A2 /* NetworkActivityTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A9504960322C183768C3DD7 /* NetworkActivityTracker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -144,6 +149,7 @@
 		1D96A122F0F7F1739B2BC103 /* UIViewController+Sheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController+Sheet.swift"; sourceTree = "<group>"; };
 		1DB67666ABF9AA2D0118E0EE /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		1FEDCDAF7D333BE6D4D2AB22 /* DayPinWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinWidget.swift; sourceTree = "<group>"; };
+		249ACCD629F31577162C7135 /* NetworkLogViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NetworkLogViewController.swift; sourceTree = "<group>"; };
 		26B230C0D7C49C3BF8B15A26 /* AnnotationInputPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationInputPopover.swift; sourceTree = "<group>"; };
 		27A5F1E6ABECBB2FF81EAA83 /* LinkCardDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCardDetailViewController.swift; sourceTree = "<group>"; };
 		29F8412B615B3A8876B544C6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -163,6 +169,7 @@
 		3A59E64560B7346557245FFA /* CardDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardDetailViewController.swift; sourceTree = "<group>"; };
 		3BAC70D20A18A22E6F71FEAD /* UndoToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndoToastView.swift; sourceTree = "<group>"; };
 		3F2381976CA64FE2BE587DC3 /* DayPinWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DayPinWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3F60F205944BE954064D30BC /* NetworkLogger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NetworkLogger.swift; sourceTree = "<group>"; };
 		40A03181568ADFCA18D282AA /* CardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardRenderer.swift; sourceTree = "<group>"; };
 		443F08F85AEC989A90078A36 /* LinkCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkCardCell.swift; sourceTree = "<group>"; };
 		47C62516C54AC25DFAD9892F /* GlassAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassAlert.swift; sourceTree = "<group>"; };
@@ -181,6 +188,7 @@
 		5CF47CA6FC053CC10B11228B /* APIModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
 		627BB3A609BCA96D507DAB93 /* BackgroundPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundPickerViewController.swift; sourceTree = "<group>"; };
 		656283854617633C21086122 /* TagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagStore.swift; sourceTree = "<group>"; };
+		668DECD3B58C0D3EB2F83F46 /* NetworkLogDetailViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NetworkLogDetailViewController.swift; sourceTree = "<group>"; };
 		66E6C3BF68BFC7A5F44687D3 /* TagsInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagsInputView.swift; sourceTree = "<group>"; };
 		671665AEA93EFD882C9932B0 /* DayPin.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DayPin.entitlements; sourceTree = "<group>"; };
 		67C68D4272903C6E4F894DA4 /* FolderImportToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderImportToastView.swift; sourceTree = "<group>"; };
@@ -193,8 +201,10 @@
 		76FF200235EC1B4AA99FBA8F /* DayPinWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DayPinWidget.entitlements; sourceTree = "<group>"; };
 		77DAC93E6FD3A6C2583C46F0 /* ImageCardDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCardDetailViewController.swift; sourceTree = "<group>"; };
 		786B50B0091F91DEFA59C383 /* TodayHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayHeaderView.swift; sourceTree = "<group>"; };
+		80C088E90FCF43500F66798B /* NetworkActivityHUD.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NetworkActivityHUD.swift; sourceTree = "<group>"; };
 		81DAE7537A8E80BD3AEEB091 /* RecentlyDeletedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyDeletedViewController.swift; sourceTree = "<group>"; };
 		8A8C73069CB8E53AFC6BFB1E /* GlassView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassView.swift; sourceTree = "<group>"; };
+		8A9504960322C183768C3DD7 /* NetworkActivityTracker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NetworkActivityTracker.swift; sourceTree = "<group>"; };
 		96922C6D1A0F8B077435CF3B /* BackgroundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundManager.swift; sourceTree = "<group>"; };
 		96F79E403C2CEE43858B3C3C /* DayPinWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPinWidgetBundle.swift; sourceTree = "<group>"; };
 		9759611C5CE7A4AC76726B7B /* ShareService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareService.swift; sourceTree = "<group>"; };
@@ -331,6 +341,16 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		2C39BA5D7731A18EE8371C81 /* Debug */ = {
+			isa = PBXGroup;
+			children = (
+				249ACCD629F31577162C7135 /* NetworkLogViewController.swift */,
+				668DECD3B58C0D3EB2F83F46 /* NetworkLogDetailViewController.swift */,
+			);
+			name = Debug;
+			path = Debug;
+			sourceTree = "<group>";
+		};
 		30C13C36E029AC6962C257AD /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -378,6 +398,8 @@
 				FC9BAEF3960B56A895F13B1F /* SyncService.swift */,
 				9759611C5CE7A4AC76726B7B /* ShareService.swift */,
 				BEEB154A120832CF0593D928 /* ShareLinkPresenter.swift */,
+				8A9504960322C183768C3DD7 /* NetworkActivityTracker.swift */,
+				3F60F205944BE954064D30BC /* NetworkLogger.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -394,6 +416,7 @@
 				72F1B04CA8508F9CD0ECDF81 /* Today */,
 				46CCCA0BE96FCBABF4FE5CA8 /* Profile */,
 				5D3AB5BC5A5307413D5A5757 /* Share */,
+				2C39BA5D7731A18EE8371C81 /* Debug */,
 			);
 			path = Modules;
 			sourceTree = "<group>";
@@ -602,6 +625,7 @@
 				3BAC70D20A18A22E6F71FEAD /* UndoToastView.swift */,
 				1903AE12CB3097EF9050CE37 /* WeekCalendarView.swift */,
 				33AC568B2CFD22A2570C7CEB /* SkeletonView.swift */,
+				80C088E90FCF43500F66798B /* NetworkActivityHUD.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -791,6 +815,11 @@
 				031F4CB29C5DC8F192631AF6 /* ProfileViewController.swift in Sources */,
 				C9C7B8C4E31D8701D78ED439 /* ShareLinkPresenter.swift in Sources */,
 				980377E620A0893B59B3BB68 /* SharedContentViewController.swift in Sources */,
+				FF4A240CE2CAF1DE17D4B3A2 /* NetworkActivityTracker.swift in Sources */,
+				87D9530C5BA79BF5DB3EE325 /* NetworkLogger.swift in Sources */,
+				E7E42650A96882B370D19E93 /* NetworkActivityHUD.swift in Sources */,
+				F620E090B4210E6F3F639027 /* NetworkLogViewController.swift in Sources */,
+				E1FA29663286D8CB5BD970A3 /* NetworkLogDetailViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -78,7 +78,7 @@ final class APIClient {
 
     /// Fetches endpoint and decodes JSON response into T.
     func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T {
-        let data = try await perform(endpoint, retrying: true)
+        let data = try await trackedPerform(endpoint)
         guard !data.isEmpty else { throw APIClientError.noData }
         do {
             return try decoder.decode(T.self, from: data)
@@ -89,17 +89,41 @@ final class APIClient {
 
     /// Fetches endpoint and returns raw Data. Safe for 204 No Content (returns empty Data).
     func requestRaw(_ endpoint: Endpoint) async throws -> Data {
-        try await perform(endpoint, retrying: true)
+        try await trackedPerform(endpoint)
     }
 
     /// Fetches endpoint and decodes JSON, returning nil on 204 No Content.
     func requestOptional<T: Decodable>(_ endpoint: Endpoint) async throws -> T? {
-        let data = try await perform(endpoint, retrying: true)
+        let data = try await trackedPerform(endpoint)
         guard !data.isEmpty else { return nil }
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
             throw APIClientError.decodingError(error)
+        }
+    }
+
+    // MARK: - Activity tracking + debug logging
+    // Single choke point every public call goes through, so the global
+    // loading HUD and the debug Network tab stay accurate without touching
+    // the retry/refresh logic in `perform(_:retrying:)`.
+
+    private func trackedPerform(_ endpoint: Endpoint) async throws -> Data {
+        await NetworkActivityTracker.shared.begin()
+        let start = Date()
+        do {
+            let data = try await perform(endpoint, retrying: true)
+            #if DEBUG
+            await NetworkLogger.shared.record(endpoint: endpoint, responseData: data, error: nil, duration: Date().timeIntervalSince(start))
+            #endif
+            await NetworkActivityTracker.shared.end()
+            return data
+        } catch {
+            #if DEBUG
+            await NetworkLogger.shared.record(endpoint: endpoint, responseData: nil, error: error, duration: Date().timeIntervalSince(start))
+            #endif
+            await NetworkActivityTracker.shared.end()
+            throw error
         }
     }
 

@@ -251,12 +251,17 @@ final class TodayViewController: UIViewController {
         searchBtn.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: btnSymbolCfg), for: .normal)
         searchBtn.layer.cornerRadius = 17
         searchBtn.layer.borderWidth = 0.5
+        searchBtn.clipsToBounds = true
         searchBtn.translatesAutoresizingMaskIntoConstraints = false
         searchBtn.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
 
+        // clipsToBounds is required here - without it the system menu-highlight
+        // overlay (from showsMenuAsPrimaryAction) ignores the corner radius and
+        // renders as a square around the button instead of a rounded pill.
         moreBtn.setImage(UIImage(systemName: "ellipsis", withConfiguration: btnSymbolCfg), for: .normal)
         moreBtn.layer.cornerRadius = 17
         moreBtn.layer.borderWidth = 0.5
+        moreBtn.clipsToBounds = true
         moreBtn.showsMenuAsPrimaryAction = true
         moreBtn.translatesAutoresizingMaskIntoConstraints = false
 
@@ -410,22 +415,6 @@ final class TodayViewController: UIViewController {
             UIAction(title: L10n.recentlyDeleted,
                      image: UIImage(systemName: "clock.arrow.circlepath")) { [weak self] _ in
                 self?.trashTapped()
-            },
-            UIAction(title: L10n.backup,
-                     image: UIImage(systemName: "externaldrive")) { [weak self] _ in
-                self?.backupTapped()
-            },
-            UIAction(title: L10n.appearance,
-                     image: UIImage(systemName: "paintbrush")) { [weak self] _ in
-                self?.openThemePicker()
-            },
-            UIAction(title: L10n.background,
-                     image: UIImage(systemName: "rectangle.fill")) { [weak self] _ in
-                self?.openBackgroundPicker()
-            },
-            UIAction(title: L10n.language,
-                     image: UIImage(systemName: "globe")) { [weak self] _ in
-                self?.showLanguagePicker()
             }
         ])
         moreBtn.menu = menu
@@ -760,56 +749,6 @@ final class TodayViewController: UIViewController {
         } else {
             enterSelectMode()
         }
-    }
-
-    // MARK: - Backup
-
-    @objc private func backupTapped() {
-        let vc = BackupViewController()
-        present(UINavigationController(rootViewController: vc), animated: true)
-    }
-
-    // MARK: - Theme / Background
-
-    private func openThemePicker() {
-        let vc = ThemePickerViewController()
-        presentEditorSheet(vc)
-    }
-
-    private func openBackgroundPicker() {
-        let vc = BackgroundPickerViewController()
-        let nav = UINavigationController(rootViewController: vc)
-        nav.modalPresentationStyle = .pageSheet
-        if let sheet = nav.sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
-            sheet.prefersGrabberVisible = true
-        }
-        present(nav, animated: true)
-    }
-
-    // MARK: - Language picker
-
-    private func showLanguagePicker() {
-        let current = L10n.languageOverride ?? (L10n.isRussian ? "ru" : "en")
-        let sheet = UIAlertController(title: L10n.language, message: nil, preferredStyle: .actionSheet)
-
-        let ruTitle = L10n.langRussian + (current == "ru" ? " ✓" : "")
-        sheet.addAction(UIAlertAction(title: ruTitle, style: .default) { _ in
-            L10n.languageOverride = "ru"
-        })
-
-        let enTitle = L10n.langEnglish + (current == "en" ? " ✓" : "")
-        sheet.addAction(UIAlertAction(title: enTitle, style: .default) { _ in
-            L10n.languageOverride = "en"
-        })
-
-        let sysTitle = L10n.langSystem + (L10n.languageOverride == nil ? " ✓" : "")
-        sheet.addAction(UIAlertAction(title: sysTitle, style: .default) { _ in
-            L10n.languageOverride = nil
-        })
-
-        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        present(sheet, animated: true)
     }
 
     // MARK: - Add actions

@@ -275,6 +275,9 @@ enum L10n {
         }
     }
 
+    // MARK: - Settings
+    static var settings: String           { s("Настройки", "Settings") }
+
     // MARK: - Appearance / Theme
     static var appearance: String         { s("Оформление", "Appearance") }
     static var background: String         { s("Фон", "Background") }

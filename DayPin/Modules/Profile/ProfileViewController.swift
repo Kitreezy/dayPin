@@ -11,8 +11,8 @@ final class ProfileViewController: UIViewController {
     private var isLoadingShares = true
     private var isLoadingStatus = true
 
-    // Skeleton placeholders
-    private let statusSkeletons: [SkeletonView] = (0..<3).map { _ in
+    // Skeleton placeholders - 2 bars, matching syncInfoLabel's numberOfLines = 2
+    private let statusSkeletons: [SkeletonView] = (0..<2).map { _ in
         let s = SkeletonView()
         s.layer.cornerRadius = 10
         return s
@@ -48,6 +48,10 @@ final class ProfileViewController: UIViewController {
     // Shares section
     private let sharesSectionLabel = UILabel()
     private let sharesStack = UIStackView()
+
+    // Settings container (inline, opens pickers as sheets on this same screen)
+    private let settingsBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let languageValueLabel = UILabel()
 
     // Footer
     private let signOutBtn = UIButton(type: .system)
@@ -92,6 +96,14 @@ final class ProfileViewController: UIViewController {
             self, selector: #selector(onColorSchemeChanged),
             name: .dayPinColorSchemeChanged, object: nil
         )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil
+        )
+    }
+
+    @objc private func onLanguageChanged() {
+        languageValueLabel.text = currentLanguageLabel()
     }
 
     @objc private func onAuthChanged() {
@@ -125,6 +137,24 @@ final class ProfileViewController: UIViewController {
         view.backgroundColor = DayPinDesign.background
         renderAuthState()
         updateSyncCard()
+        refreshAccentColors()
+    }
+
+    // MARK: - Accent-tinted elements
+    // DayPinDesign.accent/.accentContrast are plain UIColor snapshots, not
+    // dynamic providers - reassigning here on every .dayPinColorSchemeChanged
+    // is what actually applies a newly picked theme/scheme without relaunching.
+
+    private func refreshAccentColors() {
+        syncSpinner.color = DayPinDesign.accentContrast
+
+        pushBtn.tintColor = DayPinDesign.accentContrast
+        pushBtn.backgroundColor = DayPinDesign.accentContrast.withAlphaComponent(0.12)
+
+        signOutBtn.tintColor = DayPinDesign.accentContrast
+        signOutBtn.backgroundColor = DayPinDesign.accentContrast.withAlphaComponent(0.10)
+
+        signInPromptBtn.backgroundColor = DayPinDesign.accent
     }
 
     // MARK: - Setup
@@ -155,7 +185,9 @@ final class ProfileViewController: UIViewController {
         buildHeaderCard()
         buildSyncCard()
         buildSharesSection()
+        buildSettingsSection()
         buildFooter()
+        refreshAccentColors()
     }
 
     // MARK: - Header card
@@ -254,7 +286,6 @@ final class ProfileViewController: UIViewController {
         syncInfoLabel.translatesAutoresizingMaskIntoConstraints = false
         syncBlur.contentView.addSubview(syncInfoLabel)
 
-        syncSpinner.color = DayPinDesign.accent
         syncSpinner.hidesWhenStopped = true
         syncSpinner.translatesAutoresizingMaskIntoConstraints = false
         syncBlur.contentView.addSubview(syncSpinner)
@@ -262,8 +293,6 @@ final class ProfileViewController: UIViewController {
         pushBtn.setImage(UIImage(systemName: "arrow.up.to.line.circle.fill", withConfiguration: cfg), for: .normal)
         pushBtn.setTitle(L10n.isRussian ? "  Загрузить" : "  Push", for: .normal)
         pushBtn.titleLabel?.font = .inter(ofSize: 13, weight: .medium)
-        pushBtn.tintColor = DayPinDesign.accent
-        pushBtn.backgroundColor = DayPinDesign.accent.withAlphaComponent(0.12)
         pushBtn.layer.cornerRadius = 12
         pushBtn.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
         pushBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -292,9 +321,10 @@ final class ProfileViewController: UIViewController {
         cacheRestoreBtn.addTarget(self, action: #selector(restoreFromCacheTapped), for: .touchUpInside)
         syncBlur.contentView.addSubview(cacheRestoreBtn)
 
-        // Skeleton placeholders (positioned in layoutSubviews via constraints after view loads)
+        // Two lines of skeleton text, sized to stay within syncInfoLabel's own
+        // >=36pt reserved height so they never spill into the Push/Pull buttons below.
         let skTexts: [(CGFloat, CGFloat, CGFloat)] = [
-            (0, 0, 120), (0, 20, 80), (40, 0, 160)
+            (0, 0, 140), (20, 0, 90)
         ]
         for (i, sk) in statusSkeletons.enumerated() {
             sk.translatesAutoresizingMaskIntoConstraints = false
@@ -376,6 +406,203 @@ final class ProfileViewController: UIViewController {
         }
     }
 
+    // MARK: - Settings container
+    // Inline card (not a separate screen) - each row opens its picker as a
+    // sheet directly over this same Profile screen.
+
+    private func buildSettingsSection() {
+        let shadow = UIView()
+        shadow.layer.cornerRadius = 20
+        shadow.layer.shadowColor = UIColor.black.cgColor
+        shadow.layer.shadowOpacity = 0.10
+        shadow.layer.shadowRadius = 16
+        shadow.layer.shadowOffset = CGSize(width: 0, height: 4)
+        shadow.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(shadow)
+
+        settingsBlur.layer.cornerRadius = 20
+        settingsBlur.layer.borderWidth = 0.5
+        settingsBlur.clipsToBounds = true
+        settingsBlur.translatesAutoresizingMaskIntoConstraints = false
+        shadow.addSubview(settingsBlur)
+
+        let tint = UIView()
+        tint.backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor(white: 1, alpha: 0.07)
+                : UIColor(white: 1, alpha: 0.55)
+        }
+        tint.translatesAutoresizingMaskIntoConstraints = false
+        settingsBlur.contentView.addSubview(tint)
+
+        let titleLabel = UILabel()
+        titleLabel.text = L10n.settings
+        titleLabel.font = .inter(ofSize: 15, weight: .semibold)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        settingsBlur.contentView.addSubview(titleLabel)
+
+        languageValueLabel.text = currentLanguageLabel()
+
+        let rowsStack = UIStackView(arrangedSubviews: [
+            buildSettingsRow(icon: "paintbrush", tint: .systemPurple,
+                              title: L10n.appearance, action: #selector(appearanceRowTapped)),
+            makeSettingsSeparator(),
+            buildSettingsRow(icon: "rectangle.fill", tint: .systemTeal,
+                              title: L10n.background, action: #selector(backgroundRowTapped)),
+            makeSettingsSeparator(),
+            buildSettingsRow(icon: "globe", tint: .systemGreen,
+                              title: L10n.language, valueLabel: languageValueLabel,
+                              action: #selector(languageRowTapped)),
+            makeSettingsSeparator(),
+            buildSettingsRow(icon: "externaldrive", tint: .systemBlue,
+                              title: L10n.backup, action: #selector(backupRowTapped))
+        ])
+        rowsStack.axis = .vertical
+        rowsStack.translatesAutoresizingMaskIntoConstraints = false
+        settingsBlur.contentView.addSubview(rowsStack)
+
+        NSLayoutConstraint.activate([
+            shadow.heightAnchor.constraint(greaterThanOrEqualToConstant: 240),
+
+            settingsBlur.topAnchor.constraint(equalTo: shadow.topAnchor),
+            settingsBlur.leadingAnchor.constraint(equalTo: shadow.leadingAnchor),
+            settingsBlur.trailingAnchor.constraint(equalTo: shadow.trailingAnchor),
+            settingsBlur.bottomAnchor.constraint(equalTo: shadow.bottomAnchor),
+
+            tint.topAnchor.constraint(equalTo: settingsBlur.contentView.topAnchor),
+            tint.leadingAnchor.constraint(equalTo: settingsBlur.contentView.leadingAnchor),
+            tint.trailingAnchor.constraint(equalTo: settingsBlur.contentView.trailingAnchor),
+            tint.bottomAnchor.constraint(equalTo: settingsBlur.contentView.bottomAnchor),
+
+            titleLabel.topAnchor.constraint(equalTo: settingsBlur.contentView.topAnchor, constant: 16),
+            titleLabel.leadingAnchor.constraint(equalTo: settingsBlur.contentView.leadingAnchor, constant: 16),
+
+            rowsStack.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
+            rowsStack.leadingAnchor.constraint(equalTo: settingsBlur.contentView.leadingAnchor),
+            rowsStack.trailingAnchor.constraint(equalTo: settingsBlur.contentView.trailingAnchor),
+            rowsStack.bottomAnchor.constraint(equalTo: settingsBlur.contentView.bottomAnchor, constant: -4)
+        ])
+
+        refreshSettingsBlurBorder()
+    }
+
+    private func makeSettingsSeparator() -> UIView {
+        let v = UIView()
+        v.backgroundColor = UIColor.separator.withAlphaComponent(0.2)
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
+        return v
+    }
+
+    private func buildSettingsRow(
+        icon: String, tint: UIColor, title: String,
+        valueLabel: UILabel? = nil, action: Selector
+    ) -> UIView {
+        let row = UIView()
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.heightAnchor.constraint(equalToConstant: 52).isActive = true
+        row.isUserInteractionEnabled = true
+        row.addGestureRecognizer(UITapGestureRecognizer(target: self, action: action))
+
+        let iconView = UIImageView(image: UIImage(systemName: icon))
+        iconView.tintColor = tint
+        iconView.contentMode = .scaleAspectFit
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+
+        let titleLbl = UILabel()
+        titleLbl.text = title
+        titleLbl.font = .inter(ofSize: 15, weight: .regular)
+        titleLbl.textColor = .label
+        titleLbl.translatesAutoresizingMaskIntoConstraints = false
+
+        let value = valueLabel ?? UILabel()
+        value.font = .inter(ofSize: 13, weight: .regular)
+        value.textColor = .tertiaryLabel
+        value.translatesAutoresizingMaskIntoConstraints = false
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = .tertiaryLabel
+        chevron.contentMode = .scaleAspectFit
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+
+        [iconView, titleLbl, value, chevron].forEach { row.addSubview($0) }
+
+        NSLayoutConstraint.activate([
+            iconView.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 16),
+            iconView.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 20),
+            iconView.heightAnchor.constraint(equalToConstant: 20),
+
+            titleLbl.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
+            titleLbl.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+
+            chevron.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -16),
+            chevron.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+            chevron.widthAnchor.constraint(equalToConstant: 12),
+            chevron.heightAnchor.constraint(equalToConstant: 12),
+
+            value.trailingAnchor.constraint(equalTo: chevron.leadingAnchor, constant: -8),
+            value.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+            value.leadingAnchor.constraint(greaterThanOrEqualTo: titleLbl.trailingAnchor, constant: 8)
+        ])
+
+        return row
+    }
+
+    // MARK: - Settings row actions
+
+    @objc private func appearanceRowTapped() {
+        presentEditorSheet(ThemePickerViewController())
+    }
+
+    @objc private func backgroundRowTapped() {
+        let vc = BackgroundPickerViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
+    }
+
+    @objc private func languageRowTapped() {
+        let current = L10n.languageOverride ?? (L10n.isRussian ? "ru" : "en")
+        let sheet = UIAlertController(title: L10n.language, message: nil, preferredStyle: .actionSheet)
+
+        let ruTitle = L10n.langRussian + (current == "ru" ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: ruTitle, style: .default) { [weak self] _ in
+            L10n.languageOverride = "ru"
+            self?.languageValueLabel.text = self?.currentLanguageLabel()
+        })
+
+        let enTitle = L10n.langEnglish + (current == "en" ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: enTitle, style: .default) { [weak self] _ in
+            L10n.languageOverride = "en"
+            self?.languageValueLabel.text = self?.currentLanguageLabel()
+        })
+
+        let sysTitle = L10n.langSystem + (L10n.languageOverride == nil ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: sysTitle, style: .default) { [weak self] _ in
+            L10n.languageOverride = nil
+            self?.languageValueLabel.text = self?.currentLanguageLabel()
+        })
+
+        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        present(sheet, animated: true)
+    }
+
+    @objc private func backupRowTapped() {
+        let vc = BackupViewController()
+        present(UINavigationController(rootViewController: vc), animated: true)
+    }
+
+    private func currentLanguageLabel() -> String {
+        guard let override = L10n.languageOverride else { return L10n.langSystem }
+        return override == "ru" ? L10n.langRussian : L10n.langEnglish
+    }
+
     // MARK: - Footer
 
     private func buildFooter() {
@@ -388,8 +615,6 @@ final class ProfileViewController: UIViewController {
 
         signOutBtn.setTitle(L10n.isRussian ? "Выйти" : "Sign Out", for: .normal)
         signOutBtn.titleLabel?.font = .inter(ofSize: 15, weight: .medium)
-        signOutBtn.tintColor = DayPinDesign.accent
-        signOutBtn.backgroundColor = DayPinDesign.accent.withAlphaComponent(0.10)
         signOutBtn.layer.cornerRadius = 14
         signOutBtn.heightAnchor.constraint(equalToConstant: 50).isActive = true
         signOutBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -399,7 +624,6 @@ final class ProfileViewController: UIViewController {
         signInPromptBtn.setTitle(L10n.isRussian ? "Войти" : "Sign In", for: .normal)
         signInPromptBtn.titleLabel?.font = .inter(ofSize: 15, weight: .semibold)
         signInPromptBtn.tintColor = .white
-        signInPromptBtn.backgroundColor = DayPinDesign.accent
         signInPromptBtn.layer.cornerRadius = 14
         signInPromptBtn.heightAnchor.constraint(equalToConstant: 50).isActive = true
         signInPromptBtn.translatesAutoresizingMaskIntoConstraints = false
@@ -841,9 +1065,10 @@ final class ProfileViewController: UIViewController {
 
     private func refreshHeaderBorderColor() {
         let dark = traitCollection.userInterfaceStyle == .dark
-        headerCard.layer.borderColor = dark
+        let color = dark
             ? UIColor.white.withAlphaComponent(0.10).cgColor
             : UIColor.black.withAlphaComponent(0.07).cgColor
+        headerCard.layer.borderColor = color
     }
 
     private func refreshSyncBlurBorder() {
@@ -853,11 +1078,19 @@ final class ProfileViewController: UIViewController {
             : UIColor.black.withAlphaComponent(0.12).cgColor
     }
 
+    private func refreshSettingsBlurBorder() {
+        let dark = traitCollection.userInterfaceStyle == .dark
+        settingsBlur.layer.borderColor = dark
+            ? UIColor.white.withAlphaComponent(0.18).cgColor
+            : UIColor.black.withAlphaComponent(0.12).cgColor
+    }
+
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             refreshHeaderBorderColor()
             refreshSyncBlurBorder()
+            refreshSettingsBlurBorder()
         }
     }
 }

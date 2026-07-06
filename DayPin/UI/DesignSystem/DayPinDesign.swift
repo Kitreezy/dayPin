@@ -8,6 +8,21 @@ enum DayPinDesign {
     static var accentDeep: UIColor  { ThemeManager.shared.colorScheme.accentDeep }
     static var accentLight: UIColor { ThemeManager.shared.colorScheme.accentLight }
 
+    /// Accent variant picked for contrast when used as text/icon color over a
+    /// translucent accent-tinted chip: the deeper shade in light mode (some
+    /// schemes' `accent`, e.g. Spring's pale blue, is too light to read against
+    /// a near-white chip), the lighter shade in dark mode (for the same reason
+    /// against a near-black chip). Callers must still reassign this on
+    /// `.dayPinColorSchemeChanged` - it's dynamic per trait collection, not
+    /// per accent scheme change.
+    static var accentContrast: UIColor {
+        UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? ThemeManager.shared.colorScheme.accentLight
+                : ThemeManager.shared.colorScheme.accentDeep
+        }
+    }
+
     // MARK: - Card tints
 
     static var textCardTint: UIColor  { ThemeManager.shared.colorScheme.textTint }

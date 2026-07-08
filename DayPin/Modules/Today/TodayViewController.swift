@@ -45,6 +45,8 @@ final class TodayViewController: UIViewController {
     private let headerContainer = UIView()
     private let titleLabel = UILabel()
     private let dateLabel = UILabel()
+    private let todayJumpBtn = UIButton(type: .system)
+    private var todayJumpBtnHiddenConstraint: NSLayoutConstraint!
     private let searchBtn = UIButton(type: .system)
     private let moreBtn = UIButton(type: .system)
 
@@ -65,6 +67,9 @@ final class TodayViewController: UIViewController {
 
     // MARK: - Multi-select bar
 
+    private let selectionCopyBtn = UIButton(type: .system)
+    private let selectionFolderBtn = UIButton(type: .system)
+
     private lazy var selectionBar: UIView = {
         let bar = UIView()
         bar.backgroundColor = UIColor { t in
@@ -82,26 +87,24 @@ final class TodayViewController: UIViewController {
 
         let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
 
-        let copyBtn = UIButton(type: .system)
-        copyBtn.setImage(UIImage(systemName: "calendar.badge.plus", withConfiguration: iconCfg), for: .normal)
-        copyBtn.tintColor = DayPinDesign.accent
-        copyBtn.addTarget(self, action: #selector(copySelectedTapped), for: .touchUpInside)
+        selectionCopyBtn.setImage(UIImage(systemName: "calendar.badge.plus", withConfiguration: iconCfg), for: .normal)
+        selectionCopyBtn.addTarget(self, action: #selector(copySelectedTapped), for: .touchUpInside)
 
         selectionCountLabel.font = .inter(ofSize: 13, weight: .medium)
         selectionCountLabel.textColor = .secondaryLabel
         selectionCountLabel.textAlignment = .center
 
-        let folderBtn = UIButton(type: .system)
-        folderBtn.setImage(UIImage(systemName: "folder.badge.plus", withConfiguration: iconCfg), for: .normal)
-        folderBtn.tintColor = DayPinDesign.accent
-        folderBtn.addTarget(self, action: #selector(moveSelectedToFolderTapped), for: .touchUpInside)
+        selectionFolderBtn.setImage(UIImage(systemName: "folder.badge.plus", withConfiguration: iconCfg), for: .normal)
+        selectionFolderBtn.addTarget(self, action: #selector(moveSelectedToFolderTapped), for: .touchUpInside)
 
         let deleteBtn = UIButton(type: .system)
         deleteBtn.setImage(UIImage(systemName: "trash", withConfiguration: iconCfg), for: .normal)
         deleteBtn.tintColor = .systemRed
         deleteBtn.addTarget(self, action: #selector(deleteSelectedTapped), for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [copyBtn, selectionCountLabel, folderBtn, deleteBtn])
+        refreshSelectionBarColors()
+
+        let stack = UIStackView(arrangedSubviews: [selectionCopyBtn, selectionCountLabel, selectionFolderBtn, deleteBtn])
         stack.axis = .horizontal
         stack.distribution = .equalSpacing
         stack.alignment = .center
@@ -115,6 +118,11 @@ final class TodayViewController: UIViewController {
         ])
         return bar
     }()
+
+    private func refreshSelectionBarColors() {
+        selectionCopyBtn.tintColor = DayPinDesign.accentContrast
+        selectionFolderBtn.tintColor = DayPinDesign.accentContrast
+    }
     private let selectionCountLabel = UILabel()
 
     private lazy var collectionView: UICollectionView = {
@@ -204,6 +212,7 @@ final class TodayViewController: UIViewController {
     @objc private func onColorSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
         refreshButtonColors()
+        refreshSelectionBarColors()
         collectionView.reloadData()
         rebuildMoreMenu()
         undoToast.refreshAccent()
@@ -211,6 +220,7 @@ final class TodayViewController: UIViewController {
 
     @objc private func onLanguageChanged() {
         updateDateLabels()
+        todayJumpBtn.setTitle(L10n.today, for: .normal)
         searchBar.placeholder = L10n.searchPlaceholder
         rebuildMoreMenu()
         collectionView.reloadData()
@@ -227,6 +237,13 @@ final class TodayViewController: UIViewController {
         moreBtn.tintColor = .secondaryLabel
         moreBtn.backgroundColor = UIColor.secondarySystemFill
         moreBtn.layer.borderColor = UIColor.separator.cgColor
+
+        // accentContrast (not raw accent) - text/icon color on a translucent
+        // accent chip needs the light/dark-adaptive variant to stay readable.
+        todayJumpBtn.tintColor = DayPinDesign.accentContrast
+        todayJumpBtn.setTitleColor(DayPinDesign.accentContrast, for: .normal)
+        todayJumpBtn.backgroundColor = DayPinDesign.accentContrast.withAlphaComponent(0.12)
+        todayJumpBtn.layer.borderColor = DayPinDesign.accentContrast.withAlphaComponent(0.3).cgColor
     }
 
     // MARK: - Setup
@@ -245,7 +262,6 @@ final class TodayViewController: UIViewController {
         dateLabel.font = .inter(ofSize: 13, weight: .regular)
         dateLabel.textColor = .secondaryLabel
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
-        updateDateLabels()
 
         let btnSymbolCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
         searchBtn.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: btnSymbolCfg), for: .normal)
@@ -265,13 +281,27 @@ final class TodayViewController: UIViewController {
         moreBtn.showsMenuAsPrimaryAction = true
         moreBtn.translatesAutoresizingMaskIntoConstraints = false
 
+        let todayCfg = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+        todayJumpBtn.setImage(UIImage(systemName: "arrow.uturn.backward", withConfiguration: todayCfg), for: .normal)
+        todayJumpBtn.setTitle(L10n.today, for: .normal)
+        todayJumpBtn.titleLabel?.font = .inter(ofSize: 12, weight: .semibold)
+        todayJumpBtn.layer.cornerRadius = 10
+        todayJumpBtn.layer.borderWidth = 0.5
+        todayJumpBtn.clipsToBounds = true
+        todayJumpBtn.contentEdgeInsets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 10)
+        todayJumpBtn.translatesAutoresizingMaskIntoConstraints = false
+        todayJumpBtn.addTarget(self, action: #selector(jumpToToday), for: .touchUpInside)
+
         refreshButtonColors()
         rebuildMoreMenu()
 
         headerContainer.addSubview(titleLabel)
         headerContainer.addSubview(dateLabel)
+        headerContainer.addSubview(todayJumpBtn)
         headerContainer.addSubview(searchBtn)
         headerContainer.addSubview(moreBtn)
+
+        todayJumpBtnHiddenConstraint = todayJumpBtn.widthAnchor.constraint(equalToConstant: 0)
 
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 10),
@@ -290,9 +320,16 @@ final class TodayViewController: UIViewController {
 
             dateLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
             dateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            dateLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
-            dateLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -10)
+            dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: todayJumpBtn.leadingAnchor, constant: -8),
+            dateLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -10),
+
+            todayJumpBtn.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+            todayJumpBtn.centerYAnchor.constraint(equalTo: dateLabel.centerYAnchor),
+            todayJumpBtn.heightAnchor.constraint(equalToConstant: 22),
+            todayJumpBtnHiddenConstraint
         ])
+
+        updateDateLabels()
 
         setupSearchOverlay()
 
@@ -445,7 +482,8 @@ final class TodayViewController: UIViewController {
     // MARK: - Header labels
 
     private func updateDateLabels() {
-        if Calendar.current.isDateInToday(currentDate) {
+        let isToday = Calendar.current.isDateInToday(currentDate)
+        if isToday {
             titleLabel.text = L10n.today
         } else {
             let df = DateFormatter()
@@ -458,6 +496,17 @@ final class TodayViewController: UIViewController {
         df2.locale = L10n.activeLocale
         df2.dateFormat = "EEEE, d MMMM yyyy"
         dateLabel.text = df2.string(from: currentDate).capitalized
+
+        todayJumpBtnHiddenConstraint.isActive = isToday
+        todayJumpBtn.isHidden = isToday
+        UIView.animate(withDuration: 0.2) { self.headerContainer.layoutIfNeeded() }
+    }
+
+    @objc private func jumpToToday() {
+        let today = Calendar.current.startOfDay(for: Date())
+        guard !Calendar.current.isDate(today, inSameDayAs: currentDate) else { return }
+        let forward = today > currentDate
+        transitionToDate(today, direction: forward ? 1 : -1)
     }
 
     // MARK: - Search toggle

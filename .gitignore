@@ -67,3 +67,5 @@ secrets.json
 CLAUDE.md
 .claude/
 ios-integration.md
+# Snapshot test failure artifacts (references live in __Snapshots__ and ARE committed)
+*.xcresult

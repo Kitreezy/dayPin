@@ -39,6 +39,16 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A5A8F9E290C1B80DED6D388A"
+               BuildableName = "DayPinTests.xctest"
+               BlueprintName = "DayPinTests"
+               ReferencedContainer = "container:DayPin.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

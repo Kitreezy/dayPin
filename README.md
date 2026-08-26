@@ -1,43 +1,97 @@
 # DayPin
 
-A personalized iOS app for daily note-taking.
- Create:
-- Text cards.
-- Save photos and pin them as interactive notes.
-- Create link notes.
+iOS-приложение для ежедневных заметок: карточки дня, папки, календарь, виджеты и
+собственная облачная синхронизация.
 
-Group them into folders—everything is tied to a specific day.
+Написано на чистом UIKit без сторонних UI-библиотек: вёрстка кодом, без Storyboard,
+без SnapKit, без Combine и RxSwift. Единственная внешняя зависимость - Lottie для
+анимаций пустых состояний.
 
-You can set a reminder for a note and personalize the color scheme to suit your needs.
+Бэкенд написан отдельно, на Go: [daypin-server](https://github.com/Kitreezy/daypin-server).
 
-Built with UIKit. No dependencies except WidgetKit and a small Lottie animation.
+## Скриншоты
 
----
+<!-- Положить файлы в docs/screenshots/ и оставить три-четыре кадра:
+     Today, Календарь, карточка заметки, виджет на домашнем экране -->
 
-## What it does
+| Today | Календарь | Папки | Виджет |
+|---|---|---|---|
+| ![Today](docs/screenshots/today.png) | ![Календарь](docs/screenshots/calendar.png) | ![Папки](docs/screenshots/folders.png) | ![Виджет](docs/screenshots/widget.png) |
 
-- **Today** - card feed for the current day, swipe to delete, undo
-- **Calendar** - browse any past or future day
-- **Folders** - group cards by topic, custom color and cover photo
-- **Widgets** - glanceable summary on the home screen
+## Что умеет
 
-## Stack
+- **Today** - лента карточек текущего дня: свайп для удаления, отмена действия,
+  быстрый переход к сегодняшней дате.
+- **Три типа карточек** - текст, фото и ссылка. У фото есть режим аннотации
+  (рисование и пометки поверх изображения), у ссылок - предпросмотр в bottom sheet.
+- **Календарь** - любой прошедший или будущий день, детальный экран дня.
+- **Задачи** - отдельный раздел с мультивыбором и массовыми операциями.
+- **Папки** - группировка карточек по темам, свой цвет и обложка.
+- **Поиск** - глобальный поиск по всем карточкам.
+- **Недавно удалённые** - восстановление удалённых заметок.
+- **Напоминания** - локальные уведомления по карточке.
+- **Оформление** - светлая и тёмная тема, выбор акцентного цвета и фона.
+- **Локализация** - русский и английский, переключение внутри приложения без
+  перезапуска.
+- **Виджеты** - сводка дня на домашнем экране, переход в приложение по deep link
+  `daypin://`.
+- **Синхронизация и шеринг** - аккаунт, облачный бэкап заметок и публичные
+  share-ссылки на карточку или папку (см. раздел ниже).
 
-- Swift 5.9 · UIKit · iOS 17+
-- NSLayoutConstraint (no SnapKit, no Storyboards)
-- UserDefaults + JSON persistence
-- WidgetKit
-- Lottie (empty states)
+## Стек
 
-## Architecture
+- Swift 5.9, UIKit, iOS 15+ (виджет - iOS 17+)
+- Вёрстка кодом на NSLayoutConstraint, без Storyboard и без SnapKit
+- Хранение: UserDefaults + JSON (CardStore, FolderStore, TagStore)
+- Keychain для токенов авторизации
+- WidgetKit + App Group для общего хранилища с виджетом
+- CryptoKit для хеша контента при синхронизации
+- URLSession, async/await
+- Lottie - единственная сторонняя зависимость, подключена через SPM
+- XcodeGen: проект генерируется из `project.yml`
 
-Plain MVC. One responsibility per file. 
-Screens talk through NotificationCenter - no Combine, no RxSwift.
+## Архитектура
 
-## Localisation
+MVC на UIViewController, один экран - один модуль. Экраны общаются между собой
+через NotificationCenter, без Combine и без реактивных фреймворков. Тема и
+локализация вынесены в отдельные менеджеры (`ThemeManager`, `L10n`).
 
-Russian and English, switchable inside the app without restart.
+```
+DayPin/
+  App/        AppDelegate, SceneDelegate, ThemeManager, L10n, DebugOverlayManager
+  Models/     NoteCard и его типы: текст, фото, ссылка
+  Modules/    экраны: Today, Calendar, Tasks, Folders, AddCard, Profile, Settings, Share
+  Storage/    CardStore, FolderStore, TagStore, BackupManager
+  Services/   API-клиент, авторизация, синхронизация, шеринг, напоминания, рендер карточек
+  UI/         дизайн-система, ячейки карточек, переиспользуемые компоненты
+  Resources/  ассеты, шрифты, анимации, ru.lproj и en.lproj
+DayPinWidget/ виджет на WidgetKit + SwiftUI
+```
 
-## Running
+## Синхронизация
 
-Clone -> open `DayPin.xcodeproj` -> select a simulator -> Run.
+Клиент работает с собственным сервером на Go ([daypin-server](https://github.com/Kitreezy/daypin-server)):
+регистрация и вход, JWT с обновлением токена, полный push/pull бэкапа и публичные
+share-ссылки.
+
+Интересная деталь: перед отправкой бэкапа `SyncService` считает SHA-256 от локального
+контента и сравнивает с хешем последнего успешного пуша. Если ничего не менялось,
+сетевой запрос не выполняется вообще - иначе приложение при каждом уходе в фон
+заново заливало бы весь бэкап вместе с фотографиями.
+
+## Отладка
+
+Встряхивание устройства открывает debug-оверлей с сетевой панелью: список запросов,
+их статусы и тела ответов. Отдельный экран сборки не нужен.
+
+## Запуск
+
+```
+git clone https://github.com/Kitreezy/dayPin.git
+cd dayPin
+xcodegen generate
+open DayPin.xcodeproj
+```
+
+Синхронизация и шеринг требуют запущенного [daypin-server](https://github.com/Kitreezy/daypin-server);
+без него приложение работает полностью локально.

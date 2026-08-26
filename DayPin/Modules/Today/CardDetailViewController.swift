@@ -85,8 +85,12 @@ final class CardDetailViewController: UIViewController {
         bellButton = bell
 
         let shareAction = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in self?.share() }
+        let shareLinkAction = UIAction(title: L10n.shareViaLink, image: UIImage(systemName: "link")) { [weak self] _ in
+            guard let self else { return }
+            ShareLinkPresenter.shareCard(self.card, from: self)
+        }
         let folderAction = UIAction(title: L10n.inFolder, image: UIImage(systemName: "folder.badge.plus")) { [weak self] _ in self?.addToFolder() }
-        let moreBtn = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: UIMenu(children: [shareAction, folderAction]))
+        let moreBtn = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: UIMenu(children: [shareAction, shareLinkAction, folderAction]))
 
         if isNoteEditing {
             let done = UIBarButtonItem(title: L10n.done, style: .done, target: self, action: #selector(finishEditing))

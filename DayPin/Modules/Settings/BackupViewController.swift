@@ -37,6 +37,8 @@ final class BackupViewController: UIViewController {
             name: .dayPinLanguageChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
             name: .dayPinColorSchemeChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinBackgroundChanged, object: nil)
     }
 
     @objc private func onLanguageChanged() {
@@ -44,7 +46,13 @@ final class BackupViewController: UIViewController {
         tableView.reloadData()
     }
 
-    @objc private func onColorSchemeChanged() {}
+    // DayPinDesign.background is a UIColor(dynamicProvider:) - UIKit only
+    // re-invokes that closure on a traitCollection change, not when
+    // ThemeManager's accent or the wallpaper changes elsewhere. Reassigning
+    // it here forces a fresh read of the current accent/background.
+    @objc private func onColorSchemeChanged() {
+        view.backgroundColor = DayPinDesign.background
+    }
 
     private func setupTable() {
         tableView.dataSource = self

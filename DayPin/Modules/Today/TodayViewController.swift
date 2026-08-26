@@ -13,6 +13,12 @@ final class TodayViewController: UIViewController {
     private var allCards:    [NoteCard] = []
     private var flatCards:   [NoteCard] = []
     private var activeFilter: FilterChipsView.Filter = .all
+    private var activeTagID: UUID? = nil
+
+    // MARK: - Animation
+
+    /// Tracks which index paths have already been animated so we only animate once per reload.
+    private var animatedCardIndexPaths = Set<IndexPath>()
 
     // MARK: - Multi-select state
 
@@ -39,6 +45,8 @@ final class TodayViewController: UIViewController {
     private let headerContainer = UIView()
     private let titleLabel = UILabel()
     private let dateLabel = UILabel()
+    private let todayJumpBtn = UIButton(type: .system)
+    private var todayJumpBtnHiddenConstraint: NSLayoutConstraint!
     private let searchBtn = UIButton(type: .system)
     private let moreBtn = UIButton(type: .system)
     private let avatarView = AvatarView(size: 32)
@@ -61,6 +69,9 @@ final class TodayViewController: UIViewController {
 
     // MARK: - Multi-select bar
 
+    private let selectionCopyBtn = UIButton(type: .system)
+    private let selectionFolderBtn = UIButton(type: .system)
+
     private lazy var selectionBar: UIView = {
         let bar = UIView()
         bar.backgroundColor = UIColor { t in
@@ -78,26 +89,24 @@ final class TodayViewController: UIViewController {
 
         let iconCfg = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
 
-        let copyBtn = UIButton(type: .system)
-        copyBtn.setImage(UIImage(systemName: "calendar.badge.plus", withConfiguration: iconCfg), for: .normal)
-        copyBtn.tintColor = DayPinDesign.accent
-        copyBtn.addTarget(self, action: #selector(copySelectedTapped), for: .touchUpInside)
+        selectionCopyBtn.setImage(UIImage(systemName: "calendar.badge.plus", withConfiguration: iconCfg), for: .normal)
+        selectionCopyBtn.addTarget(self, action: #selector(copySelectedTapped), for: .touchUpInside)
 
         selectionCountLabel.font = .inter(ofSize: 13, weight: .medium)
         selectionCountLabel.textColor = .secondaryLabel
         selectionCountLabel.textAlignment = .center
 
-        let folderBtn = UIButton(type: .system)
-        folderBtn.setImage(UIImage(systemName: "folder.badge.plus", withConfiguration: iconCfg), for: .normal)
-        folderBtn.tintColor = DayPinDesign.accent
-        folderBtn.addTarget(self, action: #selector(moveSelectedToFolderTapped), for: .touchUpInside)
+        selectionFolderBtn.setImage(UIImage(systemName: "folder.badge.plus", withConfiguration: iconCfg), for: .normal)
+        selectionFolderBtn.addTarget(self, action: #selector(moveSelectedToFolderTapped), for: .touchUpInside)
 
         let deleteBtn = UIButton(type: .system)
         deleteBtn.setImage(UIImage(systemName: "trash", withConfiguration: iconCfg), for: .normal)
         deleteBtn.tintColor = .systemRed
         deleteBtn.addTarget(self, action: #selector(deleteSelectedTapped), for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [copyBtn, selectionCountLabel, folderBtn, deleteBtn])
+        refreshSelectionBarColors()
+
+        let stack = UIStackView(arrangedSubviews: [selectionCopyBtn, selectionCountLabel, selectionFolderBtn, deleteBtn])
         stack.axis = .horizontal
         stack.distribution = .equalSpacing
         stack.alignment = .center
@@ -111,6 +120,11 @@ final class TodayViewController: UIViewController {
         ])
         return bar
     }()
+
+    private func refreshSelectionBarColors() {
+        selectionCopyBtn.tintColor = DayPinDesign.accentContrast
+        selectionFolderBtn.tintColor = DayPinDesign.accentContrast
+    }
     private let selectionCountLabel = UILabel()
 
     private lazy var collectionView: UICollectionView = {
@@ -204,6 +218,7 @@ final class TodayViewController: UIViewController {
     @objc private func onColorSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
         refreshButtonColors()
+        refreshSelectionBarColors()
         collectionView.reloadData()
         rebuildMoreMenu()
         undoToast.refreshAccent()
@@ -211,6 +226,7 @@ final class TodayViewController: UIViewController {
 
     @objc private func onLanguageChanged() {
         updateDateLabels()
+        todayJumpBtn.setTitle(L10n.today, for: .normal)
         searchBar.placeholder = L10n.searchPlaceholder
         rebuildMoreMenu()
         collectionView.reloadData()
@@ -261,6 +277,13 @@ final class TodayViewController: UIViewController {
         moreBtn.tintColor = .secondaryLabel
         moreBtn.backgroundColor = UIColor.secondarySystemFill
         moreBtn.layer.borderColor = UIColor.separator.cgColor
+
+        // accentContrast (not raw accent) - text/icon color on a translucent
+        // accent chip needs the light/dark-adaptive variant to stay readable.
+        todayJumpBtn.tintColor = DayPinDesign.accentContrast
+        todayJumpBtn.setTitleColor(DayPinDesign.accentContrast, for: .normal)
+        todayJumpBtn.backgroundColor = DayPinDesign.accentContrast.withAlphaComponent(0.12)
+        todayJumpBtn.layer.borderColor = DayPinDesign.accentContrast.withAlphaComponent(0.3).cgColor
     }
 
     // MARK: - Setup
@@ -279,20 +302,35 @@ final class TodayViewController: UIViewController {
         dateLabel.font = .inter(ofSize: 13, weight: .regular)
         dateLabel.textColor = .secondaryLabel
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
-        updateDateLabels()
 
         let btnSymbolCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
         searchBtn.setImage(UIImage(systemName: "magnifyingglass", withConfiguration: btnSymbolCfg), for: .normal)
         searchBtn.layer.cornerRadius = 17
         searchBtn.layer.borderWidth = 0.5
+        searchBtn.clipsToBounds = true
         searchBtn.translatesAutoresizingMaskIntoConstraints = false
         searchBtn.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
 
+        // clipsToBounds is required here - without it the system menu-highlight
+        // overlay (from showsMenuAsPrimaryAction) ignores the corner radius and
+        // renders as a square around the button instead of a rounded pill.
         moreBtn.setImage(UIImage(systemName: "ellipsis", withConfiguration: btnSymbolCfg), for: .normal)
         moreBtn.layer.cornerRadius = 17
         moreBtn.layer.borderWidth = 0.5
+        moreBtn.clipsToBounds = true
         moreBtn.showsMenuAsPrimaryAction = true
         moreBtn.translatesAutoresizingMaskIntoConstraints = false
+
+        let todayCfg = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+        todayJumpBtn.setImage(UIImage(systemName: "arrow.uturn.backward", withConfiguration: todayCfg), for: .normal)
+        todayJumpBtn.setTitle(L10n.today, for: .normal)
+        todayJumpBtn.titleLabel?.font = .inter(ofSize: 12, weight: .semibold)
+        todayJumpBtn.layer.cornerRadius = 10
+        todayJumpBtn.layer.borderWidth = 0.5
+        todayJumpBtn.clipsToBounds = true
+        todayJumpBtn.contentEdgeInsets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 10)
+        todayJumpBtn.translatesAutoresizingMaskIntoConstraints = false
+        todayJumpBtn.addTarget(self, action: #selector(jumpToToday), for: .touchUpInside)
 
         refreshButtonColors()
         rebuildMoreMenu()
@@ -313,8 +351,11 @@ final class TodayViewController: UIViewController {
         headerContainer.addSubview(avatarBtn)
         headerContainer.addSubview(titleLabel)
         headerContainer.addSubview(dateLabel)
+        headerContainer.addSubview(todayJumpBtn)
         headerContainer.addSubview(searchBtn)
         headerContainer.addSubview(moreBtn)
+
+        todayJumpBtnHiddenConstraint = todayJumpBtn.widthAnchor.constraint(equalToConstant: 0)
 
         NSLayoutConstraint.activate([
             avatarBtn.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
@@ -338,15 +379,23 @@ final class TodayViewController: UIViewController {
 
             dateLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
             dateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            dateLabel.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
-            dateLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -10)
+            dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: todayJumpBtn.leadingAnchor, constant: -8),
+            dateLabel.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: -10),
+
+            todayJumpBtn.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+            todayJumpBtn.centerYAnchor.constraint(equalTo: dateLabel.centerYAnchor),
+            todayJumpBtn.heightAnchor.constraint(equalToConstant: 22),
+            todayJumpBtnHiddenConstraint
         ])
+
+        updateDateLabels()
 
         setupSearchOverlay()
 
         weekStrip.translatesAutoresizingMaskIntoConstraints = false
         weekStrip.onDaySelected = { [weak self] date in
             guard let self else { return }
+            UISelectionFeedbackGenerator().selectionChanged()
             let forward = date > self.currentDate
             self.transitionToDate(date, direction: forward ? 1 : -1)
         }
@@ -354,6 +403,10 @@ final class TodayViewController: UIViewController {
         filterChips.translatesAutoresizingMaskIntoConstraints = false
         filterChips.onFilterChange = { [weak self] filter in
             self?.activeFilter = filter
+            self?.applyFilters()
+        }
+        filterChips.onTagFilterChange = { [weak self] tagID in
+            self?.activeTagID = tagID
             self?.applyFilters()
         }
 
@@ -382,7 +435,6 @@ final class TodayViewController: UIViewController {
             filterChips.topAnchor.constraint(equalTo: stripSeparator.bottomAnchor, constant: 2),
             filterChips.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             filterChips.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            filterChips.heightAnchor.constraint(equalToConstant: 42),
 
             collectionView.topAnchor.constraint(equalTo: filterChips.bottomAnchor, constant: 2),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -396,6 +448,9 @@ final class TodayViewController: UIViewController {
 
         collectionView.dataSource = self
         collectionView.delegate = self
+        collectionView.dragDelegate = self
+        collectionView.dropDelegate = self
+        collectionView.dragInteractionEnabled = true
 
         undoToast.translatesAutoresizingMaskIntoConstraints = false
         undoToast.alpha = 0
@@ -456,22 +511,6 @@ final class TodayViewController: UIViewController {
             UIAction(title: L10n.recentlyDeleted,
                      image: UIImage(systemName: "clock.arrow.circlepath")) { [weak self] _ in
                 self?.trashTapped()
-            },
-            UIAction(title: L10n.backup,
-                     image: UIImage(systemName: "externaldrive")) { [weak self] _ in
-                self?.backupTapped()
-            },
-            UIAction(title: L10n.appearance,
-                     image: UIImage(systemName: "paintbrush")) { [weak self] _ in
-                self?.openThemePicker()
-            },
-            UIAction(title: L10n.background,
-                     image: UIImage(systemName: "rectangle.fill")) { [weak self] _ in
-                self?.openBackgroundPicker()
-            },
-            UIAction(title: L10n.language,
-                     image: UIImage(systemName: "globe")) { [weak self] _ in
-                self?.showLanguagePicker()
             }
         ])
         moreBtn.menu = menu
@@ -502,7 +541,8 @@ final class TodayViewController: UIViewController {
     // MARK: - Header labels
 
     private func updateDateLabels() {
-        if Calendar.current.isDateInToday(currentDate) {
+        let isToday = Calendar.current.isDateInToday(currentDate)
+        if isToday {
             titleLabel.text = L10n.today
         } else {
             let df = DateFormatter()
@@ -515,6 +555,17 @@ final class TodayViewController: UIViewController {
         df2.locale = L10n.activeLocale
         df2.dateFormat = "EEEE, d MMMM yyyy"
         dateLabel.text = df2.string(from: currentDate).capitalized
+
+        todayJumpBtnHiddenConstraint.isActive = isToday
+        todayJumpBtn.isHidden = isToday
+        UIView.animate(withDuration: 0.2) { self.headerContainer.layoutIfNeeded() }
+    }
+
+    @objc private func jumpToToday() {
+        let today = Calendar.current.startOfDay(for: Date())
+        guard !Calendar.current.isDate(today, inSameDayAs: currentDate) else { return }
+        let forward = today > currentDate
+        transitionToDate(today, direction: forward ? 1 : -1)
     }
 
     // MARK: - Search toggle
@@ -576,6 +627,7 @@ final class TodayViewController: UIViewController {
             self.currentDate = newDate
             self.weekStrip.navigate(to: newDate)
             self.updateDateLabels()
+            self.resetFilters()
             self.loadCards()
             self.collectionView.transform = CGAffineTransform(translationX: -inX, y: 0)
             self.collectionView.alpha = 0
@@ -590,8 +642,15 @@ final class TodayViewController: UIViewController {
 
     func loadCards() {
         allCards = CardStore.shared.cards(for: currentDate)
+        animatedCardIndexPaths.removeAll()
         weekStrip.refreshNoteDots()
         applyFilters()
+    }
+
+    func resetFilters() {
+        activeFilter = .all
+        activeTagID = nil
+        filterChips.reset()
     }
 
     private func applyFilters(animated: Bool = false) {
@@ -620,11 +679,20 @@ final class TodayViewController: UIViewController {
 
         filterChips.updateCounts(text: textCards.count, image: imageCards.count, link: linkCards.count)
 
+        // Collect all unique tag IDs used by today's cards for the tag chips row
+        let usedTagIDs = Array(Set(allCards.flatMap { $0.tagIDs }))
+        filterChips.updateTags(usedTagIDs)
+
         switch activeFilter {
         case .all:   flatCards = allCards
         case .text:  flatCards = textCards
         case .image: flatCards = imageCards
         case .link:  flatCards = linkCards
+        }
+
+        // Apply tag filter on top of type filter
+        if let tagID = activeTagID {
+            flatCards = flatCards.filter { $0.tagIDs.contains(tagID) }
         }
 
         flatCards.sort { $0.createdAt > $1.createdAt }
@@ -670,6 +738,7 @@ final class TodayViewController: UIViewController {
     // MARK: - Multi-select
 
     private func enterSelectMode(initialCard: NoteCard? = nil) {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         isSelectMode = true
         selectedIDs = []
         if let card = initialCard { selectedIDs.insert(card.id) }
@@ -729,8 +798,11 @@ final class TodayViewController: UIViewController {
         ) { [weak self] in
             guard let self else { return }
             let toDelete = self.flatCards.filter { self.selectedIDs.contains($0.id) }
-            toDelete.forEach { CardStore.shared.delete(card: $0) }
-            self.allCards = CardStore.shared.cards(for: self.currentDate)
+            // Single persist for all deletions — no N × encode on main thread
+            CardStore.shared.deleteMany(cards: toDelete)
+            // Optimistic in-memory removal
+            let deletedIDs = Set(toDelete.map { $0.id })
+            self.allCards.removeAll { deletedIDs.contains($0.id) }
             self.exitSelectMode()
             self.applyFilters(animated: true)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -739,26 +811,34 @@ final class TodayViewController: UIViewController {
 
     @objc private func moveSelectedToFolderTapped() {
         guard !selectedIDs.isEmpty else { return }
-        let folders = FolderStore.shared.all()
-        guard !folders.isEmpty else {
+        guard !FolderStore.shared.all().isEmpty else {
             GlassAlert.show(in: self, title: L10n.noFolders, message: L10n.noFoldersMessage)
             return
         }
-        let sheet = UIAlertController(title: L10n.chooseFolderTitle, message: nil, preferredStyle: .actionSheet)
-        for folder in folders {
-            sheet.addAction(UIAlertAction(title: folder.name, style: .default) { [weak self] _ in
-                guard let self else { return }
-                let toMove = self.flatCards.filter { self.selectedIDs.contains($0.id) }
-                toMove.forEach { card in
-                    card.folderID = folder.id
-                    CardStore.shared.save(card: card)
-                }
-                self.exitSelectMode()
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            })
+        let vc = FolderPickerBottomSheet(currentFolderID: nil)
+        vc.onPick = { [weak self] folder in
+            guard let self else { return }
+            let toMove = self.flatCards.filter { self.selectedIDs.contains($0.id) }
+            toMove.forEach { $0.folderID = folder?.id }
+            // Single persist for all cards
+            CardStore.shared.saveMany(cards: toMove)
+            self.exitSelectMode()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
-        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        present(sheet, animated: true)
+        presentFolderPicker(vc)
+    }
+
+    // MARK: - Folder picker bottom sheet helper
+
+    private func presentFolderPicker(_ vc: FolderPickerBottomSheet) {
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = true
+        }
+        present(nav, animated: true)
     }
 
     // MARK: - Trash / Recently Deleted
@@ -779,56 +859,6 @@ final class TodayViewController: UIViewController {
         }
     }
 
-    // MARK: - Backup
-
-    @objc private func backupTapped() {
-        let vc = BackupViewController()
-        present(UINavigationController(rootViewController: vc), animated: true)
-    }
-
-    // MARK: - Theme / Background
-
-    private func openThemePicker() {
-        let vc = ThemePickerViewController()
-        presentEditorSheet(vc)
-    }
-
-    private func openBackgroundPicker() {
-        let vc = BackgroundPickerViewController()
-        let nav = UINavigationController(rootViewController: vc)
-        nav.modalPresentationStyle = .pageSheet
-        if let sheet = nav.sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
-            sheet.prefersGrabberVisible = true
-        }
-        present(nav, animated: true)
-    }
-
-    // MARK: - Language picker
-
-    private func showLanguagePicker() {
-        let current = L10n.languageOverride ?? (L10n.isRussian ? "ru" : "en")
-        let sheet = UIAlertController(title: L10n.language, message: nil, preferredStyle: .actionSheet)
-
-        let ruTitle = L10n.langRussian + (current == "ru" ? " ✓" : "")
-        sheet.addAction(UIAlertAction(title: ruTitle, style: .default) { _ in
-            L10n.languageOverride = "ru"
-        })
-
-        let enTitle = L10n.langEnglish + (current == "en" ? " ✓" : "")
-        sheet.addAction(UIAlertAction(title: enTitle, style: .default) { _ in
-            L10n.languageOverride = "en"
-        })
-
-        let sysTitle = L10n.langSystem + (L10n.languageOverride == nil ? " ✓" : "")
-        sheet.addAction(UIAlertAction(title: sysTitle, style: .default) { _ in
-            L10n.languageOverride = nil
-        })
-
-        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
-        present(sheet, animated: true)
-    }
-
     // MARK: - Add actions
 
     @objc private func addTapped() {
@@ -841,7 +871,12 @@ final class TodayViewController: UIViewController {
     }
     @objc private func onAddPhoto(_ n: Notification)  {
         pendingAddFolderID = n.folderID
-        presentImagePicker()
+        if pendingAddFolderID != nil {
+            // In folder context: offer multi-photo picker
+            presentMultiPhotoPicker()
+        } else {
+            presentImagePicker()
+        }
     }
     @objc private func onAddCamera(_ n: Notification) {
         pendingAddFolderID = n.folderID
@@ -858,6 +893,7 @@ final class TodayViewController: UIViewController {
         vc.onSave = { [weak self] saved in
             if let fid = folderID { saved.folderID = fid }
             CardStore.shared.save(card: saved)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             self?.loadCards()
             if folderID != nil {
                 NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
@@ -871,6 +907,7 @@ final class TodayViewController: UIViewController {
         vc.onSave = { [weak self] saved in
             if let fid = folderID { saved.folderID = fid }
             CardStore.shared.save(card: saved)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             self?.loadCards()
             if folderID != nil {
                 NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
@@ -880,80 +917,90 @@ final class TodayViewController: UIViewController {
     }
 
     func presentImagePicker() {
-        let picker = RecentPhotosPickerViewController()
-        picker.onSelect = { [weak self] data in
-            self?.presentImageCardEditor(imageData: data)
-        }
-        picker.onShowAll = { [weak self] in
-            self?.presentSystemImagePicker()
-        }
-        present(picker, animated: true)
+        presentCameraCard(startMode: .gallery)
     }
 
-    private func presentSystemImagePicker() {
+    func presentCamera() {
+        presentCameraCard(startMode: .camera)
+    }
+
+    // Multi-photo picker (folder context only)
+    private func presentMultiPhotoPicker() {
         var config = PHPickerConfiguration()
-        config.selectionLimit = 1
+        config.selectionLimit = 0  // unlimited
         config.filter = .images
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = self
         present(picker, animated: true)
     }
 
-    func presentCamera() {
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = self
-        present(picker, animated: true)
-    }
-
-    func presentImageCardEditor(imageData: Data?) {
+    private func presentCameraCard(startMode: CameraCardViewController.StartMode, existingCard: ImageCard? = nil) {
         let folderID = pendingAddFolderID
         pendingAddFolderID = nil
-        let vc = ImageCardEditorViewController(imageData: imageData, dayDate: currentDate, existingCard: nil)
+        let vc = CameraCardViewController(startMode: startMode, dayDate: currentDate, existingCard: existingCard)
         vc.onSave = { [weak self] saved in
             if let fid = folderID { saved.folderID = fid }
             CardStore.shared.save(card: saved)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
             self?.loadCards()
             if folderID != nil {
                 NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
             }
         }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        present(vc, animated: true)
     }
 
     func presentImageEditor(card: ImageCard) {
-        let vc = ImageCardEditorViewController(imageData: card.imageData, dayDate: currentDate, existingCard: card)
+        let vc = CameraCardViewController(startMode: .gallery, dayDate: currentDate, existingCard: card)
         vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.loadCards() }
-        present(UINavigationController(rootViewController: vc), animated: true)
+        present(vc, animated: true)
     }
 
-    func deleteCard(_ card: NoteCard) {
+    /// Immediately updates in-memory state then fires an async persist.
+    /// Never re-queries from store so the UI responds in one frame.
+    ///
+    /// - Parameter cellAlreadyGone: pass `true` when the cell has already been animated
+    ///   off-screen by the swipe gesture; suppresses the redundant batch-update animation.
+    func deleteCard(_ card: NoteCard, cellAlreadyGone: Bool = false) {
         if pendingDeleteCard != nil {
             undoTimer?.invalidate()
             undoTimer = nil
             pendingDeleteCard = nil
         }
 
+        // Kick off async persist immediately — no UI wait
+        CardStore.shared.delete(card: card)
+
+        // Optimistic in-memory removal (instant, no re-query)
+        allCards.removeAll { $0.id == card.id }
+
         guard let foundItem = flatCards.firstIndex(where: { $0.id == card.id }) else {
-            CardStore.shared.delete(card: card)
-            allCards = CardStore.shared.cards(for: currentDate)
+            // Card was filtered out but still in allCards — just refresh counts and filters
+            refreshFilterCounts()
             applyFilters()
             showUndoToast(for: card)
             return
         }
 
-        CardStore.shared.delete(card: card)
-        allCards = CardStore.shared.cards(for: currentDate)
         flatCards.remove(at: foundItem)
+
+        // Update filter chips immediately — counts reflect the removal right now
+        refreshFilterCounts()
 
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         if flatCards.isEmpty {
-            // Skip performBatchUpdates: the empty state shows 1 cell (EmptyCardCell),
-            // so deleteItems would cause a count mismatch.
-            UIView.transition(with: collectionView, duration: 0.25, options: .transitionCrossDissolve) {
+            // Going from N cards to empty: cross-dissolve into the empty state cell
+            UIView.transition(with: collectionView, duration: cellAlreadyGone ? 0.0 : 0.25,
+                              options: .transitionCrossDissolve) {
                 self.collectionView.reloadData()
+            }
+        } else if cellAlreadyGone {
+            // Cell already flew off screen — close the gap instantly, no second animation
+            UIView.performWithoutAnimation {
+                collectionView.performBatchUpdates {
+                    self.collectionView.deleteItems(at: [IndexPath(item: foundItem, section: 0)])
+                }
             }
         } else {
             collectionView.performBatchUpdates {
@@ -962,6 +1009,15 @@ final class TodayViewController: UIViewController {
         }
 
         showUndoToast(for: card)
+    }
+
+    /// Recomputes filter chip counts from the current in-memory `allCards`.
+    /// Call after any optimistic removal so chips stay in sync without a full `applyFilters()`.
+    private func refreshFilterCounts() {
+        let text  = allCards.filter { $0.type == .text  }.count
+        let image = allCards.filter { $0.type == .image }.count
+        let link  = allCards.filter { $0.type == .link  }.count
+        filterChips.updateCounts(text: text, image: image, link: link)
     }
 
     // MARK: - Undo
@@ -1129,6 +1185,10 @@ extension TodayViewController: UICollectionViewDelegate {
             let share = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
                 self?.shareCard(card)
             }
+            let shareLink = UIAction(title: L10n.shareViaLink, image: UIImage(systemName: "link")) { [weak self] _ in
+                guard let self else { return }
+                ShareLinkPresenter.shareCard(card, from: self)
+            }
             let copyToDay = UIAction(title: L10n.copyToDay, image: UIImage(systemName: "calendar.badge.plus")) { [weak self] _ in
                 guard let self else { return }
                 let vc = CopyToDayViewController()
@@ -1145,34 +1205,36 @@ extension TodayViewController: UICollectionViewDelegate {
                 case .link:  self?.presentLinkEditor(card: card as? LinkCard)
                 }
             }
-            let folderActions = FolderStore.shared.all().map { folder -> UIAction in
-                let isCurrent = card.folderID == folder.id
-                return UIAction(
-                    title: folder.name,
-                    image: UIImage(systemName: isCurrent ? "folder.fill" : "folder"),
-                    state: isCurrent ? .on : .off
-                ) { _ in
-                    card.folderID = isCurrent ? nil : folder.id
-                    CardStore.shared.save(card: card)
-                }
-            }
-            let folderMenu = UIMenu(
+            let folderAction = UIAction(
                 title: L10n.inFolder,
-                image: UIImage(systemName: "folder.badge.plus"),
-                children: folderActions.isEmpty
-                    ? [UIAction(title: L10n.noFolders, attributes: .disabled) { _ in }]
-                    : folderActions
-            )
+                image: UIImage(systemName: "folder.badge.plus")
+            ) { [weak self] _ in
+                guard let self else { return }
+                let picker = FolderPickerBottomSheet(currentFolderID: card.folderID)
+                picker.onPick = { [weak self] folder in
+                    card.folderID = folder?.id
+                    CardStore.shared.save(card: card)
+                    self?.applyFilters(animated: false)
+                }
+                self.presentFolderPicker(picker)
+            }
             let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 self?.deleteCard(card)
             }
-            return UIMenu(children: [select, share, copyToDay, edit, folderMenu, delete])
+            return UIMenu(children: [select, share, shareLink, copyToDay, edit, folderAction, delete])
         })
     }
 
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         guard !flatCards.isEmpty, !(cell is EmptyCardCell) else { return }
-            cell.gestureRecognizers?
+
+        // Staggered appearance animation — only on first display after reload
+        if !animatedCardIndexPaths.contains(indexPath) {
+            animatedCardIndexPaths.insert(indexPath)
+            cell.animateCardAppearance(at: indexPath.item)
+        }
+
+        cell.gestureRecognizers?
             .filter { $0.name == "cardSwipe" }
             .forEach { cell.removeGestureRecognizer($0) }
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handleCardSwipe(_:)))
@@ -1219,7 +1281,8 @@ extension TodayViewController {
                 } completion: { _ in
                     cell.transform = .identity
                     cell.alpha = 1
-                    self.deleteCard(card)
+                    // cellAlreadyGone=true: skip the redundant batch-update animation
+                    self.deleteCard(card, cellAlreadyGone: true)
                 }
             } else {
                 UIView.animate(withDuration: 0.35, delay: 0,
@@ -1241,27 +1304,6 @@ extension TodayViewController {
     }
 }
 
-// MARK: - PHPickerViewControllerDelegate
-
-extension TodayViewController: PHPickerViewControllerDelegate {
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
-        guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
-        provider.loadObject(ofClass: UIImage.self) { [weak self] obj, _ in
-            guard let image = obj as? UIImage, let self else { return }
-            DispatchQueue.main.async { self.presentImageCardEditor(imageData: image.jpegData(compressionQuality: 0.85)) }
-        }
-    }
-}
-
-extension TodayViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-        picker.dismiss(animated: true)
-        let image = (info[.editedImage] ?? info[.originalImage]) as? UIImage
-        presentImageCardEditor(imageData: image?.jpegData(compressionQuality: 0.85))
-    }
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true) }
-}
 
 // MARK: - UIGestureRecognizerDelegate
 
@@ -1317,5 +1359,154 @@ final class CardTypeSectionHeader: UICollectionReusableView {
     func configure(title: String, color: UIColor) {
         label.text = title
         colorDot.backgroundColor = color
+    }
+}
+
+// MARK: - Drag & Drop (reorder within the same day)
+
+extension TodayViewController: UICollectionViewDragDelegate {
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        itemsForBeginning session: UIDragSession,
+        at indexPath: IndexPath
+    ) -> [UIDragItem] {
+        // Only allow drag when not in select mode and there are real cards
+        guard !isSelectMode, !flatCards.isEmpty else { return [] }
+        let card = flatCards[indexPath.item]
+        let provider = NSItemProvider(object: card.id.uuidString as NSString)
+        let item = UIDragItem(itemProvider: provider)
+        item.localObject = indexPath
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        return [item]
+    }
+}
+
+extension TodayViewController: UICollectionViewDropDelegate {
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        dropSessionDidUpdate session: UIDropSession,
+        withDestinationIndexPath destinationIndexPath: IndexPath?
+    ) -> UICollectionViewDropProposal {
+        guard session.localDragSession != nil else {
+            return UICollectionViewDropProposal(operation: .cancel)
+        }
+        return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        performDropWith coordinator: UICollectionViewDropCoordinator
+    ) {
+        guard let destinationIndexPath = coordinator.destinationIndexPath,
+              let item = coordinator.items.first,
+              let sourceIndexPath = item.sourceIndexPath else { return }
+
+        guard sourceIndexPath != destinationIndexPath else { return }
+
+        collectionView.performBatchUpdates {
+            let moved = flatCards.remove(at: sourceIndexPath.item)
+            flatCards.insert(moved, at: destinationIndexPath.item)
+            collectionView.moveItem(at: sourceIndexPath, to: destinationIndexPath)
+        } completion: { [weak self] _ in
+            guard let self else { return }
+            // Persist new order
+            CardStore.shared.updateOrder(cards: self.flatCards)
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+
+        coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+    }
+}
+
+// MARK: - PHPickerViewControllerDelegate (multi-photo for folder context)
+
+extension TodayViewController: PHPickerViewControllerDelegate {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard let folderID = pendingAddFolderID, !results.isEmpty else {
+            pendingAddFolderID = nil
+            return
+        }
+        pendingAddFolderID = nil
+
+        // Immediate feedback — user knows processing started
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        // Notify FolderDetailViewController to show a loading indicator right away
+        NotificationCenter.default.post(
+            name: .dayPinPhotoImportBegan,
+            object: nil,
+            userInfo: ["count": results.count]
+        )
+
+        // Phase 1: load + compress all images in parallel (background threads — no storage mutation)
+        Task.detached(priority: .userInitiated) { [weak self] in
+            var imageDatas: [Data] = []
+
+            await withTaskGroup(of: Data?.self) { group in
+                for result in results {
+                    group.addTask {
+                        return await withCheckedContinuation { continuation in
+                            result.itemProvider.loadObject(ofClass: UIImage.self) { obj, _ in
+                                guard let img = obj as? UIImage,
+                                      let data = img.compressedForStorage()
+                                else { continuation.resume(returning: nil); return }
+                                continuation.resume(returning: data)
+                            }
+                        }
+                    }
+                }
+                for await data in group {
+                    if let data { imageDatas.append(data) }
+                }
+            }
+
+            // Phase 2: batch-save on the main thread — single storage mutation, single persist
+            await MainActor.run { [weak self] in
+                guard !imageDatas.isEmpty else { return }
+                let cards: [NoteCard] = imageDatas.map { data in
+                    let card = ImageCard(title: "", dayDate: Date(), imageData: data)
+                    card.folderID = folderID
+                    return card
+                }
+                CardStore.shared.saveMany(cards: cards)
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                self?.loadCards()
+                NotificationCenter.default.post(name: .dayPinFolderNeedsRefresh, object: nil)
+            }
+        }
+    }
+}
+
+// MARK: - UIImage helpers
+
+private extension UIImage {
+    /// Fix orientation then downscale to max 1600px on the long edge before JPEG encoding.
+    /// Keeps file size small and makes encoding fast.
+    func compressedForStorage(maxDimension: CGFloat = 1600, quality: CGFloat = 0.82) -> Data? {
+        // Fix orientation
+        var result = self
+        if imageOrientation != .up {
+            UIGraphicsBeginImageContextWithOptions(size, false, scale)
+            draw(in: CGRect(origin: .zero, size: size))
+            result = UIGraphicsGetImageFromCurrentImageContext() ?? self
+            UIGraphicsEndImageContext()
+        }
+
+        // Downscale if needed
+        let longest = max(result.size.width, result.size.height)
+        if longest > maxDimension {
+            let scale = maxDimension / longest
+            let newSize = CGSize(width: result.size.width * scale,
+                                 height: result.size.height * scale)
+            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+            result.draw(in: CGRect(origin: .zero, size: newSize))
+            result = UIGraphicsGetImageFromCurrentImageContext() ?? result
+            UIGraphicsEndImageContext()
+        }
+
+        return result.jpegData(compressionQuality: quality)
     }
 }

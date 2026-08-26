@@ -15,7 +15,11 @@ final class FilterChipsView: UIView {
     }
 
     var onFilterChange: ((Filter) -> Void)?
+    /// Called when the user taps a tag chip. `nil` means "no tag filter".
+    var onTagFilterChange: ((UUID?) -> Void)?
+
     private(set) var selectedFilter: Filter = .all
+    private(set) var selectedTagID: UUID? = nil
 
     private let scrollView = UIScrollView()
     private let stack = UIStackView()
@@ -23,9 +27,17 @@ final class FilterChipsView: UIView {
     private var buttons: [Filter: UIButton] = [:]
     private var counts:  [Filter: Int] = [:]
 
+    // MARK: - Tag chips row
+
+    private let tagScrollView = UIScrollView()
+    private let tagStack = UIStackView()
+    private var tagButtons: [UUID: UIButton] = [:]
+    private var tagHeightConstraint: NSLayoutConstraint?
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
+        setupTagRow()
         NotificationCenter.default.addObserver(
             self, selector: #selector(onSchemeChanged),
             name: .dayPinColorSchemeChanged, object: nil
@@ -41,7 +53,7 @@ final class FilterChipsView: UIView {
         NotificationCenter.default.removeObserver(self)
     }
 
-    // MARK: - Setup
+    // MARK: - Setup (type filters)
 
     private func setup() {
         backgroundColor = .clear
@@ -53,7 +65,7 @@ final class FilterChipsView: UIView {
             scrollView.topAnchor.constraint(equalTo: topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            scrollView.heightAnchor.constraint(equalToConstant: 38)
         ])
 
         stack.axis = .horizontal
@@ -92,6 +104,109 @@ final class FilterChipsView: UIView {
         return btn
     }
 
+    // MARK: - Setup (tag chips row)
+
+    private func setupTagRow() {
+        tagScrollView.showsHorizontalScrollIndicator = false
+        tagScrollView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(tagScrollView)
+
+        tagStack.axis = .horizontal
+        tagStack.spacing = 8
+        tagStack.alignment = .center
+        tagStack.translatesAutoresizingMaskIntoConstraints = false
+        tagScrollView.addSubview(tagStack)
+
+        let heightConstraint = tagScrollView.heightAnchor.constraint(equalToConstant: 0)
+        tagHeightConstraint = heightConstraint
+
+        NSLayoutConstraint.activate([
+            tagScrollView.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 0),
+            tagScrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            tagScrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            tagScrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            heightConstraint,
+
+            tagStack.topAnchor.constraint(equalTo: tagScrollView.topAnchor),
+            tagStack.bottomAnchor.constraint(equalTo: tagScrollView.bottomAnchor),
+            tagStack.leadingAnchor.constraint(equalTo: tagScrollView.leadingAnchor, constant: 16),
+            tagStack.trailingAnchor.constraint(equalTo: tagScrollView.trailingAnchor, constant: -16),
+            tagStack.heightAnchor.constraint(equalTo: tagScrollView.heightAnchor)
+        ])
+    }
+
+    private func makeTagChip(tag: Tag) -> UIButton {
+        let btn = UIButton(type: .custom)
+        btn.layer.cornerRadius = 12
+        btn.clipsToBounds = true
+        btn.contentEdgeInsets = UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10)
+
+        // Dot + label
+        let dot = UIView()
+        dot.backgroundColor = tag.color
+        dot.layer.cornerRadius = 3
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        dot.widthAnchor.constraint(equalToConstant: 6).isActive = true
+        dot.heightAnchor.constraint(equalToConstant: 6).isActive = true
+
+        let label = UILabel()
+        label.text = tag.name
+        label.font = .inter(ofSize: 12, weight: .medium)
+
+        let row = UIStackView(arrangedSubviews: [dot, label])
+        row.axis = .horizontal
+        row.spacing = 5
+        row.alignment = .center
+        row.isUserInteractionEnabled = false
+        row.translatesAutoresizingMaskIntoConstraints = false
+        btn.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.centerXAnchor.constraint(equalTo: btn.centerXAnchor),
+            row.centerYAnchor.constraint(equalTo: btn.centerYAnchor),
+            row.topAnchor.constraint(equalTo: btn.topAnchor, constant: 5),
+            row.bottomAnchor.constraint(equalTo: btn.bottomAnchor, constant: -5),
+            row.leadingAnchor.constraint(equalTo: btn.leadingAnchor, constant: 10),
+            row.trailingAnchor.constraint(equalTo: btn.trailingAnchor, constant: -10)
+        ])
+
+        refreshTagChip(btn, tag: tag)
+        return btn
+    }
+
+    private func refreshTagChip(_ btn: UIButton, tag: Tag) {
+        let isSelected = selectedTagID == tag.id
+        let label = btn.subviews
+            .compactMap { $0 as? UIStackView }.first?
+            .arrangedSubviews.compactMap { $0 as? UILabel }.first
+        if isSelected {
+            btn.backgroundColor = tag.color.withAlphaComponent(0.22)
+            btn.layer.borderWidth = 1.5
+            btn.layer.borderColor = tag.color.cgColor
+            label?.textColor = .label
+        } else {
+            btn.backgroundColor = UIColor.tertiarySystemFill
+            btn.layer.borderWidth = 0
+            label?.textColor = .secondaryLabel
+        }
+    }
+
+    @objc private func tagChipTapped(_ sender: UIButton) {
+        guard let tagID = tagButtons.first(where: { $0.value === sender })?.key,
+              let tag = TagStore.shared.tag(for: tagID) else { return }
+        let newSelection: UUID? = selectedTagID == tag.id ? nil : tag.id
+        selectedTagID = newSelection
+        refreshAllTagChips()
+        onTagFilterChange?(newSelection)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    private func refreshAllTagChips() {
+        for (id, btn) in tagButtons {
+            guard let tag = TagStore.shared.tag(for: id) else { continue }
+            refreshTagChip(btn, tag: tag)
+        }
+    }
+
     // MARK: - Interaction
 
     @objc private func tabTapped(_ sender: UIButton) {
@@ -115,7 +230,8 @@ final class FilterChipsView: UIView {
     private func moveIndicator(animated: Bool) {
         guard let btn = buttons[selectedFilter], btn.frame.width > 0 else { return }
         let btnInSelf = convert(btn.frame, from: stack)
-        let target = CGRect(x: btnInSelf.minX, y: bounds.height - 2, width: btnInSelf.width, height: 2)
+        // Indicator sits at the bottom of the type-filter scroll row (38pt)
+        let target = CGRect(x: btnInSelf.minX, y: 36, width: btnInSelf.width, height: 2)
         let block = { self.indicator.frame = target }
         if animated {
             UIView.animate(withDuration: 0.3, delay: 0,
@@ -178,6 +294,7 @@ final class FilterChipsView: UIView {
     @objc private func onSchemeChanged() {
         indicator.backgroundColor = DayPinDesign.accent
         refreshAllButtons()
+        refreshAllTagChips()
     }
 
     @objc private func onLanguageChanged() {
@@ -189,7 +306,9 @@ final class FilterChipsView: UIView {
 
     func reset() {
         selectedFilter = .all
+        selectedTagID = nil
         refreshAllButtons()
+        refreshAllTagChips()
         setNeedsLayout()
     }
 
@@ -198,5 +317,42 @@ final class FilterChipsView: UIView {
         counts = [.all: total, .text: text, .image: image, .link: link]
         refreshAllButtons()
         setNeedsLayout()
+    }
+
+    /// Rebuilds the tag chips row with the currently used tags.
+    /// Pass IDs of all tags that appear on at least one card in the current context.
+    func updateTags(_ tagIDs: [UUID]) {
+        tagStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        tagButtons.removeAll()
+
+        let tags = tagIDs.compactMap { TagStore.shared.tag(for: $0) }
+            .sorted { $0.name < $1.name }
+
+        let hasContent = !tags.isEmpty
+        let targetHeight: CGFloat = hasContent ? 32 : 0
+        let topGap: CGFloat = hasContent ? 2 : 0
+
+        // Update top constraint gap between type row and tag row
+        if let existing = constraints.first(where: { ($0.firstItem as? UIScrollView) == tagScrollView && $0.firstAttribute == .top }) {
+            existing.constant = topGap
+        }
+
+        UIView.animate(withDuration: 0.22, delay: 0, options: .curveEaseOut) {
+            self.tagHeightConstraint?.constant = targetHeight
+            self.superview?.layoutIfNeeded()
+        }
+
+        // If selected tag is no longer in the list, clear it
+        if let sid = selectedTagID, !tagIDs.contains(sid) {
+            selectedTagID = nil
+            onTagFilterChange?(nil)
+        }
+
+        for tag in tags {
+            let btn = makeTagChip(tag: tag)
+            btn.addTarget(self, action: #selector(tagChipTapped(_:)), for: .touchUpInside)
+            tagStack.addArrangedSubview(btn)
+            tagButtons[tag.id] = btn
+        }
     }
 }

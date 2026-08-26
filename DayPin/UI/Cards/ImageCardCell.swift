@@ -11,6 +11,7 @@ final class ImageCardCell: UICollectionViewCell {
     private let timeLabel = UILabel()
     private let gradientLayer = CAGradientLayer()
     private let reminderDot = UIImageView()
+    private let tagPillsView = CardTagPillsView()
 
     // Plain UIView, not UIVisualEffectView — blur of sibling views in cells is unreliable
     private let glassPanel = UIView()
@@ -96,7 +97,10 @@ final class ImageCardCell: UICollectionViewCell {
         bottomRow.spacing = 6
         bottomRow.translatesAutoresizingMaskIntoConstraints = false
 
-        let infoStack = UIStackView(arrangedSubviews: [titleLabel, bottomRow])
+        tagPillsView.translatesAutoresizingMaskIntoConstraints = false
+        tagPillsView.isHidden = true
+
+        let infoStack = UIStackView(arrangedSubviews: [titleLabel, bottomRow, tagPillsView])
         infoStack.axis = .vertical
         infoStack.spacing = 5
         infoStack.translatesAutoresizingMaskIntoConstraints = false
@@ -180,6 +184,8 @@ final class ImageCardCell: UICollectionViewCell {
 
         let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()
         reminderDot.isHidden = !hasReminder
+
+        tagPillsView.configure(tagIDs: card.tagIDs, style: .dark)
     }
 
     override var isHighlighted: Bool {

@@ -13,6 +13,9 @@ extension Notification.Name {
     /// Posted by NotePickerViewController after notes are added to a folder.
     /// FolderDetailViewController listens to this and reloads.
     static let dayPinFolderNeedsRefresh = Notification.Name("daypin.folderNeedsRefresh")
+    /// Posted when multi-photo import begins. userInfo["count"]: Int = number of photos.
+    /// FolderDetailViewController shows a loading indicator until folderNeedsRefresh fires.
+    static let dayPinPhotoImportBegan = Notification.Name("daypin.photoImportBegan")
 }
 
 // MARK: - AppTheme (brightness)

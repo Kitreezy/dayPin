@@ -132,6 +132,7 @@ final class FolderListViewController: UIViewController {
         let vc = FolderEditorViewController(folder: existing)
         vc.onSave = { [weak self] folder in
             FolderStore.shared.save(folder)
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             self?.reload()
         }
         present(UINavigationController(rootViewController: vc), animated: true)
@@ -145,6 +146,7 @@ final class FolderListViewController: UIViewController {
             confirmTitle: L10n.delete
         ) { [weak self] in
             FolderStore.shared.delete(folder)
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             self?.reload()
         }
     }

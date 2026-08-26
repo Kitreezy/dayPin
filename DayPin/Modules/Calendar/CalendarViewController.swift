@@ -385,19 +385,86 @@ extension CalendarViewController: UICollectionViewDelegate {
             selectedDate = cal.startOfDay(for: date)
             reloadNotes()
         } else if !notesForSelectedDay.isEmpty {
-            let card = notesForSelectedDay[indexPath.item]
-            switch card.type {
-            case .text:
-                guard let text = card as? TextCard else { return }
-                navigationController?.pushViewController(CardDetailViewController(card: text), animated: true)
-            case .image:
-                guard let image = card as? ImageCard else { return }
-                navigationController?.pushViewController(ImageCardOverviewViewController(card: image), animated: true)
-            case .link:
-                guard let link = card as? LinkCard else { return }
-                navigationController?.pushViewController(LinkCardDetailViewController(card: link), animated: true)
-            }
+            openCard(notesForSelectedDay[indexPath.item])
         }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        guard indexPath.section == sectionNotes, !notesForSelectedDay.isEmpty else { return nil }
+        let card = notesForSelectedDay[indexPath.item]
+
+        return UIContextMenuConfiguration(actionProvider: { [weak self] _ in
+            guard let self else { return nil }
+
+            let share = UIAction(title: L10n.share, image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                var items: [Any] = [card.title]
+                if !card.comment.isEmpty { items.append(card.comment) }
+                if let img = card as? ImageCard, let data = img.imageData, let image = UIImage(data: data) { items.append(image) }
+                if let link = card as? LinkCard { items.append(link.url) }
+                self?.present(UIActivityViewController(activityItems: items, applicationActivities: nil), animated: true)
+            }
+            let folderAction = UIAction(title: L10n.inFolder, image: UIImage(systemName: "folder.badge.plus")) { [weak self] _ in
+                guard let self else { return }
+                let picker = FolderPickerBottomSheet(currentFolderID: card.folderID)
+                picker.onPick = { [weak self] folder in
+                    card.folderID = folder?.id
+                    CardStore.shared.save(card: card)
+                    self?.reloadNotes()
+                }
+                self.presentFolderPicker(picker)
+            }
+            let edit = UIAction(title: L10n.edit, image: UIImage(systemName: "pencil")) { [weak self] _ in
+                self?.presentEditor(for: card)
+            }
+            let delete = UIAction(title: L10n.delete, image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                CardStore.shared.delete(card: card)
+                self?.reloadNotes()
+            }
+            return UIMenu(children: [share, folderAction, edit, delete])
+        })
+    }
+
+    private func openCard(_ card: NoteCard) {
+        switch card.type {
+        case .text:
+            guard let text = card as? TextCard else { return }
+            navigationController?.pushViewController(CardDetailViewController(card: text), animated: true)
+        case .image:
+            guard let image = card as? ImageCard else { return }
+            navigationController?.pushViewController(ImageCardOverviewViewController(card: image), animated: true)
+        case .link:
+            guard let link = card as? LinkCard else { return }
+            navigationController?.pushViewController(LinkCardDetailViewController(card: link), animated: true)
+        }
+    }
+
+    private func presentEditor(for card: NoteCard) {
+        switch card.type {
+        case .text:
+            let vc = TextCardEditorViewController(card: card as? TextCard, dayDate: card.dayDate)
+            vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.reloadNotes() }
+            presentEditorSheet(vc)
+        case .image:
+            guard let img = card as? ImageCard else { return }
+            let vc = ImageCardEditorViewController(imageData: img.imageData, dayDate: card.dayDate, existingCard: img)
+            vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.reloadNotes() }
+            present(UINavigationController(rootViewController: vc), animated: true)
+        case .link:
+            let vc = LinkCardEditorViewController(card: card as? LinkCard, dayDate: card.dayDate)
+            vc.onSave = { [weak self] saved in CardStore.shared.save(card: saved); self?.reloadNotes() }
+            presentEditorSheet(vc)
+        }
+    }
+
+    private func presentFolderPicker(_ vc: FolderPickerBottomSheet) {
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = true
+        }
+        present(nav, animated: true)
     }
 }
 

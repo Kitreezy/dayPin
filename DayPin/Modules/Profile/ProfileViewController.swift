@@ -1,336 +1,1097 @@
 import UIKit
-import PhotosUI
+
+// MARK: - ProfileViewController
 
 final class ProfileViewController: UIViewController {
 
-    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private let headerView = ProfileHeaderView()
+    // MARK: - State
 
-    private enum Section: Int, CaseIterable {
-        case profile, sync, notifications
+    private var shares: [ShareItem] = []
+    private var syncStatus: SyncStatusResponse?
+    private var isLoadingShares = true
+    private var isLoadingStatus = true
+
+    // Skeleton placeholders - 2 bars, matching syncInfoLabel's numberOfLines = 2
+    private let statusSkeletons: [SkeletonView] = (0..<2).map { _ in
+        let s = SkeletonView()
+        s.layer.cornerRadius = 10
+        return s
     }
+    private let shareSkeletons: [SkeletonView] = (0..<2).map { _ in
+        let s = SkeletonView()
+        s.layer.cornerRadius = 14
+        return s
+    }
+
+    // MARK: - UI
+
+    private let scrollView = UIScrollView()
+    private let stack = UIStackView()
+
+    // Profile header card
+    private let headerCard = UIView()
+    private let avatarView = UIView()
+    private let avatarLabel = UILabel()
+    private let emailLabel = UILabel()
+    private let userIDLabel = UILabel()
+
+    // Sync card
+    private let syncCard = UIView()
+    private let syncBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let syncTitleLabel = UILabel()
+    private let syncInfoLabel = UILabel()
+    private let pushBtn = UIButton(type: .system)
+    private let pullBtn = UIButton(type: .system)
+    private let syncSpinner = UIActivityIndicatorView(style: .medium)
+    private let cacheRestoreBtn = UIButton(type: .system)
+
+    // Shares section
+    private let sharesSectionLabel = UILabel()
+    private let sharesStack = UIStackView()
+
+    // Settings container (inline, opens pickers as sheets on this same screen)
+    private let settingsBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let languageValueLabel = UILabel()
+
+    // Footer
+    private let signOutBtn = UIButton(type: .system)
+    private let signInPromptBtn = UIButton(type: .system)
+    private let deleteAccountBtn = UIButton(type: .system)
+    private let serverURLLabel = UILabel()
 
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = L10n.profile
+        title = L10n.isRussian ? "Профиль" : "Profile"
         view.backgroundColor = DayPinDesign.background
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .close, target: self, action: #selector(close)
-        )
-        setupTable()
+        addStandardBackground()
+        setupUI()
         observeNotifications()
-        refreshHeader()
+        renderAuthState()
     }
 
-    deinit { NotificationCenter.default.removeObserver(self) }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        renderAuthState()
+        loadData()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
 
     // MARK: - Notifications
 
     private func observeNotifications() {
-        NotificationCenter.default.addObserver(self, selector: #selector(onProfileUpdated),
-            name: .dayPinProfileUpdated, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(onSyncStatusChanged),
-            name: .dayPinSyncStatusChanged, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(onColorSchemeChanged),
-            name: .dayPinColorSchemeChanged, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onAuthChanged),
+            name: .dayPinAuthStateChanged, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onSyncStateChanged),
+            name: .dayPinSyncStateChanged, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onColorSchemeChanged),
+            name: .dayPinColorSchemeChanged, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(onLanguageChanged),
+            name: .dayPinLanguageChanged, object: nil
+        )
     }
 
-    @objc private func onProfileUpdated() {
-        refreshHeader()
-        tableView.reloadData()
+    @objc private func onLanguageChanged() {
+        languageValueLabel.text = currentLanguageLabel()
     }
 
-    @objc private func onSyncStatusChanged() {
-        tableView.reloadSections(IndexSet(integer: Section.sync.rawValue), with: .none)
+    @objc private func onAuthChanged() {
+        renderAuthState()
+        if AuthService.shared.isLoggedIn {
+            loadData()
+        } else {
+            shares = []
+            syncStatus = nil
+            isLoadingShares = false
+            isLoadingStatus = false
+            updateSkeletonVisibility()
+            rebuildShareRows()
+            updateSyncCard()
+        }
+    }
+
+    @objc private func onSyncStateChanged() {
+        let syncing = SyncService.shared.isSyncing
+        pushBtn.isEnabled = !syncing
+        pullBtn.isEnabled = !syncing
+        if syncing {
+            syncSpinner.startAnimating()
+        } else {
+            syncSpinner.stopAnimating()
+            loadSyncStatus()
+        }
     }
 
     @objc private func onColorSchemeChanged() {
         view.backgroundColor = DayPinDesign.background
-        tableView.reloadData()
+        renderAuthState()
+        updateSyncCard()
+        refreshAccentColors()
+    }
+
+    // MARK: - Accent-tinted elements
+    // DayPinDesign.accent/.accentContrast are plain UIColor snapshots, not
+    // dynamic providers - reassigning here on every .dayPinColorSchemeChanged
+    // is what actually applies a newly picked theme/scheme without relaunching.
+
+    private func refreshAccentColors() {
+        syncSpinner.color = DayPinDesign.accentContrast
+
+        pushBtn.tintColor = DayPinDesign.accentContrast
+        pushBtn.backgroundColor = DayPinDesign.accentContrast.withAlphaComponent(0.12)
+
+        signOutBtn.tintColor = DayPinDesign.accentContrast
+        signOutBtn.backgroundColor = DayPinDesign.accentContrast.withAlphaComponent(0.10)
+
+        signInPromptBtn.backgroundColor = DayPinDesign.accent
     }
 
     // MARK: - Setup
 
-    private func setupTable() {
-        tableView.dataSource = self
-        tableView.delegate = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(tableView)
+    private func setupUI() {
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.alwaysBounceVertical = true
+        scrollView.showsVerticalScrollIndicator = false
+        view.addSubview(scrollView)
+
+        stack.axis = .vertical
+        stack.spacing = 16
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(stack)
+
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            stack.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 16),
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            stack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -40)
         ])
 
-        // Header
-        headerView.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 130)
-        headerView.onChangePhoto = { [weak self] in self?.changePhoto() }
-        tableView.tableHeaderView = headerView
+        buildHeaderCard()
+        buildSyncCard()
+        buildSharesSection()
+        buildSettingsSection()
+        buildFooter()
+        refreshAccentColors()
     }
 
-    private func refreshHeader() {
-        headerView.configure(
-            image: ProfileManager.shared.avatarImage,
-            initials: ProfileManager.shared.initials,
-            name: ProfileManager.shared.displayName.isEmpty ? L10n.iCloudAccount : ProfileManager.shared.displayName,
-            email: ProfileManager.shared.email
+    // MARK: - Header card
+
+    private func buildHeaderCard() {
+        headerCard.backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor(white: 0.12, alpha: 1)
+                : UIColor(white: 0.97, alpha: 1)
+        }
+        headerCard.layer.cornerRadius = 20
+        headerCard.layer.borderWidth = 0.5
+        headerCard.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(headerCard)
+
+        // Avatar circle
+        avatarView.layer.cornerRadius = 28
+        avatarView.translatesAutoresizingMaskIntoConstraints = false
+        avatarLabel.font = .inter(ofSize: 20, weight: .semibold)
+        avatarLabel.textColor = .white
+        avatarLabel.textAlignment = .center
+        avatarLabel.translatesAutoresizingMaskIntoConstraints = false
+        avatarView.addSubview(avatarLabel)
+        headerCard.addSubview(avatarView)
+
+        emailLabel.font = .inter(ofSize: 16, weight: .semibold)
+        emailLabel.textColor = .label
+        emailLabel.translatesAutoresizingMaskIntoConstraints = false
+        headerCard.addSubview(emailLabel)
+
+        userIDLabel.font = .inter(ofSize: 11, weight: .regular)
+        userIDLabel.textColor = .tertiaryLabel
+        userIDLabel.translatesAutoresizingMaskIntoConstraints = false
+        headerCard.addSubview(userIDLabel)
+
+        NSLayoutConstraint.activate([
+            avatarView.topAnchor.constraint(equalTo: headerCard.topAnchor, constant: 20),
+            avatarView.leadingAnchor.constraint(equalTo: headerCard.leadingAnchor, constant: 16),
+            avatarView.widthAnchor.constraint(equalToConstant: 56),
+            avatarView.heightAnchor.constraint(equalToConstant: 56),
+
+            avatarLabel.centerXAnchor.constraint(equalTo: avatarView.centerXAnchor),
+            avatarLabel.centerYAnchor.constraint(equalTo: avatarView.centerYAnchor),
+
+            emailLabel.centerYAnchor.constraint(equalTo: avatarView.centerYAnchor, constant: -8),
+            emailLabel.leadingAnchor.constraint(equalTo: avatarView.trailingAnchor, constant: 12),
+            emailLabel.trailingAnchor.constraint(equalTo: headerCard.trailingAnchor, constant: -16),
+
+            userIDLabel.topAnchor.constraint(equalTo: emailLabel.bottomAnchor, constant: 4),
+            userIDLabel.leadingAnchor.constraint(equalTo: emailLabel.leadingAnchor),
+            userIDLabel.trailingAnchor.constraint(equalTo: emailLabel.trailingAnchor),
+            userIDLabel.bottomAnchor.constraint(equalTo: headerCard.bottomAnchor, constant: -20)
+        ])
+
+        refreshHeaderBorderColor()
+    }
+
+    // MARK: - Sync card (glass blur)
+
+    private func buildSyncCard() {
+        let shadow = UIView()
+        shadow.layer.cornerRadius = 20
+        shadow.layer.shadowColor = UIColor.black.cgColor
+        shadow.layer.shadowOpacity = 0.10
+        shadow.layer.shadowRadius = 16
+        shadow.layer.shadowOffset = CGSize(width: 0, height: 4)
+        shadow.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(shadow)
+
+        syncBlur.layer.cornerRadius = 20
+        syncBlur.layer.borderWidth = 0.5
+        syncBlur.clipsToBounds = true
+        syncBlur.translatesAutoresizingMaskIntoConstraints = false
+        shadow.addSubview(syncBlur)
+
+        let tint = UIView()
+        tint.backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor(white: 1, alpha: 0.07)
+                : UIColor(white: 1, alpha: 0.55)
+        }
+        tint.translatesAutoresizingMaskIntoConstraints = false
+        syncBlur.contentView.addSubview(tint)
+
+        let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+
+        syncTitleLabel.text = L10n.isRussian ? "Облако" : "Cloud Sync"
+        syncTitleLabel.font = .inter(ofSize: 15, weight: .semibold)
+        syncTitleLabel.textColor = .label
+        syncTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        syncBlur.contentView.addSubview(syncTitleLabel)
+
+        syncInfoLabel.font = .inter(ofSize: 13, weight: .regular)
+        syncInfoLabel.textColor = .secondaryLabel
+        syncInfoLabel.numberOfLines = 2
+        syncInfoLabel.translatesAutoresizingMaskIntoConstraints = false
+        syncBlur.contentView.addSubview(syncInfoLabel)
+
+        syncSpinner.hidesWhenStopped = true
+        syncSpinner.translatesAutoresizingMaskIntoConstraints = false
+        syncBlur.contentView.addSubview(syncSpinner)
+
+        pushBtn.setImage(UIImage(systemName: "arrow.up.to.line.circle.fill", withConfiguration: cfg), for: .normal)
+        pushBtn.setTitle(L10n.isRussian ? "  Загрузить" : "  Push", for: .normal)
+        pushBtn.titleLabel?.font = .inter(ofSize: 13, weight: .medium)
+        pushBtn.layer.cornerRadius = 12
+        pushBtn.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+        pushBtn.translatesAutoresizingMaskIntoConstraints = false
+        pushBtn.addTarget(self, action: #selector(pushTapped), for: .touchUpInside)
+        syncBlur.contentView.addSubview(pushBtn)
+
+        pullBtn.setImage(UIImage(systemName: "arrow.down.to.line.circle.fill", withConfiguration: cfg), for: .normal)
+        pullBtn.setTitle(L10n.isRussian ? "  Скачать" : "  Pull", for: .normal)
+        pullBtn.titleLabel?.font = .inter(ofSize: 13, weight: .medium)
+        pullBtn.tintColor = .secondaryLabel
+        pullBtn.backgroundColor = UIColor.secondarySystemFill
+        pullBtn.layer.cornerRadius = 12
+        pullBtn.contentEdgeInsets = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+        pullBtn.translatesAutoresizingMaskIntoConstraints = false
+        pullBtn.addTarget(self, action: #selector(pullTapped), for: .touchUpInside)
+        syncBlur.contentView.addSubview(pullBtn)
+
+        cacheRestoreBtn.setTitle(
+            L10n.isRussian ? "Восстановить из кэша" : "Restore from cache",
+            for: .normal
         )
+        cacheRestoreBtn.titleLabel?.font = .inter(ofSize: 12, weight: .regular)
+        cacheRestoreBtn.tintColor = .tertiaryLabel
+        cacheRestoreBtn.translatesAutoresizingMaskIntoConstraints = false
+        cacheRestoreBtn.isHidden = !SyncService.shared.hasCachedBackup
+        cacheRestoreBtn.addTarget(self, action: #selector(restoreFromCacheTapped), for: .touchUpInside)
+        syncBlur.contentView.addSubview(cacheRestoreBtn)
+
+        // Two lines of skeleton text, sized to stay within syncInfoLabel's own
+        // >=36pt reserved height so they never spill into the Push/Pull buttons below.
+        let skTexts: [(CGFloat, CGFloat, CGFloat)] = [
+            (0, 0, 140), (20, 0, 90)
+        ]
+        for (i, sk) in statusSkeletons.enumerated() {
+            sk.translatesAutoresizingMaskIntoConstraints = false
+            syncBlur.contentView.addSubview(sk)
+            NSLayoutConstraint.activate([
+                sk.topAnchor.constraint(equalTo: syncInfoLabel.topAnchor, constant: skTexts[i].0),
+                sk.leadingAnchor.constraint(equalTo: syncInfoLabel.leadingAnchor, constant: skTexts[i].1),
+                sk.widthAnchor.constraint(equalToConstant: skTexts[i].2),
+                sk.heightAnchor.constraint(equalToConstant: 14)
+            ])
+            sk.startAnimating()
+        }
+
+        NSLayoutConstraint.activate([
+            shadow.heightAnchor.constraint(greaterThanOrEqualToConstant: 100),
+
+            syncBlur.topAnchor.constraint(equalTo: shadow.topAnchor),
+            syncBlur.leadingAnchor.constraint(equalTo: shadow.leadingAnchor),
+            syncBlur.trailingAnchor.constraint(equalTo: shadow.trailingAnchor),
+            syncBlur.bottomAnchor.constraint(equalTo: shadow.bottomAnchor),
+
+            tint.topAnchor.constraint(equalTo: syncBlur.contentView.topAnchor),
+            tint.leadingAnchor.constraint(equalTo: syncBlur.contentView.leadingAnchor),
+            tint.trailingAnchor.constraint(equalTo: syncBlur.contentView.trailingAnchor),
+            tint.bottomAnchor.constraint(equalTo: syncBlur.contentView.bottomAnchor),
+
+            syncTitleLabel.topAnchor.constraint(equalTo: syncBlur.contentView.topAnchor, constant: 16),
+            syncTitleLabel.leadingAnchor.constraint(equalTo: syncBlur.contentView.leadingAnchor, constant: 16),
+
+            syncSpinner.centerYAnchor.constraint(equalTo: syncTitleLabel.centerYAnchor),
+            syncSpinner.leadingAnchor.constraint(equalTo: syncTitleLabel.trailingAnchor, constant: 8),
+
+            syncInfoLabel.topAnchor.constraint(equalTo: syncTitleLabel.bottomAnchor, constant: 6),
+            syncInfoLabel.leadingAnchor.constraint(equalTo: syncBlur.contentView.leadingAnchor, constant: 16),
+            syncInfoLabel.trailingAnchor.constraint(equalTo: syncBlur.contentView.trailingAnchor, constant: -16),
+            syncInfoLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 36),
+
+            pushBtn.topAnchor.constraint(equalTo: syncInfoLabel.bottomAnchor, constant: 12),
+            pushBtn.leadingAnchor.constraint(equalTo: syncBlur.contentView.leadingAnchor, constant: 16),
+
+            pullBtn.topAnchor.constraint(equalTo: pushBtn.topAnchor),
+            pullBtn.leadingAnchor.constraint(equalTo: pushBtn.trailingAnchor, constant: 10),
+
+            cacheRestoreBtn.topAnchor.constraint(equalTo: pushBtn.bottomAnchor, constant: 8),
+            cacheRestoreBtn.leadingAnchor.constraint(equalTo: syncBlur.contentView.leadingAnchor, constant: 16),
+            cacheRestoreBtn.bottomAnchor.constraint(equalTo: syncBlur.contentView.bottomAnchor, constant: -14)
+        ])
+
+        refreshSyncBlurBorder()
+    }
+
+    // MARK: - Shares section
+
+    private func buildSharesSection() {
+        let header = UILabel()
+        header.font = .inter(ofSize: 17, weight: .semibold)
+        header.textColor = .label
+        header.text = L10n.isRussian ? "Мои ссылки" : "My Links"
+        header.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(header)
+
+        sharesSectionLabel.font = .inter(ofSize: 13, weight: .regular)
+        sharesSectionLabel.textColor = .secondaryLabel
+        sharesSectionLabel.isHidden = true
+        sharesSectionLabel.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(sharesSectionLabel)
+
+        sharesStack.axis = .vertical
+        sharesStack.spacing = 10
+        sharesStack.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(sharesStack)
+
+        // Skeleton rows while loading
+        for sk in shareSkeletons {
+            sk.translatesAutoresizingMaskIntoConstraints = false
+            sharesStack.addArrangedSubview(sk)
+            sk.heightAnchor.constraint(equalToConstant: 72).isActive = true
+            sk.startAnimating()
+        }
+    }
+
+    // MARK: - Settings container
+    // Inline card (not a separate screen) - each row opens its picker as a
+    // sheet directly over this same Profile screen.
+
+    private func buildSettingsSection() {
+        let shadow = UIView()
+        shadow.layer.cornerRadius = 20
+        shadow.layer.shadowColor = UIColor.black.cgColor
+        shadow.layer.shadowOpacity = 0.10
+        shadow.layer.shadowRadius = 16
+        shadow.layer.shadowOffset = CGSize(width: 0, height: 4)
+        shadow.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(shadow)
+
+        settingsBlur.layer.cornerRadius = 20
+        settingsBlur.layer.borderWidth = 0.5
+        settingsBlur.clipsToBounds = true
+        settingsBlur.translatesAutoresizingMaskIntoConstraints = false
+        shadow.addSubview(settingsBlur)
+
+        let tint = UIView()
+        tint.backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor(white: 1, alpha: 0.07)
+                : UIColor(white: 1, alpha: 0.55)
+        }
+        tint.translatesAutoresizingMaskIntoConstraints = false
+        settingsBlur.contentView.addSubview(tint)
+
+        let titleLabel = UILabel()
+        titleLabel.text = L10n.settings
+        titleLabel.font = .inter(ofSize: 15, weight: .semibold)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        settingsBlur.contentView.addSubview(titleLabel)
+
+        languageValueLabel.text = currentLanguageLabel()
+
+        let rowsStack = UIStackView(arrangedSubviews: [
+            buildSettingsRow(icon: "paintbrush", tint: .systemPurple,
+                              title: L10n.appearance, action: #selector(appearanceRowTapped)),
+            makeSettingsSeparator(),
+            buildSettingsRow(icon: "rectangle.fill", tint: .systemTeal,
+                              title: L10n.background, action: #selector(backgroundRowTapped)),
+            makeSettingsSeparator(),
+            buildSettingsRow(icon: "globe", tint: .systemGreen,
+                              title: L10n.language, valueLabel: languageValueLabel,
+                              action: #selector(languageRowTapped)),
+            makeSettingsSeparator(),
+            buildSettingsRow(icon: "externaldrive", tint: .systemBlue,
+                              title: L10n.backup, action: #selector(backupRowTapped))
+        ])
+        rowsStack.axis = .vertical
+        rowsStack.translatesAutoresizingMaskIntoConstraints = false
+        settingsBlur.contentView.addSubview(rowsStack)
+
+        NSLayoutConstraint.activate([
+            shadow.heightAnchor.constraint(greaterThanOrEqualToConstant: 240),
+
+            settingsBlur.topAnchor.constraint(equalTo: shadow.topAnchor),
+            settingsBlur.leadingAnchor.constraint(equalTo: shadow.leadingAnchor),
+            settingsBlur.trailingAnchor.constraint(equalTo: shadow.trailingAnchor),
+            settingsBlur.bottomAnchor.constraint(equalTo: shadow.bottomAnchor),
+
+            tint.topAnchor.constraint(equalTo: settingsBlur.contentView.topAnchor),
+            tint.leadingAnchor.constraint(equalTo: settingsBlur.contentView.leadingAnchor),
+            tint.trailingAnchor.constraint(equalTo: settingsBlur.contentView.trailingAnchor),
+            tint.bottomAnchor.constraint(equalTo: settingsBlur.contentView.bottomAnchor),
+
+            titleLabel.topAnchor.constraint(equalTo: settingsBlur.contentView.topAnchor, constant: 16),
+            titleLabel.leadingAnchor.constraint(equalTo: settingsBlur.contentView.leadingAnchor, constant: 16),
+
+            rowsStack.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 6),
+            rowsStack.leadingAnchor.constraint(equalTo: settingsBlur.contentView.leadingAnchor),
+            rowsStack.trailingAnchor.constraint(equalTo: settingsBlur.contentView.trailingAnchor),
+            rowsStack.bottomAnchor.constraint(equalTo: settingsBlur.contentView.bottomAnchor, constant: -4)
+        ])
+
+        refreshSettingsBlurBorder()
+    }
+
+    private func makeSettingsSeparator() -> UIView {
+        let v = UIView()
+        v.backgroundColor = UIColor.separator.withAlphaComponent(0.2)
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
+        return v
+    }
+
+    private func buildSettingsRow(
+        icon: String, tint: UIColor, title: String,
+        valueLabel: UILabel? = nil, action: Selector
+    ) -> UIView {
+        let row = UIView()
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.heightAnchor.constraint(equalToConstant: 52).isActive = true
+        row.isUserInteractionEnabled = true
+        row.addGestureRecognizer(UITapGestureRecognizer(target: self, action: action))
+
+        let iconView = UIImageView(image: UIImage(systemName: icon))
+        iconView.tintColor = tint
+        iconView.contentMode = .scaleAspectFit
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+
+        let titleLbl = UILabel()
+        titleLbl.text = title
+        titleLbl.font = .inter(ofSize: 15, weight: .regular)
+        titleLbl.textColor = .label
+        titleLbl.translatesAutoresizingMaskIntoConstraints = false
+
+        let value = valueLabel ?? UILabel()
+        value.font = .inter(ofSize: 13, weight: .regular)
+        value.textColor = .tertiaryLabel
+        value.translatesAutoresizingMaskIntoConstraints = false
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = .tertiaryLabel
+        chevron.contentMode = .scaleAspectFit
+        chevron.translatesAutoresizingMaskIntoConstraints = false
+
+        [iconView, titleLbl, value, chevron].forEach { row.addSubview($0) }
+
+        NSLayoutConstraint.activate([
+            iconView.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 16),
+            iconView.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 20),
+            iconView.heightAnchor.constraint(equalToConstant: 20),
+
+            titleLbl.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
+            titleLbl.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+
+            chevron.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -16),
+            chevron.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+            chevron.widthAnchor.constraint(equalToConstant: 12),
+            chevron.heightAnchor.constraint(equalToConstant: 12),
+
+            value.trailingAnchor.constraint(equalTo: chevron.leadingAnchor, constant: -8),
+            value.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+            value.leadingAnchor.constraint(greaterThanOrEqualTo: titleLbl.trailingAnchor, constant: 8)
+        ])
+
+        return row
+    }
+
+    // MARK: - Settings row actions
+
+    @objc private func appearanceRowTapped() {
+        presentEditorSheet(ThemePickerViewController())
+    }
+
+    @objc private func backgroundRowTapped() {
+        let vc = BackgroundPickerViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
+    }
+
+    @objc private func languageRowTapped() {
+        let current = L10n.languageOverride ?? (L10n.isRussian ? "ru" : "en")
+        let sheet = UIAlertController(title: L10n.language, message: nil, preferredStyle: .actionSheet)
+
+        let ruTitle = L10n.langRussian + (current == "ru" ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: ruTitle, style: .default) { [weak self] _ in
+            L10n.languageOverride = "ru"
+            self?.languageValueLabel.text = self?.currentLanguageLabel()
+        })
+
+        let enTitle = L10n.langEnglish + (current == "en" ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: enTitle, style: .default) { [weak self] _ in
+            L10n.languageOverride = "en"
+            self?.languageValueLabel.text = self?.currentLanguageLabel()
+        })
+
+        let sysTitle = L10n.langSystem + (L10n.languageOverride == nil ? " ✓" : "")
+        sheet.addAction(UIAlertAction(title: sysTitle, style: .default) { [weak self] _ in
+            L10n.languageOverride = nil
+            self?.languageValueLabel.text = self?.currentLanguageLabel()
+        })
+
+        sheet.addAction(UIAlertAction(title: L10n.cancel, style: .cancel))
+        present(sheet, animated: true)
+    }
+
+    @objc private func backupRowTapped() {
+        let vc = BackupViewController()
+        present(UINavigationController(rootViewController: vc), animated: true)
+    }
+
+    private func currentLanguageLabel() -> String {
+        guard let override = L10n.languageOverride else { return L10n.langSystem }
+        return override == "ru" ? L10n.langRussian : L10n.langEnglish
+    }
+
+    // MARK: - Footer
+
+    private func buildFooter() {
+        serverURLLabel.font = .inter(ofSize: 11, weight: .regular)
+        serverURLLabel.textColor = .tertiaryLabel
+        serverURLLabel.textAlignment = .center
+        serverURLLabel.text = "Server: \(APIClient.baseURL)"
+        serverURLLabel.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(serverURLLabel)
+
+        signOutBtn.setTitle(L10n.isRussian ? "Выйти" : "Sign Out", for: .normal)
+        signOutBtn.titleLabel?.font = .inter(ofSize: 15, weight: .medium)
+        signOutBtn.layer.cornerRadius = 14
+        signOutBtn.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        signOutBtn.translatesAutoresizingMaskIntoConstraints = false
+        signOutBtn.addTarget(self, action: #selector(signOutTapped), for: .touchUpInside)
+        stack.addArrangedSubview(signOutBtn)
+
+        signInPromptBtn.setTitle(L10n.isRussian ? "Войти" : "Sign In", for: .normal)
+        signInPromptBtn.titleLabel?.font = .inter(ofSize: 15, weight: .semibold)
+        signInPromptBtn.tintColor = .white
+        signInPromptBtn.layer.cornerRadius = 14
+        signInPromptBtn.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        signInPromptBtn.translatesAutoresizingMaskIntoConstraints = false
+        signInPromptBtn.addTarget(self, action: #selector(signInPromptTapped), for: .touchUpInside)
+        stack.addArrangedSubview(signInPromptBtn)
+
+        deleteAccountBtn.setTitle(
+            L10n.isRussian ? "Удалить аккаунт" : "Delete Account",
+            for: .normal
+        )
+        deleteAccountBtn.titleLabel?.font = .inter(ofSize: 14, weight: .regular)
+        deleteAccountBtn.tintColor = .systemRed
+        deleteAccountBtn.translatesAutoresizingMaskIntoConstraints = false
+        deleteAccountBtn.addTarget(self, action: #selector(deleteAccountTapped), for: .touchUpInside)
+        stack.addArrangedSubview(deleteAccountBtn)
+    }
+
+    // MARK: - Data loading
+
+    private func loadData() {
+        guard AuthService.shared.isLoggedIn else { return }
+        loadSyncStatus()
+        loadShares()
+    }
+
+    private func loadSyncStatus() {
+        isLoadingStatus = true
+        updateSkeletonVisibility()
+        Task {
+            do {
+                syncStatus = try await SyncService.shared.fetchStatus()
+            } catch {
+                syncStatus = nil
+            }
+            isLoadingStatus = false
+            updateSkeletonVisibility()
+            updateSyncCard()
+        }
+    }
+
+    private func loadShares() {
+        isLoadingShares = true
+        updateSkeletonVisibility()
+        Task {
+            do {
+                shares = try await ShareService.shared.myShares()
+            } catch {
+                shares = []
+            }
+            isLoadingShares = false
+            updateSkeletonVisibility()
+            rebuildShareRows()
+        }
+    }
+
+    // MARK: - Render
+
+    private func renderAuthState() {
+        guard let user = AuthService.shared.currentUser else {
+            avatarLabel.text = "?"
+            avatarView.backgroundColor = .tertiarySystemFill
+            emailLabel.text = L10n.isRussian ? "Вы не авторизованы" : "Not signed in"
+            userIDLabel.text = L10n.isRussian
+                ? "Войдите, чтобы синхронизировать заметки"
+                : "Sign in to sync your notes"
+
+            signOutBtn.isHidden = true
+            deleteAccountBtn.isHidden = true
+            signInPromptBtn.isHidden = false
+
+            pushBtn.isEnabled = false
+            pullBtn.isEnabled = false
+            pushBtn.alpha = 0.5
+            pullBtn.alpha = 0.5
+
+            refreshHeaderBorderColor()
+            return
+        }
+
+        let initials = user.email.prefix(2).uppercased()
+        avatarLabel.text = initials
+        avatarView.backgroundColor = DayPinDesign.accent
+        emailLabel.text = user.email
+        userIDLabel.text = "ID: \(user.id)"
+
+        signOutBtn.isHidden = false
+        deleteAccountBtn.isHidden = false
+        signInPromptBtn.isHidden = true
+
+        pushBtn.isEnabled = true
+        pullBtn.isEnabled = true
+        pushBtn.alpha = 1
+        pullBtn.alpha = 1
+
+        refreshHeaderBorderColor()
+    }
+
+    @objc private func signInPromptTapped() {
+        let signIn = SignInViewController()
+        let nav = UINavigationController(rootViewController: signIn)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
+    }
+
+    private func updateSyncCard() {
+        guard AuthService.shared.isLoggedIn else {
+            syncInfoLabel.text = L10n.isRussian ? "Требуется вход" : "Sign in required"
+            cacheRestoreBtn.isHidden = !SyncService.shared.hasCachedBackup
+            return
+        }
+        guard let status = syncStatus else {
+            syncInfoLabel.text = L10n.isRussian ? "Нет данных на сервере" : "No data on server"
+            cacheRestoreBtn.isHidden = !SyncService.shared.hasCachedBackup
+            return
+        }
+        if status.hasBacup, let syncedAt = status.syncedAt {
+            let df = DateFormatter()
+            df.locale = L10n.activeLocale
+            df.dateStyle = .medium
+            df.timeStyle = .short
+            let sizeStr = status.sizeBytes.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) } ?? ""
+            syncInfoLabel.text = "\(L10n.isRussian ? "Синхр." : "Synced") \(df.string(from: syncedAt))\n\(sizeStr)"
+        } else {
+            syncInfoLabel.text = L10n.isRussian ? "Ещё не синхронизировано" : "Not synced yet"
+        }
+        cacheRestoreBtn.isHidden = !SyncService.shared.hasCachedBackup
+    }
+
+    private func rebuildShareRows() {
+        sharesStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        if shares.isEmpty {
+            sharesSectionLabel.text = AuthService.shared.isLoggedIn
+                ? (L10n.isRussian ? "Нет активных ссылок" : "No active links")
+                : (L10n.isRussian ? "Войдите, чтобы видеть ссылки" : "Sign in to view your links")
+            sharesSectionLabel.isHidden = false
+            return
+        }
+        sharesSectionLabel.isHidden = true
+
+        for item in shares {
+            let row = buildShareRow(item)
+            sharesStack.addArrangedSubview(row)
+        }
+    }
+
+    private func buildShareRow(_ item: ShareItem) -> UIView {
+        let card = UIView()
+        card.backgroundColor = UIColor { t in
+            t.userInterfaceStyle == .dark
+                ? UIColor(white: 0.12, alpha: 1)
+                : UIColor(white: 0.97, alpha: 1)
+        }
+        card.layer.cornerRadius = 14
+        card.layer.borderWidth = 0.5
+        card.layer.borderColor = UIColor.separator.withAlphaComponent(0.3).cgColor
+        card.translatesAutoresizingMaskIntoConstraints = false
+
+        let icon = UIImageView()
+        let iconName = item.type == "card" ? "doc.text" : "folder"
+        icon.image = UIImage(systemName: iconName)
+        icon.tintColor = DayPinDesign.accent
+        icon.contentMode = .scaleAspectFit
+        icon.translatesAutoresizingMaskIntoConstraints = false
+
+        let titleLbl = UILabel()
+        titleLbl.text = item.title.isEmpty ? (L10n.isRussian ? "Без названия" : "Untitled") : item.title
+        titleLbl.font = .inter(ofSize: 14, weight: .medium)
+        titleLbl.textColor = .label
+        titleLbl.translatesAutoresizingMaskIntoConstraints = false
+
+        let viewsLbl = UILabel()
+        viewsLbl.text = "\(item.viewCount) " + (L10n.isRussian ? "просм." : "views")
+        viewsLbl.font = .inter(ofSize: 11, weight: .regular)
+        viewsLbl.textColor = .tertiaryLabel
+        viewsLbl.translatesAutoresizingMaskIntoConstraints = false
+
+        let copyBtn = UIButton(type: .system)
+        let copyCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        copyBtn.setImage(UIImage(systemName: "doc.on.doc", withConfiguration: copyCfg), for: .normal)
+        copyBtn.tintColor = DayPinDesign.accent
+        copyBtn.translatesAutoresizingMaskIntoConstraints = false
+
+        let deleteBtn = UIButton(type: .system)
+        let delCfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        deleteBtn.setImage(UIImage(systemName: "trash", withConfiguration: delCfg), for: .normal)
+        deleteBtn.tintColor = .systemRed
+        deleteBtn.translatesAutoresizingMaskIntoConstraints = false
+
+        let shareID = item.shareID
+        let shareURL = item.url
+
+        copyBtn.addAction(UIAction { [weak self] _ in
+            UIPasteboard.general.string = shareURL
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            self?.showCopiedToast()
+        }, for: .touchUpInside)
+
+        deleteBtn.addAction(UIAction { [weak self] _ in
+            self?.confirmDeleteShare(id: shareID)
+        }, for: .touchUpInside)
+
+        card.addSubview(icon)
+        card.addSubview(titleLbl)
+        card.addSubview(viewsLbl)
+        card.addSubview(copyBtn)
+        card.addSubview(deleteBtn)
+
+        NSLayoutConstraint.activate([
+            card.heightAnchor.constraint(equalToConstant: 72),
+
+            icon.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
+            icon.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 20),
+            icon.heightAnchor.constraint(equalToConstant: 20),
+
+            deleteBtn.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+            deleteBtn.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            deleteBtn.widthAnchor.constraint(equalToConstant: 32),
+            deleteBtn.heightAnchor.constraint(equalToConstant: 32),
+
+            copyBtn.trailingAnchor.constraint(equalTo: deleteBtn.leadingAnchor, constant: -4),
+            copyBtn.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            copyBtn.widthAnchor.constraint(equalToConstant: 32),
+            copyBtn.heightAnchor.constraint(equalToConstant: 32),
+
+            titleLbl.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
+            titleLbl.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 10),
+            titleLbl.trailingAnchor.constraint(equalTo: copyBtn.leadingAnchor, constant: -8),
+
+            viewsLbl.topAnchor.constraint(equalTo: titleLbl.bottomAnchor, constant: 3),
+            viewsLbl.leadingAnchor.constraint(equalTo: titleLbl.leadingAnchor)
+        ])
+
+        return card
+    }
+
+    private func updateSkeletonVisibility() {
+        // Status skeletons
+        statusSkeletons.forEach { $0.isHidden = !isLoadingStatus }
+        syncInfoLabel.isHidden = isLoadingStatus
+
+        // Share skeletons
+        if isLoadingShares {
+            if sharesStack.arrangedSubviews.isEmpty {
+                for sk in shareSkeletons {
+                    sk.translatesAutoresizingMaskIntoConstraints = false
+                    sharesStack.addArrangedSubview(sk)
+                    sk.heightAnchor.constraint(equalToConstant: 72).isActive = true
+                    sk.startAnimating()
+                }
+            }
+        } else {
+            shareSkeletons.forEach {
+                $0.stopAnimating()
+                $0.removeFromSuperview()
+            }
+        }
     }
 
     // MARK: - Actions
 
-    @objc private func close() { dismiss(animated: true) }
-
-    private func changePhoto() {
-        var config = PHPickerConfiguration()
-        config.filter = .images
-        config.selectionLimit = 1
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = self
-        present(picker, animated: true)
+    @objc private func pushTapped() {
+        Task {
+            let result = await SyncService.shared.push()
+            switch result {
+            case .success(let summary):
+                let msg = L10n.isRussian
+                    ? "Загружено: \(summary.cards) заметок"
+                    : "Pushed: \(summary.cards) cards"
+                showBanner(msg, success: true)
+            case .noChanges:
+                showBanner(L10n.isRussian ? "Уже синхронизировано" : "Already up to date", success: true)
+            case .noBackup:
+                break
+            case .failure(let error):
+                showBanner(error.localizedDescription, success: false)
+            }
+        }
     }
 
-    private func syncNow() {
-        Task { await CloudSyncManager.shared.syncAll() }
+    @objc private func pullTapped() {
+        Task {
+            let result = await SyncService.shared.pull()
+            switch result {
+            case .success(let summary):
+                let msg = L10n.isRussian
+                    ? "Восстановлено: \(summary.cards) заметок"
+                    : "Pulled: \(summary.cards) cards"
+                showBanner(msg, success: true)
+            case .noBackup:
+                showBanner(L10n.isRussian ? "Нет данных на сервере" : "Nothing to pull", success: false)
+            case .noChanges:
+                break  // pull() never returns this - only push() does
+            case .failure(let error):
+                showBanner(error.localizedDescription, success: false)
+            }
+        }
     }
 
-    private func toggleNotifications(_ isOn: Bool) {
-        UserDefaults.standard.set(isOn, forKey: "daypin.notifications.syncChanges")
+    @objc private func restoreFromCacheTapped() {
+        guard let date = SyncService.shared.cachedBackupDate else { return }
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .short
+        df.locale = L10n.activeLocale
+        let dateStr = df.string(from: date)
+        let title = L10n.isRussian ? "Восстановить из кэша?" : "Restore from cache?"
+        let msg = L10n.isRussian
+            ? "Кэш от \(dateStr). Текущие данные будут заменены."
+            : "Cache from \(dateStr). Current data will be replaced."
+        GlassAlert.confirm(
+            in: self, title: title, message: msg,
+            confirmTitle: L10n.isRussian ? "Восстановить" : "Restore",
+            isDestructive: false
+        ) { [weak self] in
+            do {
+                try SyncService.shared.restoreFromCache()
+                self?.showBanner(L10n.isRussian ? "Данные восстановлены" : "Data restored", success: true)
+            } catch {
+                self?.showBanner(error.localizedDescription, success: false)
+            }
+        }
     }
 
-    private func disconnectICloud() {
+    @objc private func signOutTapped() {
         GlassAlert.confirm(
             in: self,
-            title: L10n.disconnectICloud,
-            message: L10n.disconnectICloudMessage,
-            confirmTitle: L10n.disconnect
-        ) {
-            // In a real implementation: disable sync, clear cloud sub
-            UserDefaults.standard.set(false, forKey: "daypin.icloud.enabled")
-            NotificationCenter.default.post(name: .dayPinSyncStatusChanged, object: nil)
-        }
-    }
-}
-
-// MARK: - UITableViewDataSource + Delegate
-
-extension ProfileViewController: UITableViewDataSource, UITableViewDelegate {
-
-    func numberOfSections(in tableView: UITableView) -> Int { Section.allCases.count }
-
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        switch Section(rawValue: section) {
-        case .profile: return 1
-        case .sync: return 2
-        case .notifications: return 2
-        default: return 0
-        }
+            title: L10n.isRussian ? "Выйти?" : "Sign out?",
+            confirmTitle: L10n.isRussian ? "Выйти" : "Sign Out",
+            isDestructive: false,
+            onConfirm: {
+                AuthService.shared.signOut()
+            }
+        )
     }
 
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        switch Section(rawValue: section) {
-        case .profile: return nil
-        case .sync: return L10n.iCloudSync
-        case .notifications: return L10n.notifications
-        default: return nil
+    @objc private func deleteAccountTapped() {
+        let alert = UIAlertController(
+            title: L10n.isRussian ? "Удалить аккаунт?" : "Delete Account?",
+            message: L10n.isRussian
+                ? "Все данные на сервере и ссылки будут удалены. Локальные заметки останутся.\n\nВведите пароль для подтверждения."
+                : "All server data and share links will be deleted. Local notes remain.\n\nEnter your password to confirm.",
+            preferredStyle: .alert
+        )
+        alert.addTextField { field in
+            field.placeholder = L10n.isRussian ? "Пароль" : "Password"
+            field.isSecureTextEntry = true
         }
-    }
-
-    func tableView(_ tableView: UITableView,
-                   cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.selectionStyle = .default
-
-        switch Section(rawValue: indexPath.section) {
-
-        case .profile:
-            var cfg = cell.defaultContentConfiguration()
-            cfg.text = L10n.editProfile
-            cfg.image = UIImage(systemName: "person.crop.circle")
-            cfg.imageProperties.tintColor = DayPinDesign.accent
-            cell.contentConfiguration = cfg
-            cell.accessoryType = .disclosureIndicator
-
-        case .sync:
-            switch indexPath.row {
-            case 0:
-                var cfg = cell.defaultContentConfiguration()
-                cfg.image = UIImage(systemName: "icloud.and.arrow.up")
-                cfg.imageProperties.tintColor = DayPinDesign.accent
-                cfg.text = L10n.syncNow
-
-                switch CloudSyncManager.shared.status {
-                case .idle:
-                    cfg.secondaryText = L10n.syncReady
-                case .syncing:
-                    cfg.secondaryText = L10n.syncing
-                    cell.selectionStyle = .none
-                case .synced(let date):
-                    let df = DateFormatter()
-                    df.timeStyle = .short
-                    df.locale = L10n.activeLocale
-                    cfg.secondaryText = L10n.syncedAt(df.string(from: date))
-                case .error(let msg):
-                    cfg.secondaryText = msg
-                    cfg.secondaryTextProperties.color = .systemRed
-                case .disabled:
-                    cfg.text = L10n.iCloudNotAvailable
-                    cfg.secondaryText = L10n.iCloudNotAvailableHint
-                    cfg.secondaryTextProperties.numberOfLines = 0
-                    cell.selectionStyle = .none
+        let deleteAction = UIAlertAction(
+            title: L10n.isRussian ? "Удалить" : "Delete",
+            style: .destructive
+        ) { [weak self, weak alert] _ in
+            let password = alert?.textFields?.first?.text ?? ""
+            guard !password.isEmpty else { return }
+            Task { [weak self] in
+                do {
+                    try await AuthService.shared.deleteAccount(password: password)
+                } catch {
+                    self?.showBanner(error.localizedDescription, success: false)
                 }
-                cell.contentConfiguration = cfg
-
-            case 1:
-                var cfg = cell.defaultContentConfiguration()
-                cfg.image = UIImage(systemName: "xmark.icloud")
-                cfg.imageProperties.tintColor = .systemRed
-                cfg.text = L10n.disconnectICloud
-                cfg.textProperties.color = .systemRed
-                cell.contentConfiguration = cfg
-
-            default: break
-            }
-
-        case .notifications:
-            switch indexPath.row {
-            case 0:
-                var cfg = cell.defaultContentConfiguration()
-                cfg.image = UIImage(systemName: "bell")
-                cfg.imageProperties.tintColor = DayPinDesign.accent
-                cfg.text = L10n.notifyOnChanges
-                cfg.secondaryText = L10n.notifyOnChangesHint
-                cfg.secondaryTextProperties.numberOfLines = 0
-                cell.contentConfiguration = cfg
-                let toggle = UISwitch()
-                toggle.isOn = UserDefaults.standard.bool(forKey: "daypin.notifications.syncChanges")
-                toggle.onTintColor = DayPinDesign.accent
-                toggle.addAction(UIAction { [weak self] _ in self?.toggleNotifications(toggle.isOn) }, for: .valueChanged)
-                cell.accessoryView = toggle
-                cell.selectionStyle = .none
-
-            case 1:
-                var cfg = cell.defaultContentConfiguration()
-                cfg.image = UIImage(systemName: "iphone.radiowaves.left.and.right")
-                cfg.imageProperties.tintColor = .secondaryLabel
-                cfg.text = L10n.pushWhenAppClosed
-                cfg.textProperties.color = .secondaryLabel
-                cfg.secondaryText = L10n.pushWhenAppClosedHint
-                cfg.secondaryTextProperties.numberOfLines = 0
-                cell.contentConfiguration = cfg
-                cell.selectionStyle = .none
-
-            default: break
-            }
-
-        default: break
-        }
-        return cell
-    }
-
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-        switch Section(rawValue: indexPath.section) {
-        case .profile:
-            changePhoto()
-        case .sync:
-            if indexPath.row == 0 { syncNow() }
-            else if indexPath.row == 1 { disconnectICloud() }
-        default: break
-        }
-    }
-}
-
-// MARK: - PHPickerViewControllerDelegate
-
-extension ProfileViewController: PHPickerViewControllerDelegate {
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
-        guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
-        provider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
-            guard let image = object as? UIImage else { return }
-            Task {
-                await ProfileManager.shared.uploadAvatar(image)
             }
         }
+        let cancelAction = UIAlertAction(
+            title: L10n.isRussian ? "Отмена" : "Cancel",
+            style: .cancel
+        )
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        present(alert, animated: true)
     }
-}
 
-// MARK: - ProfileHeaderView
-
-private final class ProfileHeaderView: UIView {
-
-    var onChangePhoto: (() -> Void)?
-
-    private let avatarView = AvatarView(size: 72)
-    private let cameraBtn = UIButton(type: .system)
-    private let nameLabel = UILabel()
-    private let emailLabel = UILabel()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setup()
+    private func confirmDeleteShare(id: String) {
+        GlassAlert.confirm(
+            in: self,
+            title: L10n.isRussian ? "Удалить ссылку?" : "Delete link?",
+            confirmTitle: L10n.isRussian ? "Удалить" : "Delete",
+            isDestructive: true,
+            onConfirm: { [weak self] in
+                Task {
+                    do {
+                        try await ShareService.shared.deleteShare(id: id)
+                        self?.loadShares()
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    } catch {
+                        self?.showBanner(error.localizedDescription, success: false)
+                    }
+                }
+            }
+        )
     }
-    required init?(coder: NSCoder) { fatalError() }
 
-    private func setup() {
-        avatarView.translatesAutoresizingMaskIntoConstraints = false
+    // MARK: - Helpers
 
-        // Camera badge on avatar
-        let camCfg = UIImage.SymbolConfiguration(pointSize: 11, weight: .medium)
-        cameraBtn.setImage(UIImage(systemName: "camera.fill", withConfiguration: camCfg), for: .normal)
-        cameraBtn.backgroundColor = DayPinDesign.accent
-        cameraBtn.tintColor = .white
-        cameraBtn.layer.cornerRadius = 12
-        cameraBtn.layer.borderWidth = 2
-        cameraBtn.layer.borderColor = UIColor.systemBackground.cgColor
-        cameraBtn.translatesAutoresizingMaskIntoConstraints = false
-        cameraBtn.addAction(UIAction { [weak self] _ in self?.onChangePhoto?() }, for: .touchUpInside)
+    private func showCopiedToast() {
+        showBanner(L10n.isRussian ? "Ссылка скопирована" : "Link copied", success: true)
+    }
 
-        nameLabel.font = .inter(ofSize: 18, weight: .semibold)
-        nameLabel.textColor = .label
-        nameLabel.textAlignment = .center
-        nameLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        emailLabel.font = .inter(ofSize: 13)
-        emailLabel.textColor = .secondaryLabel
-        emailLabel.textAlignment = .center
-        emailLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        addSubview(avatarView)
-        addSubview(cameraBtn)
-        addSubview(nameLabel)
-        addSubview(emailLabel)
-
+    private func showBanner(_ text: String, success: Bool) {
+        let label = UILabel()
+        label.text = text
+        label.font = .inter(ofSize: 13, weight: .medium)
+        label.textColor = .white
+        label.textAlignment = .center
+        label.backgroundColor = success ? DayPinDesign.accent : UIColor.systemRed
+        label.layer.cornerRadius = 12
+        label.clipsToBounds = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
         NSLayoutConstraint.activate([
-            avatarView.topAnchor.constraint(equalTo: topAnchor, constant: 20),
-            avatarView.centerXAnchor.constraint(equalTo: centerXAnchor),
-            avatarView.widthAnchor.constraint(equalToConstant: 72),
-            avatarView.heightAnchor.constraint(equalToConstant: 72),
-
-            cameraBtn.widthAnchor.constraint(equalToConstant: 24),
-            cameraBtn.heightAnchor.constraint(equalToConstant: 24),
-            cameraBtn.trailingAnchor.constraint(equalTo: avatarView.trailingAnchor),
-            cameraBtn.bottomAnchor.constraint(equalTo: avatarView.bottomAnchor),
-
-            nameLabel.topAnchor.constraint(equalTo: avatarView.bottomAnchor, constant: 10),
-            nameLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            nameLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
-
-            emailLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 3),
-            emailLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
-            emailLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
-            emailLabel.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -12)
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            label.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
+            label.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
+            label.heightAnchor.constraint(equalToConstant: 40)
         ])
+        label.layoutIfNeeded()
+        let padding = NSMutableAttributedString(string: "  \(text)  ")
+        label.attributedText = padding
+
+        label.alpha = 0
+        label.transform = CGAffineTransform(translationX: 0, y: 8)
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3) {
+            label.alpha = 1
+            label.transform = .identity
+        }
+        UIView.animate(withDuration: 0.25, delay: 2.5) {
+            label.alpha = 0
+        } completion: { _ in
+            label.removeFromSuperview()
+        }
     }
 
-    func configure(image: UIImage?, initials: String, name: String, email: String) {
-        avatarView.configure(image: image, initials: initials)
-        nameLabel.text = name
-        emailLabel.text = email.isEmpty ? " " : email
+    // MARK: - Theming
+
+    private func refreshHeaderBorderColor() {
+        let dark = traitCollection.userInterfaceStyle == .dark
+        let color = dark
+            ? UIColor.white.withAlphaComponent(0.10).cgColor
+            : UIColor.black.withAlphaComponent(0.07).cgColor
+        headerCard.layer.borderColor = color
+    }
+
+    private func refreshSyncBlurBorder() {
+        let dark = traitCollection.userInterfaceStyle == .dark
+        syncBlur.layer.borderColor = dark
+            ? UIColor.white.withAlphaComponent(0.18).cgColor
+            : UIColor.black.withAlphaComponent(0.12).cgColor
+    }
+
+    private func refreshSettingsBlurBorder() {
+        let dark = traitCollection.userInterfaceStyle == .dark
+        settingsBlur.layer.borderColor = dark
+            ? UIColor.white.withAlphaComponent(0.18).cgColor
+            : UIColor.black.withAlphaComponent(0.12).cgColor
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            refreshHeaderBorderColor()
+            refreshSyncBlurBorder()
+            refreshSettingsBlurBorder()
+        }
     }
 }
+

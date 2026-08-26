@@ -136,18 +136,27 @@ struct DebugFilter: Equatable {
 
 private final class DebugOverlayViewController: UIViewController {
 
+    private enum DebugMode { case layout, network }
+
     private let sourceWindow: UIWindow
     private let vcName:       String
     private let nameMap:      [ObjectIdentifier: String]
 
+    private var mode: DebugMode = .layout
+
     private var canvas:          DebugCanvasView!
+    private var filterBar:       UIView!
+    private var networkVC:       NetworkLogViewController!
     private var filterChipStack: UIStackView?
     private var activeFilterIDs: Set<String> = ["All"]
+    private var layoutModeButton:  ModeChipButton?
+    private var networkModeButton: ModeChipButton?
 
     init(sourceWindow: UIWindow, vcName: String, nameMap: [ObjectIdentifier: String]) {
         self.sourceWindow = sourceWindow
         self.vcName = vcName
         self.nameMap = nameMap
+        self.networkVC = NetworkLogViewController()
         super.init(nibName: nil, bundle: nil)
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -167,19 +176,39 @@ private final class DebugOverlayViewController: UIViewController {
         view.addSubview(canvas)
 
         let banner = makeBanner()
-        let filterBar = makeFilterBar()
+        let modeSwitcher = makeModeSwitcher()
+        filterBar = makeFilterBar()
         let exitBtn = makeExitButton()
         let hint = makeHintLabel()
 
+        addChild(networkVC)
+        networkVC.view.translatesAutoresizingMaskIntoConstraints = false
+        networkVC.view.isHidden = true
+        networkVC.onSelectEntry = { [weak self] entry in
+            let detail = NetworkLogDetailViewController(entry: entry)
+            let nav = UINavigationController(rootViewController: detail)
+            self?.present(nav, animated: true)
+        }
+        view.addSubview(networkVC.view)
+        networkVC.didMove(toParent: self)
+
         NSLayoutConstraint.activate([
-            canvas.topAnchor.constraint(equalTo: view.topAnchor),
+            canvas.topAnchor.constraint(equalTo: modeSwitcher.bottomAnchor, constant: 8),
             canvas.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             canvas.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             canvas.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
+            networkVC.view.topAnchor.constraint(equalTo: modeSwitcher.bottomAnchor, constant: 8),
+            networkVC.view.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            networkVC.view.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            networkVC.view.bottomAnchor.constraint(equalTo: exitBtn.topAnchor, constant: -10),
+
             banner.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 6),
             banner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             banner.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -48),
+
+            modeSwitcher.topAnchor.constraint(equalTo: banner.bottomAnchor, constant: 8),
+            modeSwitcher.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
             filterBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             filterBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -196,6 +225,40 @@ private final class DebugOverlayViewController: UIViewController {
         ])
 
         DispatchQueue.main.async { self.applyFilter() }
+    }
+
+    // MARK: - Mode switcher
+
+    private func makeModeSwitcher() -> UIView {
+        let layoutBtn = ModeChipButton(title: "Layout")
+        let networkBtn = ModeChipButton(title: "Network")
+        layoutBtn.isOn = true
+        layoutBtn.addTarget(self, action: #selector(layoutModeTapped), for: .touchUpInside)
+        networkBtn.addTarget(self, action: #selector(networkModeTapped), for: .touchUpInside)
+
+        self.layoutModeButton = layoutBtn
+        self.networkModeButton = networkBtn
+
+        let stack = UIStackView(arrangedSubviews: [layoutBtn, networkBtn])
+        stack.axis = .horizontal
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+        return stack
+    }
+
+    @objc private func layoutModeTapped() { setMode(.layout) }
+    @objc private func networkModeTapped() { setMode(.network) }
+
+    private func setMode(_ newMode: DebugMode) {
+        guard mode != newMode else { return }
+        mode = newMode
+        layoutModeButton?.isOn = (newMode == .layout)
+        networkModeButton?.isOn = (newMode == .network)
+        canvas.isHidden = (newMode != .layout)
+        filterBar.isHidden = (newMode != .layout)
+        networkVC.view.isHidden = (newMode != .network)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private func makeBanner() -> UIView {
@@ -399,6 +462,38 @@ private final class FilterChipButton: UIButton {
         layer.cornerRadius = 12
         layer.borderWidth = 1
         contentEdgeInsets = UIEdgeInsets(top: 5, left: 12, bottom: 5, right: 12)
+        updateAppearance()
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func updateAppearance() {
+        backgroundColor = isOn ? Self.onBg   : Self.offBg
+        setTitleColor(isOn ? Self.onText : Self.offText, for: .normal)
+        layer.borderColor = isOn
+            ? UIColor.white.cgColor
+            : UIColor.white.withAlphaComponent(0.30).cgColor
+    }
+}
+
+// MARK: - ModeChipButton
+// Layout / Network toggle at the top of the shake-debug overlay.
+
+private final class ModeChipButton: UIButton {
+
+    var isOn: Bool = false { didSet { updateAppearance() } }
+
+    private static let onBg = UIColor(red: 0.72, green: 0.45, blue: 1.0, alpha: 0.90)
+    private static let offBg = UIColor.white.withAlphaComponent(0.12)
+    private static let onText = UIColor.white
+    private static let offText = UIColor.white.withAlphaComponent(0.65)
+
+    init(title: String) {
+        super.init(frame: .zero)
+        setTitle(title, for: .normal)
+        titleLabel?.font = .monospacedSystemFont(ofSize: 12, weight: .bold)
+        layer.cornerRadius = 14
+        layer.borderWidth = 1
+        contentEdgeInsets = UIEdgeInsets(top: 6, left: 16, bottom: 6, right: 16)
         updateAppearance()
     }
     required init?(coder: NSCoder) { fatalError() }

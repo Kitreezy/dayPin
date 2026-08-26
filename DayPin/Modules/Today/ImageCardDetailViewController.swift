@@ -307,10 +307,14 @@ final class ImageCardDetailViewController: UIViewController {
         btn.showsMenuAsPrimaryAction = true
         btn.sendActions(for: .menuActionTriggered)
         let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: L10n.share,     style: .default) { [weak self] _ in self?.share() })
-        alert.addAction(UIAlertAction(title: L10n.copyToDay, style: .default) { [weak self] _ in self?.copyToDay() })
-        alert.addAction(UIAlertAction(title: L10n.inFolder,  style: .default) { [weak self] _ in self?.addToFolder() })
-        alert.addAction(UIAlertAction(title: L10n.cancel,    style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.share,        style: .default) { [weak self] _ in self?.share() })
+        alert.addAction(UIAlertAction(title: L10n.shareViaLink, style: .default) { [weak self] _ in
+            guard let self else { return }
+            ShareLinkPresenter.shareCard(self.card, from: self)
+        })
+        alert.addAction(UIAlertAction(title: L10n.copyToDay,    style: .default) { [weak self] _ in self?.copyToDay() })
+        alert.addAction(UIAlertAction(title: L10n.inFolder,     style: .default) { [weak self] _ in self?.addToFolder() })
+        alert.addAction(UIAlertAction(title: L10n.cancel,       style: .cancel))
         present(alert, animated: true)
     }
 

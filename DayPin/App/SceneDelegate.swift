@@ -17,6 +17,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
         self.window = window
         ThemeManager.shared.apply()
+        _ = NetworkActivityHUD.shared
 
         NotificationCenter.default.addObserver(
             self,
@@ -30,11 +31,48 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 
-    // MARK: - URL scheme (widget deep links)
+    // MARK: - URL scheme (widget deep links + shared content)
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         guard let url = URLContexts.first?.url else { return }
         handleURL(url)
+    }
+
+    private func openSharedContent(shareID: String) {
+        guard let root = window?.rootViewController else { return }
+        let presenter = root.presentedViewController ?? root
+        let vc = SharedContentViewController(shareID: shareID)
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        presenter.present(nav, animated: true)
+    }
+
+    // MARK: - Background push
+    // Best-effort backup on backgrounding so a signed-in user's data isn't
+    // lost if they never remember to tap "Push" manually. SyncService.push()
+    // skips the network call entirely if local content hasn't changed since
+    // the last successful push, so this is cheap to call on every single
+    // backgrounding - it won't hammer the server's limited free-tier storage
+    // with redundant re-uploads of an unchanged backup.
+
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        performBackgroundPush()
+    }
+
+    private func performBackgroundPush() {
+        var bgTask: UIBackgroundTaskIdentifier = .invalid
+        bgTask = UIApplication.shared.beginBackgroundTask(withName: "daypin.backgroundPush") {
+            UIApplication.shared.endBackgroundTask(bgTask)
+            bgTask = .invalid
+        }
+        Task { @MainActor in
+            defer {
+                UIApplication.shared.endBackgroundTask(bgTask)
+                bgTask = .invalid
+            }
+            guard AuthService.shared.isLoggedIn else { return }
+            _ = await SyncService.shared.push()
+        }
     }
 
     private func handleURL(_ url: URL) {
@@ -58,6 +96,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 let cardID = UUID(uuidString: cardIDStr)
             else { return }
             openCardByID(cardID)
+
+        case "s":
+            // daypin://s/<shareID> - opened from the "Open in DayPin" button
+            // on the server's share page (used instead of Universal Links,
+            // which require a paid Apple Developer account we don't have).
+            let shareID = url.lastPathComponent
+            guard !shareID.isEmpty else { return }
+            openSharedContent(shareID: shareID)
 
         default:
             break

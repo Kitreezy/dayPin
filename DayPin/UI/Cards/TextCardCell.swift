@@ -11,6 +11,7 @@ final class TextCardCell: UICollectionViewCell {
     private let commentLabel = UILabel()
     private let dateLabel = UILabel()
     private let reminderDot = UIImageView()
+    private let tagPillsView = CardTagPillsView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -67,7 +68,10 @@ final class TextCardCell: UICollectionViewCell {
         topRow.alignment = .center
         topRow.translatesAutoresizingMaskIntoConstraints = false
 
-        let stack = UIStackView(arrangedSubviews: [topRow, titleLabel, commentLabel])
+        tagPillsView.translatesAutoresizingMaskIntoConstraints = false
+        tagPillsView.isHidden = true
+
+        let stack = UIStackView(arrangedSubviews: [topRow, titleLabel, commentLabel, tagPillsView])
         stack.axis = .vertical
         stack.spacing = 5
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -104,6 +108,8 @@ final class TextCardCell: UICollectionViewCell {
         let hasReminder = card.reminderDate != nil && (card.reminderDate ?? .distantPast) > Date()
         reminderDot.isHidden = !hasReminder
         reminderDot.tintColor = tint
+
+        tagPillsView.configure(tagIDs: card.tagIDs, style: .light)
     }
 
     override var isHighlighted: Bool {

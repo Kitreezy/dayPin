@@ -282,18 +282,6 @@ struct NoteCardDTO: Codable {
     // Display order (for drag-to-reorder within a day)
     var displayOrder: Int?
 
-    // Minimal init used by CloudKitManager when building from CKRecord
-    init(id: UUID, type: CardType, title: String, comment: String, createdAt: Date, dayDate: Date, deletedAt: Date?) {
-        self.id = id
-        self.type = type
-        self.title = title
-        self.comment = comment
-        self.createdAt = createdAt
-        self.modifiedAt = Date()
-        self.dayDate = dayDate
-        self.deletedAt = deletedAt
-    }
-
     init(from card: NoteCard) {
         id = card.id
         type = card.type

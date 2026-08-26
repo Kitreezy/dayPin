@@ -49,8 +49,6 @@ final class TodayViewController: UIViewController {
     private var todayJumpBtnHiddenConstraint: NSLayoutConstraint!
     private let searchBtn = UIButton(type: .system)
     private let moreBtn = UIButton(type: .system)
-    private let avatarView = AvatarView(size: 32)
-    private let avatarBtn = UIButton(type: .custom)
 
     // Slides in over the header when search is active
     private let searchContainer = UIView()
@@ -177,10 +175,6 @@ final class TodayViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(onAddPhoto),  name: .dayPinAddPhoto,  object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onAddCamera), name: .dayPinAddCamera, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onAddLink),   name: .dayPinAddLink,   object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(onProfileUpdated),
-            name: .dayPinProfileUpdated, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(onRemoteChange),
-            name: .dayPinRemoteChangeReceived, object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -231,40 +225,6 @@ final class TodayViewController: UIViewController {
         rebuildMoreMenu()
         collectionView.reloadData()
         undoToast.refresh()
-    }
-
-    @objc private func onProfileUpdated() {
-        avatarView.refresh()
-    }
-
-    @objc private func onRemoteChange(_ notification: Notification) {
-        guard let info = notification.userInfo,
-              let author = info["authorName"] as? String,
-              let cardTitle = info["cardTitle"] as? String else { return }
-        showRemoteChangeToast(author: author, cardTitle: cardTitle)
-    }
-
-    @objc private func avatarTapped() {
-        let vc = ProfileViewController()
-        let nav = UINavigationController(rootViewController: vc)
-        if let sheet = nav.sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
-            sheet.prefersGrabberVisible = true
-            sheet.preferredCornerRadius = 24
-        }
-        present(nav, animated: true)
-    }
-
-    private func showRemoteChangeToast(author: String, cardTitle: String) {
-        let toast = RemoteChangeToast(author: author, cardTitle: cardTitle)
-        toast.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(toast)
-        NSLayoutConstraint.activate([
-            toast.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            toast.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            toast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -80)
-        ])
-        toast.show()
     }
 
     private func refreshButtonColors() {
@@ -335,20 +295,6 @@ final class TodayViewController: UIViewController {
         refreshButtonColors()
         rebuildMoreMenu()
 
-        // Avatar button (left side)
-        avatarView.translatesAutoresizingMaskIntoConstraints = false
-        avatarView.isUserInteractionEnabled = false
-        avatarBtn.translatesAutoresizingMaskIntoConstraints = false
-        avatarBtn.addSubview(avatarView)
-        avatarBtn.addTarget(self, action: #selector(avatarTapped), for: .touchUpInside)
-        NSLayoutConstraint.activate([
-            avatarView.topAnchor.constraint(equalTo: avatarBtn.topAnchor),
-            avatarView.leadingAnchor.constraint(equalTo: avatarBtn.leadingAnchor),
-            avatarView.trailingAnchor.constraint(equalTo: avatarBtn.trailingAnchor),
-            avatarView.bottomAnchor.constraint(equalTo: avatarBtn.bottomAnchor)
-        ])
-
-        headerContainer.addSubview(avatarBtn)
         headerContainer.addSubview(titleLabel)
         headerContainer.addSubview(dateLabel)
         headerContainer.addSubview(todayJumpBtn)
@@ -358,13 +304,8 @@ final class TodayViewController: UIViewController {
         todayJumpBtnHiddenConstraint = todayJumpBtn.widthAnchor.constraint(equalToConstant: 0)
 
         NSLayoutConstraint.activate([
-            avatarBtn.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
-            avatarBtn.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            avatarBtn.widthAnchor.constraint(equalToConstant: 32),
-            avatarBtn.heightAnchor.constraint(equalToConstant: 32),
-
             titleLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 10),
-            titleLabel.leadingAnchor.constraint(equalTo: avatarBtn.trailingAnchor, constant: 10),
+            titleLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
             titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: searchBtn.leadingAnchor, constant: -8),
 
             searchBtn.trailingAnchor.constraint(equalTo: moreBtn.leadingAnchor, constant: -8),
